@@ -219,7 +219,7 @@ class CRM_Report_Form_Grant_Detail extends CRM_Report_Form {
   public function from() {
     $this->setFromBase('civicrm_contact');
     $this->_from .= <<<HERESQL
-    INNER JOIN civicrm_grant {$this->_aliases['civicrm_grant']}
+    LEFT JOIN civicrm_grant {$this->_aliases['civicrm_grant']}
       ON {$this->_aliases['civicrm_contact']}.id = {$this->_aliases['civicrm_grant']}.contact_id
 HERESQL;
 
