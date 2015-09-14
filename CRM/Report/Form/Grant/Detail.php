@@ -240,9 +240,10 @@ class CRM_Report_Form_Grant_Detail extends CRM_Report_Form {
   public function from() {
     $this->_from = "
         FROM civicrm_grant {$this->_aliases['civicrm_grant']}
-                        LEFT JOIN civicrm_contact {$this->_aliases['civicrm_contact']}
-                    ON ({$this->_aliases['civicrm_grant']}.contact_id  = {$this->_aliases['civicrm_contact']}.id  ) ";
-    $this->joinAddressFromContact();
+                        INNER JOIN civicrm_contact {$this->_aliases['civicrm_contact']}
+                    ON ({$this->_aliases['civicrm_grant']}.contact_id  = {$this->_aliases['civicrm_contact']}.id  )
+		    AND ({$this->_aliases['civicrm_contact']}.is_deleted = 0)";
+    this->joinAddressFromContact();
   }
 
   public function where() {
