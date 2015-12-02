@@ -63,7 +63,7 @@ class api_v3_SystemCheckTest extends CiviUnitTestCase {
         break;
       }
     }
-    $this->assertEquals($testedCheck['severity'], '3', ' in line ' . __LINE__);
+    $this->assertEquals($testedCheck['severity_id'], '3', ' in line ' . __LINE__);
   }
 
   /**
@@ -85,11 +85,11 @@ class api_v3_SystemCheckTest extends CiviUnitTestCase {
         $testedCheck = array();
       }
     }
-    $this->assertArrayNotHasKey('name', $testedCheck, ' in line ' . __LINE__);
+    $this->assertEquals($testedCheck['is_visible'], '0', 'in line ' . __LINE__);
   }
 
   /**
-   *    Items hushed through tomorrow shouldn't show up.
+   * Items hushed through tomorrow shouldn't show up.
    */
   public function testSystemCheckHushFuture() {
     $tomorrow = new DateTime('tomorrow');
@@ -109,11 +109,11 @@ class api_v3_SystemCheckTest extends CiviUnitTestCase {
         $testedCheck = array();
       }
     }
-    $this->assertArrayNotHasKey('name', $testedCheck, ' in line ' . __LINE__);
+    $this->assertEquals($testedCheck['is_visible'], '0', 'in line ' . __LINE__);;
   }
 
   /**
-   *    Items hushed through today should show up.
+   * Items hushed through today should show up.
    */
   public function testSystemCheckHushToday() {
     $today = new DateTime('today');
@@ -133,11 +133,11 @@ class api_v3_SystemCheckTest extends CiviUnitTestCase {
         $testedCheck = array();
       }
     }
-    $this->assertArrayHasKey('name', $testedCheck, ' in line ' . __LINE__);
+    $this->assertEquals($testedCheck['is_visible'], '1', 'in line ' . __LINE__);
   }
 
   /**
-   *    Items hushed through yesterday should show up.
+   * Items hushed through yesterday should show up.
    */
   public function testSystemCheckHushYesterday() {
     $yesterday = new DateTime('yesterday');
@@ -157,11 +157,11 @@ class api_v3_SystemCheckTest extends CiviUnitTestCase {
         $testedCheck = array();
       }
     }
-    $this->assertArrayHasKey('name', $testedCheck, ' in line ' . __LINE__);
+    $this->assertEquals($testedCheck['is_visible'], '1', 'in line ' . __LINE__);
   }
 
   /**
-   *    Items hushed above current severity should be hidden.
+   * Items hushed above current severity should be hidden.
    */
   public function testSystemCheckHushAboveSeverity() {
     $this->_params = array(
@@ -179,11 +179,11 @@ class api_v3_SystemCheckTest extends CiviUnitTestCase {
         $testedCheck = array();
       }
     }
-    $this->assertArrayNotHasKey('name', $testedCheck, ' in line ' . __LINE__);
+    $this->assertEquals($testedCheck['is_visible'], '0', 'in line ' . __LINE__);
   }
 
   /**
-   *    Items hushed at current severity should be hidden.
+   * Items hushed at current severity should be hidden.
    */
   public function testSystemCheckHushAtSeverity() {
     $this->_params = array(
@@ -201,11 +201,11 @@ class api_v3_SystemCheckTest extends CiviUnitTestCase {
         $testedCheck = array();
       }
     }
-    $this->assertArrayNotHasKey('name', $testedCheck, ' in line ' . __LINE__);
+    $this->assertEquals($testedCheck['is_visible'], '0', 'in line ' . __LINE__);
   }
 
   /**
-   *    Items hushed below current severity should be shown.
+   * Items hushed below current severity should be shown.
    */
   public function testSystemCheckHushBelowSeverity() {
     $this->_params = array(
@@ -223,7 +223,7 @@ class api_v3_SystemCheckTest extends CiviUnitTestCase {
         $testedCheck = array();
       }
     }
-    $this->assertArrayHasKey('name', $testedCheck, ' in line ' . __LINE__);
+    $this->assertEquals($testedCheck['is_visible'], '1', 'in line ' . __LINE__);
   }
 
 }

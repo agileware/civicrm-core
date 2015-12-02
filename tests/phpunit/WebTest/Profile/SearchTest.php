@@ -83,8 +83,10 @@ class WebTest_Profile_SearchTest extends CiviSeleniumTestCase {
     $this->waitForText('crm-notification-container', "Your CiviCRM Profile Field 'Last Name' has been saved to '$profileTitle'.");
 
     // Add Email field.
+    $this->waitForElementPresent("field_name[0]");
     $this->click('field_name[0]');
     $this->select('field_name[0]', 'value=Contact');
+    $this->waitForElementPresent('field_name[1]');
     $this->click('field_name[1]');
     $this->select('field_name[1]', 'value=email');
     $this->click("//option[@value='Contact']");
@@ -158,7 +160,7 @@ class WebTest_Profile_SearchTest extends CiviSeleniumTestCase {
     $this->click('in_selector');
 
     // click on save
-    $this->clickLink('_qf_Field_next-bottom', "xpath=//div[@id='field_page']/div[1]/a[4]/span[text()=' Use (create mode)']", FALSE);
+    $this->clickLink('_qf_Field_next-bottom', "xpath=//div[@id='field_page']/div[1]/a[4]/span", FALSE);
 
     $uselink = explode('?', $this->getAttribute("xpath=//*[@id='field_page']/div[1]/a[4]@href"));
     $this->openCiviPage('profile/create', "$uselink[1]", '_qf_Edit_next');
@@ -242,7 +244,7 @@ class WebTest_Profile_SearchTest extends CiviSeleniumTestCase {
     $this->waitForElementPresent("visibility");
     $this->click("xpath=//tr[@id='profile_visibility']/td[1]/a");
     $this->waitForElementPresent("xpath=//div[@id='crm-notification-container']/div/div[2]/p[2]");
-    $this->waitForText('crm-notification-container', 'Is this field hidden from other users');
+    $this->waitForText('crm-notification-container', 'Is this field hidden from public search');
     $this->select('visibility', 'value=Public Pages and Listings');
   }
 

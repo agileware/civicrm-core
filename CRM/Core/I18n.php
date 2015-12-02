@@ -347,7 +347,8 @@ class CRM_Core_I18n {
     }
 
     // do all wildcard translations first
-    if (!isset(Civi::$statics[__CLASS__][$this->locale])) {
+
+    if (!isset(Civi::$statics[__CLASS__]) || !array_key_exists($this->locale, Civi::$statics[__CLASS__])) {
       if (defined('CIVICRM_DSN') && !CRM_Core_Config::isUpgradeMode()) {
         Civi::$statics[__CLASS__][$this->locale] = CRM_Core_BAO_WordReplacement::getLocaleCustomStrings($this->locale);
       }
@@ -636,7 +637,7 @@ class CRM_Core_I18n {
    * @return string
    */
   public static  function getContactDefaultLanguage() {
-    $language = CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::LOCALIZATION_PREFERENCES_NAME, 'contact_default_language');
+    $language = Civi::settings()->get('contact_default_language');
     if ($language == 'undefined') {
       return NULL;
     }

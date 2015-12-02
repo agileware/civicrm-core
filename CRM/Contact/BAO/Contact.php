@@ -137,12 +137,7 @@ class CRM_Contact_BAO_Contact extends CRM_Contact_DAO_Contact {
           // CRM-7925
           CRM_Core_Error::fatal(ts('The Contact Sub Type does not match the Contact type for this record'));
         }
-        if (is_array($params['contact_sub_type'])) {
-          $params['contact_sub_type'] = CRM_Core_DAO::VALUE_SEPARATOR . implode(CRM_Core_DAO::VALUE_SEPARATOR, $params['contact_sub_type']) . CRM_Core_DAO::VALUE_SEPARATOR;
-        }
-        else {
-          $params['contact_sub_type'] = CRM_Core_DAO::VALUE_SEPARATOR . trim($params['contact_sub_type'], CRM_Core_DAO::VALUE_SEPARATOR) . CRM_Core_DAO::VALUE_SEPARATOR;
-        }
+        $params['contact_sub_type'] = CRM_Utils_Array::implodePadded($params['contact_sub_type']);
       }
     }
     else {
@@ -157,26 +152,15 @@ class CRM_Contact_BAO_Contact extends CRM_Contact_DAO_Contact {
     }
 
     // Fix for preferred communication method.
-    $prefComm = CRM_Utils_Array::value('preferred_communication_method', $params);
+    $prefComm = CRM_Utils_Array::value('preferred_communication_method', $params, '');
     if ($prefComm && is_array($prefComm)) {
       unset($params['preferred_communication_method']);
-      $newPref = array();
 
-      foreach ($prefComm as $k => $v) {
-        if ($v) {
-          $newPref[$k] = $v;
-        }
-      }
-
-      $prefComm = $newPref;
-      if (is_array($prefComm) && !empty($prefComm)) {
-        $prefComm = CRM_Core_DAO::VALUE_SEPARATOR . implode(CRM_Core_DAO::VALUE_SEPARATOR, array_keys($prefComm)) . CRM_Core_DAO::VALUE_SEPARATOR;
-        $contact->preferred_communication_method = $prefComm;
-      }
-      else {
-        $contact->preferred_communication_method = '';
-      }
+      CRM_Utils_Array::formatArrayKeys($prefComm);
+      $prefComm = CRM_Utils_Array::implodePadded($prefComm);
     }
+
+    $contact->preferred_communication_method = $prefComm;
 
     $allNull = $contact->copyValues($params);
 
@@ -335,7 +319,7 @@ class CRM_Contact_BAO_Contact extends CRM_Contact_DAO_Contact {
 
     $params['contact_id'] = $contact->id;
 
-    if (CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::MULTISITE_PREFERENCES_NAME, 'is_enabled')) {
+    if (Civi::settings()->get('is_enabled')) {
       // Enabling multisite causes the contact to be added to the domain group.
       $domainGroupID = CRM_Core_BAO_Domain::getGroupId();
       if (!empty($domainGroupID)) {
@@ -521,6 +505,35 @@ WHERE     civicrm_contact.id = " . CRM_Utils_Type::escape($id, 'Integer');
       ) : array($displayName, $image, $imageUrl);
     }
     return NULL;
+  }
+
+  /**
+   * Add billing fields to the params if appropriate.
+   *
+   * If we have ANY name fields then we want to ignore all the billing name fields. However, if we
+   * don't then we should set the name fields to the filling fields AND add the preserveDBName
+   * parameter (which will tell the BAO only to set those fields if none already exist.
+   *
+   * We specifically don't want to set first name from billing and last name form an on-page field. Mixing &
+   * matching is best done by hipsters.
+   *
+   * @param array $params
+   */
+  public static function addBillingNameFieldsIfOtherwiseNotSet(&$params) {
+    $nameFields = array('first_name', 'middle_name', 'last_name');
+    foreach ($nameFields as $field) {
+      if (!empty($params[$field])) {
+        return;
+      }
+    }
+    // There are only 3 - we can iterate through them twice :-)
+    foreach ($nameFields as $field) {
+      if (!empty($params['billing_' . $field])) {
+        $params[$field] = $params['billing_' . $field];
+      }
+      $params['preserveDBName'] = TRUE;
+    }
+
   }
 
   /**
@@ -882,14 +895,7 @@ WHERE     civicrm_contact.id = " . CRM_Utils_Type::escape($id, 'Integer');
 
     //delete the contact id from recently view
     CRM_Utils_Recent::delContact($id);
-
-    // Update the group contact cache
-    if ($restore) {
-      CRM_Contact_BAO_GroupContactCache::remove();
-    }
-    else {
-      CRM_Contact_BAO_GroupContactCache::removeContact($id);
-    }
+    self::updateContactCache($id, empty($restore));
 
     // delete any dupe cache entry
     CRM_Core_BAO_PrevNextCache::deleteItem($id);
@@ -905,6 +911,32 @@ WHERE     civicrm_contact.id = " . CRM_Utils_Type::escape($id, 'Integer');
     CRM_Core_DAO::freeResult();
 
     return TRUE;
+  }
+
+  /**
+   * Action to update any caches relating to a recently update contact.
+   *
+   * I was going to call this from delete as well as from create to ensure the delete is being
+   * done whenever a contact is set to is_deleted=1 BUT I found create is already over-aggressive in
+   * that regard so adding it to delete seems to be enough to remove it from CRM_Contact_BAO_Contact_Permission
+   * where the call involved a subquery that was locking the table.
+   *
+   * @param int $contactID
+   * @param bool $isTrashed
+   */
+  public static function updateContactCache($contactID, $isTrashed = FALSE) {
+
+    if ($isTrashed) {
+      CRM_Contact_BAO_GroupContactCache::removeContact($contactID);
+      // This has been moved to here from CRM_Contact_BAO_Contact_Permission as that was causing
+      // a table-locking query. It still seems a bit inadequate as it assumes the acl users can't see deleted
+      // but this should not cause any change as long as contacts are not being trashed outside the
+      // main functions for that.
+      CRM_Core_DAO::executeQuery('DELETE FROM civicrm_acl_contact_cache WHERE contact_id = %1', array(1 => array($contactID, 'Integer')));
+    }
+    else {
+      CRM_Contact_BAO_GroupContactCache::remove();
+    }
   }
 
   /**
@@ -1092,7 +1124,7 @@ WHERE id={$id}; ";
       return $implodeDelimiter ? NULL : array();
     }
 
-    $subtype = explode(CRM_Core_DAO::VALUE_SEPARATOR, trim($subtype, CRM_Core_DAO::VALUE_SEPARATOR));
+    $subtype = CRM_Utils_Array::explodePadded($subtype);
 
     if ($implodeDelimiter) {
       $subtype = implode($implodeDelimiter, $subtype);
@@ -1120,7 +1152,7 @@ WHERE id={$id}; ";
     if ($contact) {
       $contactTypes = array();
       if ($contact->contact_sub_type) {
-        $contactTypes = explode(CRM_Core_DAO::VALUE_SEPARATOR, trim($contact->contact_sub_type, CRM_Core_DAO::VALUE_SEPARATOR));
+        $contactTypes = CRM_Utils_Array::explodePadded($contact->contact_sub_type);
       }
       array_unshift($contactTypes, $contact->contact_type);
 
@@ -1825,6 +1857,7 @@ ORDER BY civicrm_email.is_primary DESC";
     if ($ufGroupId) {
       $params['uf_group_id'] = $ufGroupId;
     }
+    self::addBillingNameFieldsIfOtherwiseNotSet($params);
 
     // If a user has logged in, or accessed via a checksum
     // Then deliberately 'blanking' a value in the profile should remove it from their record
@@ -1967,16 +2000,16 @@ ORDER BY civicrm_email.is_primary DESC";
     if (array_key_exists('contact_sub_type', $params) &&
       !empty($params['contact_sub_type'])
     ) {
-      $data['contact_sub_type'] = CRM_Core_DAO::VALUE_SEPARATOR . implode(CRM_Core_DAO::VALUE_SEPARATOR, (array) $params['contact_sub_type']) . CRM_Core_DAO::VALUE_SEPARATOR;
+      $data['contact_sub_type'] = CRM_Utils_Array::implodePadded($params['contact_sub_type']);
     }
     elseif (array_key_exists('contact_sub_type_hidden', $params) &&
       !empty($params['contact_sub_type_hidden'])
     ) {
       // if profile was used, and had any subtype, we obtain it from there
       //CRM-13596 - add to existing contact types, rather than overwriting
-      $data_contact_sub_type_arr = explode(CRM_Core_DAO::VALUE_SEPARATOR, trim($data['contact_sub_type'], CRM_Core_DAO::VALUE_SEPARATOR));
+      $data_contact_sub_type_arr = CRM_Utils_Array::explodePadded($data['contact_sub_type']);
       if (!in_array($params['contact_sub_type_hidden'], $data_contact_sub_type_arr)) {
-        $data['contact_sub_type'] = $data['contact_sub_type'] . implode(CRM_Core_DAO::VALUE_SEPARATOR, (array) $params['contact_sub_type_hidden']) . CRM_Core_DAO::VALUE_SEPARATOR;
+        $data['contact_sub_type'] .= CRM_Utils_Array::implodePadded($params['contact_sub_type_hidden']);
       }
     }
 
@@ -2018,7 +2051,7 @@ ORDER BY civicrm_email.is_primary DESC";
     $primaryPhoneLoc = NULL;
     $session = CRM_Core_Session::singleton();
     foreach ($params as $key => $value) {
-      $fieldName = $locTypeId = $typeId = NULL;
+      $locTypeId = $typeId = NULL;
       list($fieldName, $locTypeId, $typeId) = CRM_Utils_System::explode('-', $key, 3);
 
       //store original location type id
@@ -2208,7 +2241,7 @@ ORDER BY civicrm_email.is_primary DESC";
             $type = $data['contact_type'];
             if (!empty($data['contact_sub_type'])) {
               $type = $data['contact_sub_type'];
-              $type = explode(CRM_Core_DAO::VALUE_SEPARATOR, trim($type, CRM_Core_DAO::VALUE_SEPARATOR));
+              $type = CRM_Utils_Array::explodePadded($type);
               // generally a contact even if, has multiple subtypes the parent-type is going to be one only
               // and since formatCustomField() would be interested in parent type, lets consider only one subtype
               // as the results going to be same.
@@ -2319,7 +2352,7 @@ SELECT     civicrm_contact.id as contact_id,
 FROM       civicrm_contact
 INNER JOIN civicrm_email    ON ( civicrm_contact.id = civicrm_email.contact_id )";
 
-    if (CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::MULTISITE_PREFERENCES_NAME, 'uniq_email_per_site')) {
+    if (Civi::settings()->get('uniq_email_per_site')) {
       // try to find a match within a site (multisite).
       $groups = CRM_Core_BAO_Domain::getChildGroupIds();
       if (!empty($groups)) {
@@ -3328,6 +3361,16 @@ LEFT JOIN civicrm_address add2 ON ( add1.master_id = add2.id )
       case 'tag':
         $props['entity_table'] = 'civicrm_contact';
         return CRM_Core_BAO_EntityTag::buildOptions('tag_id', $context, $props);
+
+      case 'state_province_id':
+      case 'state_province':
+      case 'state_province_name':
+      case 'country_id':
+      case 'country':
+      case 'county_id':
+      case 'worldregion':
+      case 'worldregion_id':
+        return CRM_Core_BAO_Address::buildOptions($fieldName, 'get', $props);
 
     }
     return CRM_Core_PseudoConstant::get(__CLASS__, $fieldName, $params, $context);

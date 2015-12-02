@@ -81,6 +81,7 @@ class CRM_Contribute_Form_AdditionalPayment extends CRM_Contribute_Form_Abstract
     $this->_action = CRM_Utils_Request::retrieve('action', 'String', $this, FALSE);
     $this->assign('component', $this->_component);
     $this->assign('id', $this->_id);
+    $this->assign('suppressPaymentFormButtons', $this->isBeingCalledFromSelectorContext());
 
     if ($this->_view == 'transaction' && ($this->_action & CRM_Core_Action::BROWSE)) {
       $paymentInfo = CRM_Contribute_BAO_Contribution::getPaymentInfo($this->_id, $this->_component, TRUE);
@@ -141,6 +142,15 @@ class CRM_Contribute_Form_AdditionalPayment extends CRM_Contribute_Form_Abstract
     $this->assign('paymentAmt', abs($paymentAmt));
 
     $this->setPageTitle($this->_refund ? ts('Refund') : ts('Payment'));
+  }
+
+  /**
+   * Is this function being called from a datatable selector.
+   *
+   * If so we don't want to show the buttons.
+   */
+  protected function isBeingCalledFromSelectorContext() {
+    return CRM_Utils_Request::retrieve('selector', 'Positive');
   }
 
   /**
@@ -329,9 +339,7 @@ class CRM_Contribute_Form_AdditionalPayment extends CRM_Contribute_Form_Abstract
         ),
       )
     );
-    $mailingInfo = CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::MAILING_PREFERENCES_NAME,
-      'mailing_backend'
-    );
+    $mailingInfo = Civi::settings()->get('mailing_backend');
     $this->assign('outBound_option', $mailingInfo['outBound_option']);
 
     $this->addFormRule(array('CRM_Contribute_Form_AdditionalPayment', 'formRule'), $this);
@@ -484,6 +492,10 @@ class CRM_Contribute_Form_AdditionalPayment extends CRM_Contribute_Form_Abstract
     }
     $this->_params['ip_address'] = CRM_Utils_System::ipAddress();
     $this->_params['amount'] = $this->_params['total_amount'];
+    // @todo - stop setting amount level in this function & call the CRM_Price_BAO_PriceSet::getAmountLevel
+    // function to get correct amount level consistently. Remove setting of the amount level in
+    // CRM_Price_BAO_PriceSet::processAmount. Extend the unit tests in CRM_Price_BAO_PriceSetTest
+    // to cover all variants.
     $this->_params['amount_level'] = 0;
     $this->_params['currencyID'] = CRM_Utils_Array::value('currency',
       $this->_params,

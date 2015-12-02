@@ -273,8 +273,11 @@ class CRM_Core_BAO_UFGroup extends CRM_Core_DAO_UFGroup {
    * @param string $orderBy
    * @param null $orderProfiles
    *
+   * @param bool $eventProfile
+   *
    * @return array
-   *   the fields that belong to this ufgroup(s)
+   *   The fields that belong to this ufgroup(s)
+   * @throws \Exception
    */
   public static function getFields(
     $id,
@@ -2176,6 +2179,9 @@ AND    ( entity_id IS NULL OR entity_id <= 0 )
       }
       $form->addElement('hidden', 'sct_default_id', $SCTDefaultValue, array('id' => 'sct_default_id'));
     }
+    elseif ($fieldName == 'contribution_soft_credit_pcp_id') {
+      CRM_Contribute_Form_SoftCredit::addPCPFields($form, "[$rowNumber]");
+    }
     elseif ($fieldName == 'currency') {
       $form->addCurrency($name, $title, $required);
     }
@@ -2850,7 +2856,7 @@ AND    ( entity_id IS NULL OR entity_id <= 0 )
    * @param array $values
    * @param CRM_Core_Smarty $template
    */
-  public function profileDisplay($gid, $values, $template) {
+  static public function profileDisplay($gid, $values, $template) {
     $groupTitle = CRM_Core_DAO::getFieldValue('CRM_Core_DAO_UFGroup', $gid, 'title');
     $template->assign('grouptitle', $groupTitle);
     if (count($values)) {
@@ -3605,9 +3611,7 @@ SELECT  group_id
     // check for double optin
     $config = CRM_Core_Config::singleton();
     if (in_array('CiviMail', $config->enableComponents)) {
-      return CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::MAILING_PREFERENCES_NAME,
-        'profile_double_optin', NULL, FALSE
-      );
+      return Civi::settings()->get('profile_double_optin');
     }
     return FALSE;
   }
@@ -3619,9 +3623,7 @@ SELECT  group_id
     // check for add to group double optin
     $config = CRM_Core_Config::singleton();
     if (in_array('CiviMail', $config->enableComponents)) {
-      return CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::MAILING_PREFERENCES_NAME,
-        'profile_add_to_group_double_optin', NULL, FALSE
-      );
+      return Civi::settings()->get('profile_add_to_group_double_optin');
     }
     return FALSE;
   }

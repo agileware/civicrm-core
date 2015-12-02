@@ -325,6 +325,8 @@ class SettingsManager {
    * during bootstrap -- in particular, defaults cannot be loaded. For a very small number of settings,
    * we must define defaults before the system bootstraps.
    *
+   * @param string $entity
+   *
    * @return array
    */
   private static function getSystemDefaults($entity) {
@@ -337,6 +339,8 @@ class SettingsManager {
           'imageUploadDir' => '[civicrm.files]/persist/contribute/',
           'uploadDir' => '[civicrm.files]/upload/',
           'imageUploadURL' => '[civicrm.files]/persist/contribute/',
+          'extensionsDir' => '[civicrm.files]/ext/',
+          'extensionsURL' => '[civicrm.files]/ext/',
           'resourceBase' => '[civicrm.root]/',
           'userFrameworkResourceURL' => '[civicrm.root]/',
         );

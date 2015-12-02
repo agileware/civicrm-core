@@ -1,7 +1,9 @@
 /// crmUi: Sundry UI helpers
 (function (angular, $, _) {
 
-  var uidCount = 0;
+  var uidCount = 0,
+    pageTitle = 'CiviCRM',
+    documentTitle = 'CiviCRM';
 
   angular.module('crmUi', [])
 
@@ -394,7 +396,9 @@
           }
 
           ngModel.$render = function(value) {
-            CRM.wysiwyg.setVal(elm, ngModel.$viewValue);
+            editor.done(function() {
+              CRM.wysiwyg.setVal(elm, ngModel.$viewValue || '');
+            });
           };
         }
       };
@@ -584,7 +588,7 @@
               $timeout(function () {
                 // ex: msg_template_id adds new item then selects it; use $timeout to ensure that
                 // new item is added before selection is made
-                element.select2('val', ngModel.$viewValue);
+                element.select2('val', ngModel.$modelValue);
               });
             };
           }
@@ -599,7 +603,7 @@
 
           function init() {
             // TODO watch select2-options
-            element.select2(scope.crmUiSelect || {});
+            element.crmSelect2(scope.crmUiSelect || {});
             if (ngModel) {
               element.on('change', refreshModel);
               $timeout(ngModel.$render);
@@ -627,7 +631,7 @@
             $timeout(function () {
               // ex: msg_template_id adds new item then selects it; use $timeout to ensure that
               // new item is added before selection is made
-              element.select2('val', ngModel.$viewValue);
+              element.select2('val', ngModel.$modelValue);
             });
           };
           function refreshModel() {
@@ -651,7 +655,7 @@
       };
     })
 
-    // example <div crm-ui-tab crm-title="ts('My Title')">...content...</div>
+    // example <div crm-ui-tab id="tab-1" crm-title="ts('My Title')" count="3">...content...</div>
     // WISHLIST: use a full Angular component instead of an incomplete jQuery wrapper
     .directive('crmUiTab', function($parse) {
       return {
@@ -659,6 +663,8 @@
         restrict: 'EA',
         scope: {
           crmTitle: '@',
+          crmIcon: '@',
+          count: '@',
           id: '@'
         },
         template: '<div ng-transclude></div>',
@@ -842,8 +848,11 @@
     .directive('crmIcon', function() {
       return {
         restrict: 'EA',
-        scope: {},
         link: function (scope, element, attrs) {
+          if (element.is('[crm-ui-tab]')) {
+            // handled in crmUiTab ctrl
+            return;
+          }
           if (attrs.crmIcon.substring(0,3) == 'fa-') {
             $(element).prepend('<i class="crm-i ' + attrs.crmIcon + '"></i> ');
           }
@@ -968,6 +977,39 @@
         }
       };
     })
+
+    // Sets document title & page title; attempts to override CMS title markup for the latter
+    // WARNING: Use only once per route!
+    // Example (same title for both): <h1 crm-page-title>{{ts('Hello')}}</h1>
+    // Example (separate document title): <h1 crm-document-title="ts('Hello')" crm-page-title><i class="crm-i fa-flag"></i>{{ts('Hello')}}</h1>
+    .directive('crmPageTitle', function($timeout) {
+      return {
+        scope: {
+          crmDocumentTitle: '='
+        },
+        link: function(scope, $el, attrs) {
+          function update() {
+            $timeout(function() {
+              var newPageTitle = _.trim($el.html()),
+                newDocumentTitle = scope.crmDocumentTitle || $el.text();
+              document.title = $('title').text().replace(documentTitle, newDocumentTitle);
+              // If the CMS has already added title markup to the page, use it
+              $('h1').not('.crm-container h1').each(function() {
+                if (_.trim($(this).html()) === pageTitle) {
+                  $(this).html(newPageTitle);
+                  $el.hide();
+                }
+              });
+              pageTitle = newPageTitle;
+              documentTitle = newDocumentTitle;
+            });
+          }
+
+          scope.$watch(function() {return scope.crmDocumentTitle + $el.html();}, update);
+        }
+      };
+    })
+
     .run(function($rootScope, $location) {
       /// Example: <button ng-click="goto('home')">Go home!</button>
       $rootScope.goto = function(path) {

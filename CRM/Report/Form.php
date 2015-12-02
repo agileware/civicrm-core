@@ -177,6 +177,13 @@ class CRM_Report_Form extends CRM_Core_Form {
   protected $tabs = array();
 
   /**
+   * Should we add paging.
+   *
+   * @var bool
+   */
+  protected $addPaging = TRUE;
+
+  /**
    * An attribute for checkbox/radio form field layout
    *
    * @var array
@@ -237,7 +244,8 @@ class CRM_Report_Form extends CRM_Core_Form {
    * This can be set to specify a limit to the number of rows
    * Since it is currently envisaged as part of the api usage it is only being applied
    * when $_output mode is not 'html' or 'group' so as not to have to interpret / mess with that part
-   * of the code (see limit() fn
+   * of the code (see limit() fn.
+   *
    * @var integer
    */
   protected $_limitValue = NULL;
@@ -295,10 +303,20 @@ class CRM_Report_Form extends CRM_Core_Form {
   protected $_selectedTables;
 
   /**
-   * Output mode e.g 'print', 'csv', 'pdf'
+   * Output mode e.g 'print', 'csv', 'pdf'.
+   *
    * @var string
    */
   protected $_outputMode;
+
+  /**
+   * Format of any chart in use.
+   *
+   * (it's unclear if this could be merged with outputMode at this stage)
+   *
+   * @var
+   */
+  protected $_format;
 
   public $_having = NULL;
   public $_select = NULL;
@@ -512,8 +530,22 @@ class CRM_Report_Form extends CRM_Core_Form {
         $this->_formValues = NULL;
       }
 
+      $this->setOutputMode();
+
+      if ($this->_outputMode == 'copy') {
+        $this->_createNew = TRUE;
+        $this->_params = $this->_formValues;
+        $this->_params['view_mode'] = 'criteria';
+        $this->_params['title'] = ts('(copy)') . $this->getTitle();
+        // Do not pass go. Do not collect another chance to re-run the same query.
+        CRM_Report_Form_Instance::postProcess($this);
+      }
+
       // lets always do a force if reset is found in the url.
-      if (!empty($_REQUEST['reset'])) {
+      // Hey why not? see CRM-17225 for more about this. The use of reset to be force is historical for reasons stated
+      // in the comment line above these 2.
+      if (!empty($_REQUEST['reset'])
+          && !in_array(CRM_Utils_Request::retrieve('output', 'String'), array('save', 'criteria'))) {
         $this->_force = 1;
       }
 
@@ -979,6 +1011,15 @@ class CRM_Report_Form extends CRM_Core_Form {
   }
 
   /**
+   * Setter for $addPaging.
+   *
+   * @param bool $value
+   */
+  public function setAddPaging($value) {
+    $this->addPaging = $value;
+  }
+
+  /**
    * Getter for $_defaultValues.
    *
    * @return array
@@ -1417,7 +1458,7 @@ class CRM_Report_Form extends CRM_Core_Form {
       $this->addElement('select', 'groups', ts('Group'),
         array('' => ts('Add Contacts to Group')) +
         CRM_Core_PseudoConstant::nestedGroup(),
-        array('class' => 'crm-select2 crm-action-menu action-icon-plus huge')
+        array('class' => 'crm-select2 crm-action-menu fa-plus huge')
       );
       $this->assign('group', TRUE);
     }
@@ -1779,33 +1820,13 @@ class CRM_Report_Form extends CRM_Core_Form {
         break;
 
       case 'mhas':
-        // mhas == multiple has
-        if ($value !== NULL && count($value) > 0) {
-          $sqlOP = $this->getSQLOperator($op);
-          foreach ($value as $key => $val) {
-            $val = str_replace('(', '[[.left-parenthesis.]]', $val);
-            $val = str_replace(')', '[[.right-parenthesis.]]', $val);
-            $value[$key] = $val;
-          }
-          $sp = CRM_Core_DAO::VALUE_SEPARATOR;
-          $clause
-            = "{$field['dbAlias']} REGEXP '$sp" . implode("$sp|$sp", $value) . "$sp'";
-        }
-        break;
-
       case 'mnot':
-        // mnot == multiple is not one of
+        // multiple has or multiple not
         if ($value !== NULL && count($value) > 0) {
-          $sqlOP = $this->getSQLOperator($op);
-          foreach ($value as $key => $val) {
-            $val = str_replace('(', '[[.left-parenthesis.]]', $val);
-            $val = str_replace(')', '[[.right-parenthesis.]]', $val);
-            $value[$key] = $val;
-          }
-          $sp = CRM_Core_DAO::VALUE_SEPARATOR;
-          $clause
-            = "( {$field['dbAlias']} NOT REGEXP '$sp" . implode("$sp|$sp", $value) .
-            "$sp' OR {$field['dbAlias']} IS NULL )";
+          $value = CRM_Utils_Type::escapeAll($value, $type);
+          $operator = $op == 'mnot' ? 'NOT' : '';
+          $regexp = "[[:cntrl:]]*" . implode('[[:>:]]*|[[:<:]]*', (array) $value) . "[[:cntrl:]]*";
+          $clause = "{$field['dbAlias']} {$operator} REGEXP '{$regexp}'";
         }
         break;
 
@@ -2596,13 +2617,7 @@ WHERE cg.extends IN ('" . implode("','", $this->_customGroupExtends) . "') AND
    * Set output mode.
    */
   public function processReportMode() {
-    $buttonName = $this->controller->getButtonName();
-
-    $output = CRM_Utils_Request::retrieve(
-      'output',
-      'String',
-      CRM_Core_DAO::$_nullObject
-    );
+    $this->setOutputMode();
 
     $this->_sendmail
       = CRM_Utils_Request::retrieve(
@@ -2615,44 +2630,40 @@ WHERE cg.extends IN ('" . implode("','", $this->_customGroupExtends) . "') AND
     $printOnly = FALSE;
     $this->assign('printOnly', FALSE);
 
-    if ($this->_printButtonName == $buttonName || $output == 'print' ||
-      ($this->_sendmail && !$output)
+    if ($this->_outputMode == 'print' ||
+      ($this->_sendmail && !$this->_outputMode)
     ) {
       $this->assign('printOnly', TRUE);
       $printOnly = TRUE;
+      $this->addPaging = FALSE;
       $this->assign('outputMode', 'print');
       $this->_outputMode = 'print';
       if ($this->_sendmail) {
         $this->_absoluteUrl = TRUE;
       }
     }
-    elseif ($this->_pdfButtonName == $buttonName || $output == 'pdf') {
-      $this->assign('printOnly', TRUE);
+    elseif ($this->_outputMode == 'pdf') {
       $printOnly = TRUE;
-      $this->assign('outputMode', 'pdf');
-      $this->_outputMode = 'pdf';
+      $this->addPaging = FALSE;
       $this->_absoluteUrl = TRUE;
     }
-    elseif ($this->_csvButtonName == $buttonName || $output == 'csv') {
-      $this->assign('printOnly', TRUE);
+    elseif ($this->_outputMode == 'csv') {
       $printOnly = TRUE;
-      $this->assign('outputMode', 'csv');
-      $this->_outputMode = 'csv';
       $this->_absoluteUrl = TRUE;
+      $this->addPaging = FALSE;
     }
-    elseif ($this->_groupButtonName == $buttonName || $output == 'group') {
+    elseif ($this->_outputMode == 'group') {
       $this->assign('outputMode', 'group');
-      $this->_outputMode = 'group';
     }
-    elseif ($output == 'create_report' && $this->_criteriaForm) {
+    elseif ($this->_outputMode == 'create_report' && $this->_criteriaForm) {
       $this->assign('outputMode', 'create_report');
-      $this->_outputMode = 'create_report';
     }
-    else {
-      $this->assign('outputMode', 'html');
-      $this->_outputMode = 'html';
+    elseif ($this->_outputMode == 'copy' && $this->_criteriaForm) {
+      $this->_createNew = TRUE;
     }
 
+    $this->assign('outputMode', $this->_outputMode);
+    $this->assign('printOnly', $printOnly);
     // Get today's date to include in printed reports
     if ($printOnly) {
       $reportDate = CRM_Utils_Date::customFormat(date('Y-m-d H:i'));
@@ -2664,10 +2675,10 @@ WHERE cg.extends IN ('" . implode("','", $this->_customGroupExtends) . "') AND
    * Post Processing function for Form.
    *
    * postProcessCommon should be used to set other variables from input as the api accesses that function.
+   * This function is not accessed when the api calls the report.
    */
   public function beginPostProcess() {
     $this->setParams($this->controller->exportValues($this->_name));
-
     if (empty($this->_params) &&
       $this->_force
     ) {
@@ -2692,7 +2703,16 @@ WHERE cg.extends IN ('" . implode("','", $this->_customGroupExtends) . "') AND
     ) {
       $this->assign('updateReportButton', TRUE);
     }
+
     $this->processReportMode();
+
+    if ($this->_outputMode == 'save' || $this->_outputMode == 'copy') {
+      $this->_createNew = ($this->_outputMode == 'copy');
+      // Do not pass go. Do not collect another chance to re-run the same query.
+      // This will be called from the button - there is an earlier response to the url
+      // perhaps they can still be consolidated more.
+      CRM_Report_Form_Instance::postProcess($this);
+    }
     $this->beginPostProcessCommon();
   }
 
@@ -3267,15 +3287,6 @@ WHERE cg.extends IN ('" . implode("','", $this->_customGroupExtends) . "') AND
       $group = $this->_params['groups'];
       $this->add2group($group);
     }
-    elseif ($this->_instanceButtonName == $this->controller->getButtonName()) {
-      CRM_Report_Form_Instance::postProcess($this);
-    }
-    elseif ($this->_createNewButtonName == $this->controller->getButtonName() ||
-      $this->_outputMode == 'create_report'
-    ) {
-      $this->_createNew = TRUE;
-      CRM_Report_Form_Instance::postProcess($this);
-    }
   }
 
   /**
@@ -3365,7 +3376,7 @@ WHERE cg.extends IN ('" . implode("','", $this->_customGroupExtends) . "') AND
     if ($this->_dashBoardRowCount) {
       $rowCount = $this->_dashBoardRowCount;
     }
-    if ($this->_outputMode == 'html' || $this->_outputMode == 'group') {
+    if ($this->addPaging) {
       $this->_select = str_ireplace('SELECT ', 'SELECT SQL_CALC_FOUND_ROWS ', $this->_select);
 
       $pageId = CRM_Utils_Request::retrieve('crmPID', 'Integer', CRM_Core_DAO::$_nullObject);
@@ -4564,6 +4575,7 @@ LEFT JOIN civicrm_contact {$field['alias']} ON {$field['alias']}.id = {$this->_a
     if (!CRM_Financial_BAO_FinancialType::isACLFinancialTypeStatus()) {
       return FALSE;
     }
+    $financialTypes = NULL;
     CRM_Financial_BAO_FinancialType::getAvailableFinancialTypes($financialTypes);
     if (empty($financialTypes)) {
       $contFTs = "0";
@@ -4580,13 +4592,13 @@ LEFT JOIN civicrm_contact {$field['alias']} ON {$field['alias']}.id = {$this->_a
       $query->_where = "WHERE {$query->_aliases['civicrm_contribution']}.id IS NOT NULL ";
     }
     CRM_Core_DAO::executeQuery("DROP TEMPORARY TABLE IF EXISTS civicrm_contribution_temp");
-    $sql = "CREATE TEMPORARY TABLE civicrm_contribution_temp AS SELECT {$query->_aliases['civicrm_contribution']}.id {$query->_from} 
+    $sql = "CREATE TEMPORARY TABLE civicrm_contribution_temp AS SELECT {$query->_aliases['civicrm_contribution']}.id {$query->_from}
               LEFT JOIN civicrm_line_item   {$query->_aliases['civicrm_line_item']}
                       ON {$query->_aliases['civicrm_contribution']}.id = {$query->_aliases['civicrm_line_item']}.contribution_id AND
-                         {$query->_aliases['civicrm_line_item']}.entity_table = 'civicrm_contribution' 
-                      AND {$query->_aliases['civicrm_line_item']}.financial_type_id NOT IN (" . $liFTs . ") 
-              {$query->_where} 
-                      AND {$query->_aliases['civicrm_contribution']}.financial_type_id IN (" . $contFTs . ") 
+                         {$query->_aliases['civicrm_line_item']}.entity_table = 'civicrm_contribution'
+                      AND {$query->_aliases['civicrm_line_item']}.financial_type_id NOT IN (" . $liFTs . ")
+              {$query->_where}
+                      AND {$query->_aliases['civicrm_contribution']}.financial_type_id IN (" . $contFTs . ")
                       AND {$query->_aliases['civicrm_line_item']}.id IS NULL
               GROUP BY {$query->_aliases['civicrm_contribution']}.id";
     CRM_Core_DAO::executeQuery($sql);
@@ -4598,6 +4610,62 @@ LEFT JOIN civicrm_contact {$field['alias']} ON {$field['alias']}.id = {$this->_a
       return $from;
     }
     $query->_from .= $from;
+  }
+
+  /**
+   * Get label for show results buttons.
+   *
+   * @return string
+   */
+  public function getResultsLabel() {
+    $showResultsLabel = $this->resultsDisplayed() ? ts('Refresh results') : ts('View results');
+    return $showResultsLabel;
+  }
+
+  /**
+   * Determine the output mode from the url or input.
+   *
+   * Output could be
+   *   - pdf : Render as pdf
+   *   - csv : Render as csv
+   *   - print : Render in print format
+   *   - save : save the report and display the new report
+   *   - copy : save the report as a new instance and display that.
+   *   - group : go to the add to group screen.
+   *
+   *  Potentially chart variations could also be included but the complexity
+   *   is that we might print a bar chart as a pdf.
+   */
+  protected function setOutputMode() {
+    $buttonName = $this->controller->getButtonName();
+    $this->_outputMode = CRM_Utils_Request::retrieve(
+      'output',
+      'String',
+      CRM_Core_DAO::$_nullObject,
+      FALSE,
+      CRM_Utils_Array::value('task', $this->_params)
+    );
+
+    if ($buttonName) {
+      if ($buttonName == $this->_instanceButtonName) {
+        $this->_outputMode = 'save';
+      }
+      if ($buttonName == $this->_printButtonName) {
+        $this->_outputMode = 'print';
+      }
+      if ($buttonName == $this->_pdfButtonName) {
+        $this->_outputMode = 'pdf';
+      }
+      if ($this->_csvButtonName == $buttonName) {
+        $this->_outputMode = 'csv';
+      }
+      if ($this->_groupButtonName == $buttonName) {
+        $this->_outputMode = 'group';
+      }
+      if ($buttonName == $this->_createNewButtonName) {
+        $this->_outputMode = 'copy';
+      }
+    }
   }
 
 }

@@ -454,7 +454,7 @@ VALUES (%1, %2, %3, %4, %5, %6, %7)
           $recipients->phone_id,
         );
         $count++;
-        if ($count % CRM_Core_DAO::BULK_MAIL_INSERT_COUNT == 0) {
+        if ($count % CRM_Mailing_Config::BULK_MAIL_INSERT_COUNT == 0) {
           CRM_Mailing_Event_BAO_Queue::bulkCreate($params, $now);
           $count = 0;
           $params = array();
@@ -757,7 +757,7 @@ VALUES (%1, %2, %3, %4, %5, %6, %7)
         $targetParams[] = $field['contact_id'];
 
         $count++;
-        if ($count % CRM_Core_DAO::BULK_MAIL_INSERT_COUNT == 0) {
+        if ($count % CRM_Mailing_Config::BULK_MAIL_INSERT_COUNT == 0) {
           $this->writeToDB(
             $deliveredParams,
             $targetParams,
@@ -926,12 +926,7 @@ AND    status IN ( 'Scheduled', 'Running', 'Paused' )
     }
 
     if ($writeActivity === NULL) {
-      $writeActivity = CRM_Core_BAO_Setting::getItem(
-        CRM_Core_BAO_Setting::MAILING_PREFERENCES_NAME,
-        'write_activity_record',
-        NULL,
-        TRUE
-      );
+      $writeActivity = Civi::settings()->get('write_activity_record');
     }
 
     if (!$writeActivity) {

@@ -41,7 +41,7 @@
   </td>
 {else}
 {assign var=eventID value=$id}
-  <div id="help">
+  <div class="help">
     {ts}If you want to provide an Online Registration page for this event, check the first box below and then complete the fields on this form.{/ts}
     {help id="id-event-reg"}
   </div>
@@ -107,6 +107,14 @@
   <tr class="crm-event-manage-registration-form-block-expiration_time">
     <td scope="row" class="label" width="20%">{$form.expiration_time.label}</td>
     <td>{$form.expiration_time.html|crmAddClass:four} {help id="id-expiration_time"}</td>
+  </tr>
+  <tr class="crm-event-manage-registration-form-block-selfcancelxfer">
+    <td scope="row" class="label" width="20%">{$form.allow_selfcancelxfer.label}</td>
+    <td>{$form.allow_selfcancelxfer.html} {help id="id-allow_selfcancelxfer"}</td>
+  </tr>
+  <tr class="crm-event-manage-registration-form-block-selfcancelxfer_time">
+    <td scope="row" class="label" width="20%">{$form.selfcancelxfer_time.label}</td>
+    <td>{$form.selfcancelxfer_time.html|crmAddClass:four} {help id="id-selfcancelxfer_time"}</td>
   </tr>
 </table>
 <div class="spacer"></div>
@@ -475,6 +483,23 @@ $(function($) {
         } else {
             $(".crm-event-manage-registration-form-block-additional_custom_post_multiple").show();
             $('#additional_profile_pre,#additional_profile_post').show();
+        }
+
+    });
+
+    var allow_selfCancel = $("#allow_selfcancelxfer");
+    if ( !allow_selfCancel.prop('checked') ) {
+        $('#selfcancelxfer_time').hide();
+        $('.crm-event-manage-registration-form-block-selfcancelxfer_time').hide();
+    }
+    allow_selfCancel.change( function( ) {
+        if ( !$(this).prop('checked') ) {
+            $("#selfcancelxfer_time").val('');
+            $('#selfcancelxfer_time').hide();
+            $('.crm-event-manage-registration-form-block-selfcancelxfer_time').hide();
+        } else {
+          $('#selfcancelxfer_time').show();
+          $('.crm-event-manage-registration-form-block-selfcancelxfer_time').show();
         }
 
     });

@@ -141,7 +141,7 @@ class CRM_Contact_Page_View_Summary extends CRM_Contact_Page_View {
     $params['noRelationships'] = $params['noNotes'] = $params['noGroups'] = TRUE;
     $contact = CRM_Contact_BAO_Contact::retrieve($params, $defaults, TRUE);
     // Let summary page know if outbound mail is disabled so email links can be built conditionally
-    $mailingBackend = CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::MAILING_PREFERENCES_NAME, 'mailing_backend');
+    $mailingBackend = Civi::settings()->get('mailing_backend');
     $this->assign('mailingOutboundOption', $mailingBackend['outBound_option']);
 
     $communicationType = array(
@@ -389,8 +389,10 @@ class CRM_Contact_Page_View_Summary extends CRM_Contact_Page_View {
       $weight += 10;
     }
 
+    $context = array('contact_id' => $this->_contactId);
     // see if any other modules want to add any tabs
     CRM_Utils_Hook::tabs($allTabs, $this->_contactId);
+    CRM_Utils_Hook::tabset('civicrm/contact/view', $allTabs, $context);
 
     // now sort the tabs based on weight
     usort($allTabs, array('CRM_Utils_Sort', 'cmpFunc'));

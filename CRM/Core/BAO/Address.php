@@ -342,9 +342,7 @@ class CRM_Core_BAO_Address extends CRM_Core_DAO_Address {
 
     $config = CRM_Core_Config::singleton();
 
-    $asp = CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::ADDRESS_STANDARDIZATION_PREFERENCES_NAME,
-      'address_standardization_provider'
-    );
+    $asp = Civi::settings()->get('address_standardization_provider');
     // clean up the address via USPS web services if enabled
     if ($asp === 'USPS' &&
       $params['country_id'] == 1228
@@ -1039,7 +1037,7 @@ SELECT is_primary,
         'first_name' => $rows[$rowID]['first_name'],
         'individual_prefix' => $rows[$rowID]['individual_prefix'],
       );
-      $format = CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME, 'display_name_format');
+      $format = Civi::settings()->get('display_name_format');
       $firstNameWithPrefix = CRM_Utils_Address::format($formatted, $format, FALSE, FALSE, TRUE);
       $firstNameWithPrefix = trim($firstNameWithPrefix);
 
@@ -1223,6 +1221,10 @@ SELECT is_primary,
 
   /**
    * Call common delete function.
+   *
+   * @param int $id
+   *
+   * @return bool
    */
   public static function del($id) {
     return CRM_Contact_BAO_Contact::deleteObjectWithPrimary('Address', $id);
@@ -1249,6 +1251,10 @@ SELECT is_primary,
     switch ($fieldName) {
       // Filter state_province list based on chosen country or site defaults
       case 'state_province_id':
+      case 'state_province_name':
+      case 'state_province':
+        // change $fieldName to DB specific names.
+        $fieldName = 'state_province_id';
         if (empty($props['country_id'])) {
           $config = CRM_Core_Config::singleton();
           if (!empty($config->provinceLimit)) {
@@ -1265,6 +1271,9 @@ SELECT is_primary,
 
       // Filter country list based on site defaults
       case 'country_id':
+      case 'country':
+        // change $fieldName to DB specific names.
+        $fieldName = 'country_id';
         if ($context != 'get' && $context != 'validate') {
           $config = CRM_Core_Config::singleton();
           if (!empty($config->countryLimit) && is_array($config->countryLimit)) {
@@ -1282,6 +1291,8 @@ SELECT is_primary,
 
       // Not a real field in this entity
       case 'world_region':
+      case 'worldregion':
+      case 'worldregion_id':
         return CRM_Core_PseudoConstant::worldRegion();
     }
     return CRM_Core_PseudoConstant::get(__CLASS__, $fieldName, $params, $context);

@@ -24,17 +24,17 @@
  +--------------------------------------------------------------------+
 *}
 <div class="crm-block crm-form-block crm-contact-merge-form-block">
-<div id="help">
+<div class="help">
 {ts}Click <strong>Merge</strong> to move data from the Duplicate Contact on the left into the Main Contact. In addition to the contact data (address, phone, email...), you may choose to move all or some of the related activity records (groups, contributions, memberships, etc.).{/ts} {help id="intro"}
 </div>
 
 <div class="crm-submit-buttons">
   {include file="CRM/common/formButtons.tpl" location="top"}
-  {if $prev}<a href="{$prev}" class="crm-hover-button action-item"><i class="crm-i fa-chevron-left"></i> {ts}Previous{/ts}</a>{/if}
-  {if $next}<a href="{$next}" class="crm-hover-button action-item">{ts}Next{/ts} <i class="crm-i fa-chevron-right"></i></a>{/if}
 </div>
 
 <div class="action-link">
+  {if $prev}<a href="{$prev}" class="crm-hover-button action-item"><i class="crm-i fa-chevron-left"></i> {ts}Previous{/ts}</a>{/if}
+  {if $next}<a href="{$next}" class="crm-hover-button action-item">{ts}Next{/ts} <i class="crm-i fa-chevron-right"></i></a>{/if}
   <a href="{$flip}" class="action-item crm-hover-button">
     <i class="crm-i fa-random"></i>
     {ts}Flip between original and duplicate contacts.{/ts}

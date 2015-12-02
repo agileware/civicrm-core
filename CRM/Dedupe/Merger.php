@@ -43,6 +43,12 @@ class CRM_Dedupe_Merger {
   public static function relTables() {
     static $relTables;
 
+    // Setting these merely prevents enotices - but it may be more appropriate not to add the user table below
+    // if the url can't be retrieved. A more standardised way to retrieve them is.
+    // CRM_Core_Config::singleton()->userSystem->getUserRecordUrl() - however that function takes a contact_id &
+    // we may need a different function when it is not known.
+    $title = $userRecordUrl = '';
+
     $config = CRM_Core_Config::singleton();
     if ($config->userSystem->is_drupal) {
       $userRecordUrl = CRM_Utils_System::url('user/%ufid');
@@ -157,6 +163,10 @@ class CRM_Dedupe_Merger {
 
   /**
    * Returns the related tables groups for which a contact has any info entered.
+   *
+   * @param int $cid
+   *
+   * @return array
    */
   public static function getActiveRelTables($cid) {
     $cid = (int) $cid;
@@ -189,33 +199,34 @@ class CRM_Dedupe_Merger {
   }
 
   /**
-   * Return tables and their fields referencing civicrm_contact.contact_id explicitly
+   * Get array tables and fields that reference civicrm_contact.id.
+   *
+   * This includes core tables, custom group tables, tables added by the merge
+   * hook and (somewhat randomly) the entity_tag table.
+   *
+   * Refer to CRM-17454 for information on the danger of querying the information
+   * schema to derive this.
+   *
+   * @todo create an 'entity hook' to allow entities to be registered to CiviCRM
+   * including all info that is normally in the DAO.
    */
   public static function cidRefs() {
-    static $cidRefs;
-    if (!$cidRefs) {
-      $sql = "
-SELECT
-    table_name,
-    column_name
-FROM information_schema.key_column_usage
-WHERE
-    referenced_table_schema = database() AND
-    referenced_table_name = 'civicrm_contact' AND
-    referenced_column_name = 'id';
-      ";
-      $dao = CRM_Core_DAO::executeQuery($sql);
-      while ($dao->fetch()) {
-        $cidRefs[$dao->table_name][] = $dao->column_name;
+    $cidRefs = array();
+    $coreReferences = CRM_Core_DAO::getReferencesToTable('civicrm_contact');
+    foreach ($coreReferences as $coreReference) {
+      if (!is_a($coreReference, 'CRM_Core_Reference_Dynamic')) {
+        $cidRefs[$coreReference->getReferenceTable()][] = $coreReference->getReferenceKey();
       }
-
-      // FixME for time being adding below line statically as no Foreign key constraint defined for table 'civicrm_entity_tag'
-      $cidRefs['civicrm_entity_tag'][] = 'entity_id';
-      $dao->free();
-
-      // Allow hook_civicrm_merge() to adjust $cidRefs
-      CRM_Utils_Hook::merge('cidRefs', $cidRefs);
     }
+    self::addCustomTablesExtendingContactsToCidRefs($cidRefs);
+
+    // FixME for time being adding below line statically as no Foreign key constraint defined for table 'civicrm_entity_tag'
+    $cidRefs['civicrm_entity_tag'][] = 'entity_id';
+
+    // Allow hook_civicrm_merge() to adjust $cidRefs.
+    // @todo consider adding a way to register entities and have them
+    // automatically added to this list.
+    CRM_Utils_Hook::merge('cidRefs', $cidRefs);
     return $cidRefs;
   }
 
@@ -319,6 +330,12 @@ WHERE
 
   /**
    * Return payment update Query.
+   *
+   * @param string $tableName
+   * @param int $mainContactId
+   * @param int $otherContactId
+   *
+   * @return array
    */
   public static function paymentSql($tableName, $mainContactId, $otherContactId) {
     $sqls = array();
@@ -415,6 +432,10 @@ INNER JOIN  civicrm_membership membership2 ON membership1.membership_type_id = m
    * Based on the provided two contact_ids and a set of tables, move the
    * belongings of the other contact to the main one.
    *
+   * @param int $mainId
+   * @param int $otherId
+   * @param bool $tables
+   * @param array $tableOperations
    */
   public static function moveContactBelongings($mainId, $otherId, $tables = FALSE, $tableOperations = array()) {
     $cidRefs = self::cidRefs();
@@ -778,6 +799,8 @@ INNER JOIN  civicrm_membership membership2 ON membership1.membership_type_id = m
    *   Helps decide how to behave when there are conflicts.
    *                                 A 'safe' value skips the merge if there are any un-resolved conflicts.
    *                                 Does a force merge otherwise (aggressive mode).
+   *
+   * @param array $conflicts
    *
    * @return bool
    */
@@ -1550,7 +1573,7 @@ INNER JOIN  civicrm_membership membership2 ON membership1.membership_type_id = m
       // get the contact_id -> file_id mapping
       $fileIds = array();
       $sql = "SELECT entity_id, {$columnName} AS file_id FROM {$tableName} WHERE entity_id IN ({$mainId}, {$otherId})";
-      $dao = CRM_Core_DAO::executeQuery($sql, CRM_Core_DAO::$_nullArray);
+      $dao = CRM_Core_DAO::executeQuery($sql);
       while ($dao->fetch()) {
         $fileIds[$dao->entity_id] = $dao->file_id;
       }
@@ -1569,7 +1592,7 @@ INNER JOIN  civicrm_membership membership2 ON membership1.membership_type_id = m
       else {
         $sql = "INSERT INTO {$tableName} ( entity_id, {$columnName} ) VALUES ( {$mainId}, {$fileIds[$otherId]} )";
       }
-      CRM_Core_DAO::executeQuery($sql, CRM_Core_DAO::$_nullArray);
+      CRM_Core_DAO::executeQuery($sql);
 
       if (CRM_Core_DAO::singleValueQuery("
         SELECT id
@@ -1586,7 +1609,7 @@ INNER JOIN  civicrm_membership membership2 ON membership1.membership_type_id = m
           INSERT INTO civicrm_entity_file ( entity_table, entity_id, file_id )
           VALUES ( '{$tableName}', {$mainId}, {$fileIds[$otherId]} )";
       }
-      CRM_Core_DAO::executeQuery($sql, CRM_Core_DAO::$_nullArray);
+      CRM_Core_DAO::executeQuery($sql);
     }
 
     // move view only custom fields CRM-5362
@@ -1727,6 +1750,26 @@ INNER JOIN  civicrm_membership membership2 ON membership1.membership_type_id = m
         // create/update membership(s) for related contact(s)
         CRM_Member_BAO_Membership::createRelatedMemberships($membershipParams, $dao);
       } // end of if relationshipTypeId
+    }
+  }
+
+  /**
+   * Add custom tables that extend contacts to the list of contact references.
+   *
+   * CRM_Core_BAO_CustomGroup::getAllCustomGroupsByBaseEntity seems like a safe-ish
+   * function to be sure all are retrieved & we don't miss subtypes or inactive or multiples
+   * - the down side is it is not cached.
+   *
+   * Further changes should be include tests in the CRM_Core_MergerTest class
+   * to ensure that disabled, subtype, multiple etc groups are still captured.
+   *
+   * @param array $cidRefs
+   */
+  public static function addCustomTablesExtendingContactsToCidRefs(&$cidRefs) {
+    $customValueTables = CRM_Core_BAO_CustomGroup::getAllCustomGroupsByBaseEntity('Contact');
+    $customValueTables->find();
+    while ($customValueTables->fetch()) {
+      $cidRefs[$customValueTables->table_name] = array('entity_id');
     }
   }
 

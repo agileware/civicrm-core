@@ -313,6 +313,9 @@ class CRM_Financial_BAO_PaymentProcessor extends CRM_Financial_DAO_PaymentProces
       'class_name' => 'Payment_Manual',
       'name' => 'pay_later',
       'billing_mode' => '',
+      'is_default' => 0,
+      // This should ideally be retrieved from the DB but existing default is check so we'll code that for now.
+      'payment_instrument_id' => CRM_Core_OptionGroup::getValue('payment_instrument', 'Check', 'name'),
       // Making this optionally recur would give lots of options -but it should
       // be a row in the payment processor table before we do that.
       'is_recur' => FALSE,
@@ -343,16 +346,15 @@ class CRM_Financial_BAO_PaymentProcessor extends CRM_Financial_DAO_PaymentProces
   public static function getPaymentProcessors($capabilities = array(), $ids = FALSE) {
     $mode = NULL;
     $testProcessors = in_array('TestMode', $capabilities) ? self::getAllPaymentProcessors('test') : array();
-    $processors = $liveProcessors = self::getAllPaymentProcessors('all');
+    $processors = self::getAllPaymentProcessors('all');
 
-    if (in_array('TestMode', $capabilities)) {
-      if ($ids) {
-        foreach ($testProcessors as $testProcessor) {
-          if (!in_array($testProcessor['id'], $ids)) {
-            foreach ($liveProcessors as $liveProcessor) {
-              if ($liveProcessor['name'] == $testProcessor['name']) {
-                $ids[] = $testProcessor['id'];
-              }
+    if (in_array('TestMode', $capabilities) && is_array($ids)) {
+      $possibleLiveIDs = array_diff($ids, array_keys($testProcessors));
+      foreach ($possibleLiveIDs as $possibleLiveID) {
+        if (isset($processors[$possibleLiveID]) && ($liveProcessorName = $processors[$possibleLiveID]['name']) != FALSE) {
+          foreach ($testProcessors as $index => $testProcessor) {
+            if ($testProcessor['name'] == $liveProcessorName) {
+              $ids[] = $testProcessor['id'];
             }
           }
         }
@@ -361,7 +363,7 @@ class CRM_Financial_BAO_PaymentProcessor extends CRM_Financial_DAO_PaymentProces
     }
 
     foreach ($processors as $index => $processor) {
-      if ($ids && !in_array($processor['id'], $ids)) {
+      if (is_array($ids) && !in_array($processor['id'], $ids)) {
         unset ($processors[$index]);
         continue;
       }
@@ -433,7 +435,7 @@ class CRM_Financial_BAO_PaymentProcessor extends CRM_Financial_DAO_PaymentProces
     ) {
       return $result;
     }
-    //FIXME:
+
     if ($component == 'membership') {
       $sql = "
     SELECT cr.payment_processor_id as ppID1, cp.payment_processor as ppID2, con.is_test
@@ -459,7 +461,7 @@ INNER JOIN civicrm_contribution       con ON ( mp.contribution_id = con.id )
      WHERE cr.id = %1";
     }
 
-    //we are interesting in single record.
+    // We are interested in a single record.
     $sql .= ' LIMIT 1';
 
     $params = array(1 => array($entityID, 'Integer'));

@@ -118,8 +118,6 @@ abstract class CRM_Utils_System_Base {
    *   Useful for links that will be displayed outside the site, such as in an RSS feed.
    * @param string $fragment
    *   A fragment identifier (named anchor) to append to the link.
-   * @param bool $htmlize
-   *   Whether to encode special html characters such as &.
    * @param bool $frontend
    *   This link should be to the CMS front end (applies to WP & Joomla).
    * @param bool $forceBackend
@@ -132,7 +130,6 @@ abstract class CRM_Utils_System_Base {
     $query = NULL,
     $absolute = FALSE,
     $fragment = NULL,
-    $htmlize = TRUE,
     $frontend = FALSE,
     $forceBackend = FALSE
   ) {
@@ -632,7 +629,7 @@ abstract class CRM_Utils_System_Base {
       $userFrameworkResourceURL = $baseURL . "components/com_civicrm/civicrm/";
     }
     elseif ($config->userFramework == 'WordPress') {
-      $userFrameworkResourceURL = $baseURL . "wp-content/plugins/civicrm/civicrm/";
+      $userFrameworkResourceURL = CIVICRM_PLUGIN_URL . "civicrm/";
     }
     elseif ($this->is_drupal) {
       // Drupal setting
@@ -877,7 +874,7 @@ abstract class CRM_Utils_System_Base {
   /**
    * Log error to CMS.
    *
-   * $param string $message
+   * @param string $message
    */
   public function logger($message) {
   }
@@ -896,6 +893,17 @@ abstract class CRM_Utils_System_Base {
    */
   public function setHttpHeader($name, $value) {
     header("$name: $value");
+  }
+
+  /**
+   * Create CRM contacts for all existing CMS users
+   *
+   * @return array
+   * @throws \Exception
+   */
+  public function synchronizeUsers() {
+    throw new Exception('CMS user creation not supported for this framework');
+    return array();
   }
 
 }

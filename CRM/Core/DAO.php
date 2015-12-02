@@ -54,10 +54,6 @@ class CRM_Core_DAO extends DB_DataObject {
     VALUE_SEPARATOR = "",
     BULK_INSERT_COUNT = 200,
     BULK_INSERT_HIGH_COUNT = 200,
-    // special value for mail bulk inserts to avoid
-    // potential duplication, assuming a smaller number reduces number of queries
-    // by some factor, so some tradeoff. CRM-8678
-    BULK_MAIL_INSERT_COUNT = 10,
     QUERY_FORMAT_WILDCARD = 1,
     QUERY_FORMAT_NO_QUOTES = 2;
 
@@ -99,6 +95,7 @@ class CRM_Core_DAO extends DB_DataObject {
    *   The database connection string.
    */
   public static function init($dsn) {
+    Civi::$statics[__CLASS__]['init'] = 1;
     $options = &PEAR::getStaticProperty('DB_DataObject', 'options');
     $options['database'] = $dsn;
     if (defined('CIVICRM_DAO_DEBUG')) {
@@ -108,6 +105,7 @@ class CRM_Core_DAO extends DB_DataObject {
     if (CRM_Utils_Constant::value('CIVICRM_MYSQL_STRICT', CRM_Utils_System::isDevelopment())) {
       CRM_Core_DAO::executeQuery('SET SESSION sql_mode = STRICT_TRANS_TABLES');
     }
+    CRM_Core_DAO::executeQuery('SET NAMES utf8');
   }
 
   /**
@@ -354,7 +352,12 @@ class CRM_Core_DAO extends DB_DataObject {
    */
   public function initialize() {
     $this->_connect();
-    $this->query("SET NAMES utf8");
+    if (empty(Civi::$statics[__CLASS__]['init'])) {
+      // CRM_Core_DAO::init() must be called before CRM_Core_DAO->initialize().
+      // This occurs very early in bootstrap - error handlers may not be wired up.
+      echo "Inconsistent system initialization sequence. Premature access of (" . get_class($this) . ")";
+      CRM_Utils_System::civiExit();
+    }
   }
 
   /**
@@ -431,6 +434,10 @@ class CRM_Core_DAO extends DB_DataObject {
   }
 
   /**
+   * Save DAO object.
+   *
+   * @param bool $hook
+   *
    * @return $this
    */
   public function save($hook = TRUE) {

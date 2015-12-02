@@ -606,6 +606,10 @@ ORDER BY   i.contact_id, i.{$tempColumn}
 
   /**
    * Returns the regex patterns that are used for preparing the text and html templates.
+   *
+   * @param bool $onlyHrefs
+   *
+   * @return array|string
    */
   private function getPatterns($onlyHrefs = FALSE) {
 
@@ -798,6 +802,8 @@ ORDER BY   i.contact_id, i.{$tempColumn}
         $template[] = $this->subject;
         $this->templates['subject'] = implode("\n", $template);
       }
+
+      CRM_Utils_Hook::alterMailContent($this->templates);
     }
     return $this->templates;
   }
@@ -1393,9 +1399,11 @@ ORDER BY   civicrm_email.is_bulkmail DESC
   }
 
   /**
+   * Replace tokens.
    *
-   * get mailing object and replaces subscribeInvite,
-   * domain and mailing tokens
+   * Get mailing object and replaces subscribeInvite, domain and mailing tokens.
+   *
+   * @param array $mailing
    */
   public static function tokenReplace(&$mailing) {
     $domain = CRM_Core_BAO_Domain::getDomain();
@@ -1416,9 +1424,16 @@ ORDER BY   civicrm_email.is_bulkmail DESC
   }
 
   /**
+   * Get data to resolve tokens.
    *
-   *  getTokenData receives a token from an email
-   *  and returns the appropriate data for the token
+   * @param array $token_a
+   * @param bool $html
+   * @param array $contact
+   * @param string $verp
+   * @param array $urls
+   * @param int $event_queue_id
+   *
+   * @return bool|mixed|null|string
    */
   private function getTokenData(&$token_a, $html = FALSE, &$contact, &$verp, &$urls, $event_queue_id) {
     $type = $token_a['type'];
@@ -1734,7 +1749,9 @@ ORDER BY   civicrm_email.is_bulkmail DESC
 
       // Populate the recipients.
       if (empty($params['_skip_evil_bao_auto_recipients_'])) {
-        self::getRecipients($job->id, $mailing->id, TRUE, $mailing->dedupe_email);
+        // check if it's sms
+        $mode = $mailing->sms_provider_id ? 'sms' : NULL;
+        self::getRecipients($job->id, $mailing->id, TRUE, $mailing->dedupe_email, $mode);
       }
     }
 
@@ -1760,7 +1777,7 @@ ORDER BY   civicrm_email.is_bulkmail DESC
       $errors['body'] = ts('Field "body_html" or "body_text" is required.');
     }
 
-    if (!CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::MAILING_PREFERENCES_NAME, 'disable_mandatory_tokens_check')) {
+    if (!Civi::settings()->get('disable_mandatory_tokens_check')) {
       $header = $mailing->header_id && $mailing->header_id != 'null' ? CRM_Mailing_BAO_Component::findById($mailing->header_id) : NULL;
       $footer = $mailing->footer_id && $mailing->footer_id != 'null' ? CRM_Mailing_BAO_Component::findById($mailing->footer_id) : NULL;
       foreach (array('body_html', 'body_text') as $field) {
@@ -1815,7 +1832,7 @@ ORDER BY   civicrm_email.is_bulkmail DESC
    */
   public static function getMailingHash($id) {
     $hash = NULL;
-    if (CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::MAILING_PREFERENCES_NAME, 'hash_mailing_url')) {
+    if (Civi::settings()->get('hash_mailing_url')) {
       $hash = CRM_Core_DAO::getFieldValue('CRM_Mailing_BAO_Mailing', $id, 'hash', 'id');
     }
     return $hash;
@@ -2183,6 +2200,7 @@ ORDER BY   civicrm_email.is_bulkmail DESC
         'clicks' => $mailing->clicks,
         'unique' => $mailing->unique_clicks,
         'rate' => CRM_Utils_Array::value('delivered', $report['event_totals']) ? (100.0 * $mailing->unique_clicks) / $report['event_totals']['delivered'] : 0,
+        'report' => CRM_Report_Utils_Report::getNextUrl('mailing/clicks', "reset=1&mailing_id_value={$mailing_id}&url_value={$mailing->url}", FALSE, TRUE),
       );
     }
 

@@ -52,7 +52,7 @@ class WebTest_Contact_AdvancedSearchedRelatedContactTest extends CiviSeleniumTes
     $streetAddress = "100 Main Street";
     $this->_testAddLocation($streetAddress);
 
-    $this->_testAddFees(FALSE, FALSE, $paymentProcessorId);
+    $this->_testAddFees(FALSE, FALSE, $processorName);
     $this->openCiviPage('event/manage', 'reset=1');
     $this->type('title', $eventTitle);
     $this->click('_qf_SearchEvent_refresh');
@@ -92,10 +92,10 @@ class WebTest_Contact_AdvancedSearchedRelatedContactTest extends CiviSeleniumTes
     $this->openCiviPage('contact/search', 'reset=1', '_qf_Basic_refresh');
     $this->type("sort_name", $sortName);
     $this->select("contact_type", "value=Individual");
-    $this->clickLink("_qf_Basic_refresh", "xpath=//form[@id='Basic']//div/div//div/table/tbody/tr/");
+    $this->clickLink("_qf_Basic_refresh", "//div[@class='crm-search-results']/table[@class='selector row-highlight']/tbody/tr/", FALSE);
 
     // click through to the Relationship view screen
-    $this->click("xpath=//form[@id='Basic']//div/div//div/table/tbody/tr/td[11]/span/a[text()='View']");
+    $this->click("xpath=//table[@class='selector row-highlight']/tbody//tr/td[11]/span/a[text()='View']");
     $this->waitForPageToLoad($this->getTimeoutMsec());
     $this->click("css=li#tab_participant a");
 
@@ -198,14 +198,14 @@ class WebTest_Contact_AdvancedSearchedRelatedContactTest extends CiviSeleniumTes
   /**
    * @param bool $discount
    * @param bool $priceSet
-   * @param int $processorId
+   * @param int|array $processorIDs
    */
-  public function _testAddFees($discount = FALSE, $priceSet = FALSE, $processorId) {
+  public function _testAddFees($discount = FALSE, $priceSet = FALSE, $processorIDs) {
     // Go to Fees tab
     $this->click("link=Fees");
     $this->waitForElementPresent("_qf_Fee_upload-bottom");
     $this->click("CIVICRM_QFID_1_is_monetary");
-    $this->check("payment_processor[{$processorId}]");
+    $this->select2('payment_processor', $processorIDs, TRUE);
     $this->select("financial_type_id", "value=4");
     if ($priceSet) {
       // get one - TBD
@@ -240,10 +240,10 @@ class WebTest_Contact_AdvancedSearchedRelatedContactTest extends CiviSeleniumTes
     $this->openCiviPage('contact/search', 'reset=1', '_qf_Basic_refresh');
     $this->type("sort_name", $ContactName);
     $this->select("contact_type", "value=Individual");
-    $this->clickLink("_qf_Basic_refresh", "xpath=//form[@id='Basic']/div[3]/div/div[2]/table/tbody/tr/");
+    $this->clickLink("_qf_Basic_refresh", "//div[@class='crm-search-results']/table[@class='selector row-highlight']/tbody/tr/", FALSE);
 
     // click through to the Contribution view screen
-    $this->click("xpath=//form[@id='Basic']/div[3]/div/div[2]/table/tbody/tr/td[11]/span/a[text()='View']");
+    $this->click("xpath=//div[@class='crm-search-results']/table[@class='selector row-highlight']/tbody/tr/td[11]//span/a[text()='View']");
     $this->waitForPageToLoad($this->getTimeoutMsec());
 
     $this->click("css=li#tab_rel a");
@@ -274,7 +274,6 @@ class WebTest_Contact_AdvancedSearchedRelatedContactTest extends CiviSeleniumTes
 
     //check the status message
     $this->waitForText('crm-notification-container', "Relationship created.");
-
     $this->waitForElementPresent("xpath=//div[@class='dataTables_wrapper no-footer']//table/tbody//tr/td[9]/span/a[text()='View']");
     $this->click("xpath=//div[@class='dataTables_wrapper no-footer']//table/tbody//tr/td[9]/span/a[text()='View']");
 
@@ -329,6 +328,7 @@ class WebTest_Contact_AdvancedSearchedRelatedContactTest extends CiviSeleniumTes
     $this->waitForPageToLoad($this->getTimeoutMsec());
     $this->assertTrue(TRUE, 'greater than or equal to "{$Pdate}" AND less than or equal to "{$Ndate}"');
     $value = "$lastNameSoft, $firstNameSoft";
+    $this->waitForElementPresent("xpath= id('rowid{$cid}')/td[3]/a");
     $this->verifyText("xpath= id('rowid{$cid}')/td[3]/a", preg_quote($value));
 
   }

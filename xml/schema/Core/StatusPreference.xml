@@ -54,7 +54,7 @@
   </index>
   <field>
     <name>hush_until</name>
-    <title>Hush Status Notifications Until</title>
+    <title>Snooze Status Notifications Until</title>
     <type>date</type>
     <import>true</import>
     <comment>expires ignore_severity.  NULL never hushes.</comment>
@@ -69,6 +69,9 @@
     <comment>Hush messages up to and including this severity.</comment>
     <default>1</default>
     <add>4.7</add>
+    <pseudoconstant>
+      <callback>CRM_Utils_Check::getSeverityList</callback>
+    </pseudoconstant>
   </field>
   <field>
     <name>prefs</name>

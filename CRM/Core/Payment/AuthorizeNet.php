@@ -156,7 +156,7 @@ class CRM_Core_Payment_AuthorizeNet extends CRM_Core_Payment {
     curl_setopt($submit, CURLOPT_POST, TRUE);
     curl_setopt($submit, CURLOPT_RETURNTRANSFER, TRUE);
     curl_setopt($submit, CURLOPT_POSTFIELDS, implode('&', $postFields));
-    curl_setopt($submit, CURLOPT_SSL_VERIFYPEER, CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME, 'verifySSL'));
+    curl_setopt($submit, CURLOPT_SSL_VERIFYPEER, Civi::settings()->get('verifySSL'));
 
     $response = curl_exec($submit);
 
@@ -315,7 +315,7 @@ class CRM_Core_Payment_AuthorizeNet extends CRM_Core_Payment {
     curl_setopt($submit, CURLOPT_HEADER, 1);
     curl_setopt($submit, CURLOPT_POSTFIELDS, $arbXML);
     curl_setopt($submit, CURLOPT_POST, 1);
-    curl_setopt($submit, CURLOPT_SSL_VERIFYPEER, CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME, 'verifySSL'));
+    curl_setopt($submit, CURLOPT_SSL_VERIFYPEER, Civi::settings()->get('verifySSL'));
 
     $response = curl_exec($submit);
 
@@ -538,6 +538,12 @@ class CRM_Core_Payment_AuthorizeNet extends CRM_Core_Payment {
    *
    * Function is from Authorize.Net sample code, and used to avoid using
    * PHP5 XML functions
+   *
+   * @param string $haystack
+   * @param string $start
+   * @param string $end
+   *
+   * @return bool|string
    */
   public function _substring_between(&$haystack, $start, $end) {
     if (strpos($haystack, $start) === FALSE || strpos($haystack, $end) === FALSE) {
@@ -664,7 +670,7 @@ class CRM_Core_Payment_AuthorizeNet extends CRM_Core_Payment {
     curl_setopt($submit, CURLOPT_HEADER, 1);
     curl_setopt($submit, CURLOPT_POSTFIELDS, $arbXML);
     curl_setopt($submit, CURLOPT_POST, 1);
-    curl_setopt($submit, CURLOPT_SSL_VERIFYPEER, CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME, 'verifySSL'));
+    curl_setopt($submit, CURLOPT_SSL_VERIFYPEER, Civi::settings()->get('verifySSL'));
 
     $response = curl_exec($submit);
 
@@ -723,7 +729,7 @@ class CRM_Core_Payment_AuthorizeNet extends CRM_Core_Payment {
     curl_setopt($submit, CURLOPT_HEADER, 1);
     curl_setopt($submit, CURLOPT_POSTFIELDS, $arbXML);
     curl_setopt($submit, CURLOPT_POST, 1);
-    curl_setopt($submit, CURLOPT_SSL_VERIFYPEER, CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME, 'verifySSL'));
+    curl_setopt($submit, CURLOPT_SSL_VERIFYPEER, Civi::settings()->get('verifySSL'));
 
     $response = curl_exec($submit);
 
@@ -785,7 +791,7 @@ class CRM_Core_Payment_AuthorizeNet extends CRM_Core_Payment {
     curl_setopt($submit, CURLOPT_HEADER, 1);
     curl_setopt($submit, CURLOPT_POSTFIELDS, $arbXML);
     curl_setopt($submit, CURLOPT_POST, 1);
-    curl_setopt($submit, CURLOPT_SSL_VERIFYPEER, CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME, 'verifySSL'));
+    curl_setopt($submit, CURLOPT_SSL_VERIFYPEER, Civi::settings()->get('verifySSL'));
 
     $response = curl_exec($submit);
 

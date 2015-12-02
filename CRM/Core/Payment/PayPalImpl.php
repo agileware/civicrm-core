@@ -175,7 +175,7 @@ class CRM_Core_Payment_PayPalImpl extends CRM_Core_Payment {
    * @param array $errors
    */
   public function validatePaymentInstrument($values, &$errors) {
-    if ($this->_paymentProcessor['payment_processor_type'] == 'PayPal' && empty($values['token'])) {
+    if ($this->_paymentProcessor['payment_processor_type'] == 'PayPal' && !$this->isPaypalExpress($values)) {
       CRM_Core_Payment_Form::validateCreditCard($values, $errors);
       CRM_Core_Form::validateMandatoryFields($this->getMandatoryFields(), $values, $errors);
     }
@@ -220,7 +220,7 @@ class CRM_Core_Payment_PayPalImpl extends CRM_Core_Payment {
     $result = $this->invokeAPI($args);
 
     if (is_a($result, 'CRM_Core_Error')) {
-      return $result;
+      throw new PaymentProcessorException($result->message);
     }
 
     /* Success */
@@ -264,7 +264,7 @@ class CRM_Core_Payment_PayPalImpl extends CRM_Core_Payment {
     $result = $this->invokeAPI($args);
 
     if (is_a($result, 'CRM_Core_Error')) {
-      return $result;
+      throw new PaymentProcessorException(CRM_Core_Error::getMessages($result));
     }
 
     /* Success */
@@ -765,7 +765,7 @@ class CRM_Core_Payment_PayPalImpl extends CRM_Core_Payment {
    *   - redirect_url (if set the browser will be redirected to this.
    */
   public function doPreApproval(&$params) {
-    if (!isset($params['button']) || !stristr($params['button'], 'express')) {
+    if (!$this->isPaypalExpress($params)) {
       return array();
     }
     $this->_component = $params['component'];
@@ -837,7 +837,7 @@ class CRM_Core_Payment_PayPalImpl extends CRM_Core_Payment {
     $paypalParams = array(
       'business' => $this->_paymentProcessor['user_name'],
       'notify_url' => $notifyURL,
-      'item_name' => $this->getPaymentDescription(),
+      'item_name' => $this->getPaymentDescription($params),
       'quantity' => 1,
       'undefined_quantity' => 0,
       'cancel_return' => $cancelURL,
@@ -947,10 +947,17 @@ class CRM_Core_Payment_PayPalImpl extends CRM_Core_Payment {
   }
 
   /**
-   * Hash_call: Function to perform the API call to PayPal using API signature
+   * Hash_call: Function to perform the API call to PayPal using API signature.
+   *
    * @methodName is name of API  method.
    * @nvpStr is nvp string.
-   * returns an associtive array containing the response from the server.
+   * returns an associative array containing the response from the server.
+   *
+   * @param array $args
+   * @param null $url
+   *
+   * @return array|object
+   * @throws \Exception
    */
   public function invokeAPI($args, $url = NULL) {
 
@@ -972,8 +979,8 @@ class CRM_Core_Payment_PayPalImpl extends CRM_Core_Payment {
     curl_setopt($ch, CURLOPT_VERBOSE, 1);
 
     //turning off the server and peer verification(TrustManager Concept).
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME, 'verifySSL'));
-    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME, 'verifySSL') ? 2 : 0);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, Civi::settings()->get('verifySSL'));
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, Civi::settings()->get('verifySSL') ? 2 : 0);
 
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_POST, 1);
@@ -1010,6 +1017,7 @@ class CRM_Core_Payment_PayPalImpl extends CRM_Core_Payment {
     if (strtolower($result['ack']) != 'success' &&
       strtolower($result['ack']) != 'successwithwarning'
     ) {
+      throw new PaymentProcessorException("{$result['l_shortmessage0']} {$result['l_longmessage0']}");
       $e = CRM_Core_Error::singleton();
       $e->push($result['l_errorcode0'],
         0, NULL,
@@ -1022,10 +1030,13 @@ class CRM_Core_Payment_PayPalImpl extends CRM_Core_Payment {
   }
 
   /**
-   * This function will take NVPString and convert it to an Associative Array and it will decode the response.
-   * It is useful to search for a particular key and displaying arrays.
-   * @nvpstr is NVPString.
-   * @nvpArray is Associative Array.
+   * This function will take NVPString and convert it to an Associative Array.
+   *
+   * It will decode the response. It is useful to search for a particular key and displaying arrays.
+   *
+   * @param string $str
+   *
+   * @return array
    */
   public static function deformat($str) {
     $result = array();
@@ -1079,6 +1090,40 @@ class CRM_Core_Payment_PayPalImpl extends CRM_Core_Payment {
       $params[$civicrmField] = isset($paypalParams[$paypalField]) ? $paypalParams[$paypalField] : NULL;
     }
     return $params;
+  }
+
+  /**
+   * Is this being processed by payment express.
+   *
+   * Either because it is payment express or because is pro with paypal express in use.
+   *
+   * @param array $params
+   *
+   * @return bool
+   */
+  protected function isPaypalExpress($params) {
+    if ($this->_processorName == ts('PayPal Express')) {
+      return TRUE;
+    }
+
+    // This would occur postProcess.
+    if (!empty($params['token'])) {
+      return TRUE;
+    }
+    if (isset($params['button']) && stristr($params['button'], 'express')) {
+      return TRUE;
+    }
+
+    // The contribution form passes a 'button' but the event form might still set one of these fields.
+    // @todo more standardisation & get paypal fully out of the form layer.
+    $possibleExpressFields = array(
+      '_qf_Register_upload_express_x',
+      '_qf_Payment_upload_express_x',
+    );
+    if (array_intersect_key($params, array_fill_keys($possibleExpressFields, 1))) {
+      return TRUE;
+    }
+    return FALSE;
   }
 
 }

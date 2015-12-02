@@ -155,4 +155,38 @@ class CRM_Core_Payment_Manual extends CRM_Core_Payment {
     return '';
   }
 
+  /**
+   * Declare that more than one payment can be processed at once.
+   *
+   * @return bool
+   */
+  protected function supportsMultipleConcurrentPayments() {
+    return TRUE;
+  }
+
+  /**
+   * Checks if backoffice recurring edit is allowed
+   *
+   * @return bool
+   */
+  public function supportsEditRecurringContribution() {
+    return TRUE;
+  }
+
+  /**
+   * Submit a payment using Advanced Integration Method.
+   *
+   * @param array $params
+   *   Assoc array of input parameters for this transaction.
+   */
+  public function doDirectPayment(&$params) {
+    $statuses = CRM_Contribute_BAO_Contribution::buildOptions('contribution_status_id');
+    if ($params['is_pay_later']) {
+      $result['payment_status_id'] = array_search('Pending', $statuses);
+    }
+    else {
+      $result['payment_status_id'] = array_search('Completed', $statuses);
+    }
+  }
+
 }

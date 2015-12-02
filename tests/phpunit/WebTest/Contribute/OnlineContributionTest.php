@@ -268,8 +268,8 @@ class WebTest_Contribute_OnlineContributionTest extends CiviSeleniumTestCase {
 
     $firstName = 'Ma' . substr(sha1(rand()), 0, 4);
     $lastName = 'An' . substr(sha1(rand()), 0, 7);
-
-    $this->type("email-5", $firstName . "@example.com");
+    $email = $firstName . "@example.com";
+    $this->type("email-5", $email);
 
     if ($priceSet) {
       $this->click("xpath=//div[@id='priceset']/div/div[2]/div/span/input");
@@ -303,8 +303,10 @@ class WebTest_Contribute_OnlineContributionTest extends CiviSeleniumTestCase {
 
     //Find Contribution
     $this->openCiviPage("contribute/search", "reset=1", "contribution_date_low");
-
-    $this->type("sort_name", "$lastName $firstName");
+    $this->type("sort_name", "$email");
+    $this->click("xpath=//tr/td[1]/label[contains(text(), 'Contribution is a Test?')]/../../td[2]/label[contains(text(), 'Yes')]/preceding-sibling::input[1]");
+    $this->waitForAjaxContent();
+    $this->click("xpath=//div[@class='crm-accordion-wrapper crm-contribution_search_form-accordion ']/div[2]/table/tbody/tr[8]/td[1]/table/tbody/tr[3]/td[2]/label[1]");
     $this->clickLink("_qf_Search_refresh", "xpath=//div[@id='contributionSearch']//table//tbody/tr[1]/td[11]/span/a[text()='View']", FALSE);
     $this->clickLink("xpath=//div[@id='contributionSearch']//table//tbody/tr[1]/td[11]/span/a[text()='View']", "_qf_ContributionView_cancel-bottom", FALSE);
 

@@ -29,8 +29,6 @@
  *
  * @package CRM
  * @copyright CiviCRM LLC (c) 2004-2015
- * $Id$
- *
  */
 class CRM_Financial_BAO_FinancialAccount extends CRM_Financial_DAO_FinancialAccount {
 
@@ -121,7 +119,7 @@ class CRM_Financial_BAO_FinancialAccount extends CRM_Financial_DAO_FinancialAcco
    * @param int $financialAccountId
    */
   public static function del($financialAccountId) {
-    //checking if financial type is present
+    // checking if financial type is present
     $check = FALSE;
 
     //check dependencies
@@ -144,7 +142,7 @@ class CRM_Financial_BAO_FinancialAccount extends CRM_Financial_DAO_FinancialAcco
       return CRM_Utils_System::redirect(CRM_Utils_System::url('civicrm/admin/financial/financialAccount', "reset=1&action=browse"));
     }
 
-    //delete from financial Type table
+    // delete from financial Type table
     $financialAccount = new CRM_Financial_DAO_FinancialAccount();
     $financialAccount->id = $financialAccountId;
     $financialAccount->delete();
@@ -190,8 +188,7 @@ WHERE cft.id = %1
    */
   public static function getARAccounts($financialAccountId, $financialAccountTypeId = NULL, $accountTypeCode = 'ar') {
     if (!$financialAccountTypeId) {
-      $financialAccountType = CRM_Core_PseudoConstant::accountOptionValues('financial_account_type');
-      $financialAccountTypeId = array_search('Asset', $financialAccountType);
+      $financialAccountTypeId = key(CRM_Core_PseudoConstant::accountOptionValues('financial_account_type', NULL, " AND v.name LIKE 'Asset' "));
     }
     $query = "SELECT count(id) FROM civicrm_financial_account WHERE financial_account_type_id = %1 AND LCASE(account_type_code) = %2
       AND id != %3 AND is_active = 1;";

@@ -65,13 +65,6 @@ class CRM_Utils_VersionCheck {
   public $localMajorVersion;
 
   /**
-   * User setting to skip updates prior to a certain date
-   *
-   * @var string
-   */
-  public $ignoreDate;
-
-  /**
    * Info about available versions
    *
    * @var array
@@ -111,7 +104,7 @@ class CRM_Utils_VersionCheck {
       $this->localMajorVersion = $this->getMajorVersion($this->localVersion);
     }
     // Populate $versionInfo
-    if (CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME, 'versionCheck', NULL, 1)) {
+    if (Civi::settings()->get('versionCheck')) {
       // Use cached data if available and not stale
       if (!$this->readCacheFile()) {
         // Collect stats for pingback
@@ -120,7 +113,6 @@ class CRM_Utils_VersionCheck {
         // Get the latest version and send site info
         $this->pingBack();
       }
-      $this->ignoreDate = CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME, 'versionCheckIgnoreDate');
 
       // Sort version info in ascending order for easier comparisons
       ksort($this->versionInfo, SORT_NUMERIC);
@@ -257,11 +249,9 @@ class CRM_Utils_VersionCheck {
     if (!empty($majorVersion['releases'])) {
       foreach ($majorVersion['releases'] as $release) {
         if (version_compare($this->localVersion, $release['version']) < 0) {
-          if (!$this->ignoreDate || $this->ignoreDate < $release['date']) {
-            $newerVersion['newest'] = $release['version'];
-            if (CRM_Utils_Array::value('security', $release)) {
-              $newerVersion['security'] = $release['version'];
-            }
+          $newerVersion['newest'] = $release['version'];
+          if (CRM_Utils_Array::value('security', $release)) {
+            $newerVersion['security'] = $release['version'];
           }
         }
       }

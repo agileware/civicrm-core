@@ -133,11 +133,11 @@ class WebTest_Event_PricesetMaxCountTest extends CiviSeleniumTestCase {
 
     // get select field ids
     // get select field option1
-    $selectFieldOp1URL = $this->getAttribute("xpath=//div[@id='field_page']//table/tbody/tr[1]/td[7]/span[1]/a[1]@href");
+    $selectFieldOp1URL = $this->getAttribute("xpath=//div[@id='field_page']//table/tbody/tr[1]/td/span/a[text()='Edit Option']@href");
     $selectFieldOp1 = $this->urlArg('oid', $selectFieldOp1URL);
 
     // get select field option2
-    $selectFieldOp2URL = $this->getAttribute("xpath=//div[@id='field_page']//table/tbody/tr[2]/td[7]/span[1]/a[1]@href");
+    $selectFieldOp2URL = $this->getAttribute("xpath=//div[@id='field_page']//table/tbody/tr[2]/td/span/a[text()='Edit Option']@href");
     $selectFieldOp2 = $this->urlArg('oid', $selectFieldOp2URL);
 
     // create event.
@@ -177,7 +177,7 @@ class WebTest_Event_PricesetMaxCountTest extends CiviSeleniumTestCase {
     // fill billing related info
     $this->_fillRegisterWithBillingInfo();
 
-    $this->assertStringsPresent(array('Sorry, currently only 2 seats are available for this option.'));
+    $this->assertStringsPresent(array('Sorry, currently only 2 spaces are available for this option.'));
 
     // fill correct value for text field
     $this->type("xpath=//input[@id='price_{$textFieldId}']", '1');
@@ -205,7 +205,7 @@ class WebTest_Event_PricesetMaxCountTest extends CiviSeleniumTestCase {
     // fill billing related info and register
     $this->_fillRegisterWithBillingInfo();
 
-    $this->assertStringsPresent(array('Sorry, currently only a single seat is available for this option.'));
+    $this->assertStringsPresent(array('Sorry, currently only a single space is available for this option.'));
 
     // fill correct value for test field
     $this->type("xpath=//input[@id='price_{$textFieldId}']", '1');
@@ -328,11 +328,11 @@ class WebTest_Event_PricesetMaxCountTest extends CiviSeleniumTestCase {
 
     // get select field ids
     // get select field option1
-    $selectFieldOp1URL = $this->getAttribute("xpath=//div[@id='field_page']//table/tbody/tr[1]/td[7]/span[1]/a[1]@href");
+    $selectFieldOp1URL = $this->getAttribute("xpath=//div[@id='field_page']//table/tbody/tr[1]/td/span/a[text()='Edit Option']@href");
     $selectFieldOp1 = $this->urlArg('oid', $selectFieldOp1URL);
 
     // get select field option2
-    $selectFieldOp2URL = $this->getAttribute("xpath=//div[@id='field_page']//table/tbody/tr[2]/td[7]/span[1]/a[1]@href");
+    $selectFieldOp2URL = $this->getAttribute("xpath=//div[@id='field_page']//table/tbody/tr[2]/td/span/a[text()='Edit Option']@href");
     $selectFieldOp2 = $this->urlArg('oid', $selectFieldOp2URL);
 
     // create event.
@@ -370,7 +370,7 @@ class WebTest_Event_PricesetMaxCountTest extends CiviSeleniumTestCase {
     // fill billing related info
     $this->_fillRegisterWithBillingInfo();
 
-    $this->assertStringsPresent(array('Sorry, currently only 4 seats are available for this option.'));
+    $this->assertStringsPresent(array('Sorry, currently only 4 spaces are available for this option.'));
 
     $this->select("price_{$selectFieldId}", "value={$selectFieldOp1}");
 
@@ -400,7 +400,7 @@ class WebTest_Event_PricesetMaxCountTest extends CiviSeleniumTestCase {
     // fill billing related info and register
     $this->_fillRegisterWithBillingInfo();
 
-    $this->assertStringsPresent(array('Sorry, currently only 2 seats are available for this option.'));
+    $this->assertStringsPresent(array('Sorry, currently only 2 spaces are available for this option.'));
 
     // fill correct value and register
     $this->type("xpath=//input[@id='price_{$textFieldId}']", '1');
@@ -515,11 +515,11 @@ class WebTest_Event_PricesetMaxCountTest extends CiviSeleniumTestCase {
 
     // get select field ids
     // get select field option1
-    $selectFieldOp1URL = $this->getAttribute("xpath=//div[@id='field_page']/table/tbody/tr[1]/td[7]/span[1]/a[1]@href");
+    $selectFieldOp1URL = $this->getAttribute("xpath=//div[@id='field_page']//table/tbody/tr[1]/td/span/a[text()='Edit Option']@href");
     $selectFieldOp1 = $this->urlArg('oid', $selectFieldOp1URL);
 
     // get select field option2
-    $selectFieldOp2URL = $this->getAttribute("xpath=//div[@id='field_page']/table/tbody/tr[2]/td[7]/span[1]/a[1]@href");
+    $selectFieldOp2URL = $this->getAttribute("xpath=//div[@id='field_page']//table/tbody/tr[2]/td/span/a[text()='Edit Option']@href");
     $selectFieldOp2 = $this->urlArg('oid', $selectFieldOp2URL);
 
     // create event.
@@ -563,7 +563,7 @@ class WebTest_Event_PricesetMaxCountTest extends CiviSeleniumTestCase {
     // fill billing related info
     $this->_fillRegisterWithBillingInfo();
 
-    $this->assertStringsPresent(array('Sorry, currently only 6 seats are available for this option.'));
+    $this->assertStringsPresent(array('Sorry, currently only 6 spaces are available for this option.'));
 
     // fill correct value for text field
     $this->type("xpath=//input[@id='price_{$textFieldId}']", '1');
@@ -584,7 +584,7 @@ class WebTest_Event_PricesetMaxCountTest extends CiviSeleniumTestCase {
     $this->click('_qf_Participant_1_next-Array');
     $this->waitForPageToLoad($this->getTimeoutMsec());
 
-    $this->assertStringsPresent(array('Sorry, currently only 6 seats are available for this option.'));
+    $this->assertStringsPresent(array('Sorry, currently only 6 spaces are available for this option.'));
 
     // fill correct value for text field
     $this->type("xpath=//input[@id='price_{$textFieldId}']", '3');
@@ -605,7 +605,7 @@ class WebTest_Event_PricesetMaxCountTest extends CiviSeleniumTestCase {
     $this->click('_qf_Participant_2_next-Array');
     $this->waitForPageToLoad($this->getTimeoutMsec());
 
-    $this->assertStringsPresent(array('Sorry, currently only 6 seats are available for this option.'));
+    $this->assertStringsPresent(array('Sorry, currently only 6 spaces are available for this option.'));
 
     // fill correct value for text field
     $this->type("xpath=//input[@id='price_{$textFieldId}']", '1');
@@ -644,7 +644,7 @@ class WebTest_Event_PricesetMaxCountTest extends CiviSeleniumTestCase {
     // fill billing related info
     $this->_fillRegisterWithBillingInfo();
 
-    $this->assertStringsPresent(array('Sorry, currently only 2 seats are available for this option.'));
+    $this->assertStringsPresent(array('Sorry, currently only 2 spaces are available for this option.'));
 
     // fill correct value for text field
     $this->type("xpath=//input[@id='price_{$textFieldId}']", '1');
@@ -670,7 +670,7 @@ class WebTest_Event_PricesetMaxCountTest extends CiviSeleniumTestCase {
     $this->click('_qf_Participant_1_next-Array');
     $this->waitForPageToLoad($this->getTimeoutMsec());
 
-    $this->assertStringsPresent(array('Sorry, currently only 2 seats are available for this option.'));
+    $this->assertStringsPresent(array('Sorry, currently only 2 spaces are available for this option.'));
 
     // fill correct value for text field
     $this->type("xpath=//input[@id='price_{$textFieldId}']", '1');
@@ -792,11 +792,11 @@ class WebTest_Event_PricesetMaxCountTest extends CiviSeleniumTestCase {
 
     // get select field ids
     // get select field option1
-    $selectFieldOp1URL = $this->getAttribute("xpath=//div[@id='field_page']//table/tbody/tr[1]/td[7]/span[1]/a[1]@href");
+    $selectFieldOp1URL = $this->getAttribute("xpath=//div[@id='field_page']//table/tbody/tr[1]/td/span/a[text()='Edit Option']@href");
     $selectFieldOp1 = $this->urlArg('oid', $selectFieldOp1URL);
 
     // get select field option2
-    $selectFieldOp2URL = $this->getAttribute("xpath=//div[@id='field_page']//table/tbody/tr[2]/td[7]/span[1]/a[1]@href");
+    $selectFieldOp2URL = $this->getAttribute("xpath=//div[@id='field_page']//table/tbody/tr[2]/td/span/a[text()='Edit Option']@href");
     $selectFieldOp2 = $this->urlArg('oid', $selectFieldOp2URL);
 
     // create event.
@@ -840,7 +840,7 @@ class WebTest_Event_PricesetMaxCountTest extends CiviSeleniumTestCase {
     // fill billing related info
     $this->_fillRegisterWithBillingInfo();
 
-    $this->assertStringsPresent(array('Sorry, currently only 12 seats are available for this option.'));
+    $this->assertStringsPresent(array('Sorry, currently only 12 spaces are available for this option.'));
 
     // fill correct value for text field
     $this->type("xpath=//input[@id='price_{$textFieldId}']", '1');
@@ -861,7 +861,7 @@ class WebTest_Event_PricesetMaxCountTest extends CiviSeleniumTestCase {
     $this->click('_qf_Participant_1_next-Array');
     $this->waitForPageToLoad($this->getTimeoutMsec());
 
-    $this->assertStringsPresent(array('Sorry, currently only 12 seats are available for this option.'));
+    $this->assertStringsPresent(array('Sorry, currently only 12 spaces are available for this option.'));
 
     // fill correct value for text field
     $this->type("xpath=//input[@id='price_{$textFieldId}']", '3');
@@ -882,7 +882,7 @@ class WebTest_Event_PricesetMaxCountTest extends CiviSeleniumTestCase {
     $this->click('_qf_Participant_2_next-Array');
     $this->waitForPageToLoad($this->getTimeoutMsec());
 
-    $this->assertStringsPresent(array('Sorry, currently only 12 seats are available for this option.'));
+    $this->assertStringsPresent(array('Sorry, currently only 12 spaces are available for this option.'));
 
     // fill correct value for text field
     $this->type("xpath=//input[@id='price_{$textFieldId}']", '1');
@@ -921,7 +921,7 @@ class WebTest_Event_PricesetMaxCountTest extends CiviSeleniumTestCase {
     // fill billing related info
     $this->_fillRegisterWithBillingInfo();
 
-    $this->assertStringsPresent(array('Sorry, currently only 4 seats are available for this option.'));
+    $this->assertStringsPresent(array('Sorry, currently only 4 spaces are available for this option.'));
 
     // fill correct value for text field
     $this->type("xpath=//input[@id='price_{$textFieldId}']", '1');
@@ -947,7 +947,7 @@ class WebTest_Event_PricesetMaxCountTest extends CiviSeleniumTestCase {
     $this->click('_qf_Participant_1_next-Array');
     $this->waitForPageToLoad($this->getTimeoutMsec());
 
-    $this->assertStringsPresent(array('Sorry, currently only 4 seats are available for this option.'));
+    $this->assertStringsPresent(array('Sorry, currently only 4 spaces are available for this option.'));
 
     // fill correct value for text field
     $this->type("xpath=//input[@id='price_{$textFieldId}']", '1');
@@ -1113,7 +1113,7 @@ class WebTest_Event_PricesetMaxCountTest extends CiviSeleniumTestCase {
     $this->waitForElementPresent('_qf_Fee_upload-bottom');
     $this->click('xpath=//form[@id="Fee"]//div/table/tbody//tr//td/label[contains(text(), "Yes")]');
     $processorName = $params['payment_processor'];
-    $this->click("xpath=//tr[@class='crm-event-manage-fee-form-block-payment_processor']/td[2]/label[text()='$processorName']");
+    $this->select2('payment_processor', $processorName, TRUE);
     $this->select('financial_type_id', 'value=4');
 
     if (array_key_exists('price_set', $params)) {

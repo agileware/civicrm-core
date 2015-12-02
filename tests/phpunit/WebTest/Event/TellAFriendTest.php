@@ -238,7 +238,7 @@ class WebTest_Event_TellAFriendTest extends CiviSeleniumTestCase {
       $this->assertChecked("is_multiple_registrations");
     }
 
-    $this->click('intro_text-plain');
+    $this->click("xpath=//div[@id='registration_screen']/table/tbody/tr[1]/td[2]/div[@class='replace-plain']");
     $this->fillRichTextField("intro_text", $registerIntro);
 
     // enable confirmation email

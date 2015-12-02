@@ -344,19 +344,18 @@ class CRM_Core_Invoke {
   }
 
   /**
-   * Show status in the footer
+   * Show status in the footer (admin only)
    *
    * @param CRM_Core_Smarty $template
    */
   public static function statusCheck($template) {
-    if (CRM_Core_Config::isUpgradeMode()) {
+    if (CRM_Core_Config::isUpgradeMode() || !CRM_Core_Permission::check('administer CiviCRM')) {
       return;
     }
-    $statusSeverity = 0;
-    $statusMessage = ts('System status OK');
-    // TODO: get status from CRM_Utils_Check, if cached
-    $template->assign('footer_status_severity', $statusSeverity);
-    $template->assign('footer_status_message', $statusMessage);
+    // always use cached results - they will be refreshed by the session timer
+    $status = Civi::settings()->get('systemStatusCheckResult');
+    $template->assign('footer_status_severity', $status);
+    $template->assign('footer_status_message', CRM_Utils_Check::toStatusLabel($status));
   }
 
   /**

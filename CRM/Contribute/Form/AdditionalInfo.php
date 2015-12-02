@@ -195,7 +195,7 @@ class CRM_Contribute_Form_AdditionalInfo {
    */
   public static function processPremium($params, $contributionID, $premiumID = NULL, $options = array()) {
     $selectedProductID = $params['product_name'][0];
-    $selectedProductOptionID = $params['product_name'][1];
+    $selectedProductOptionID = CRM_Utils_Array::value(1, $params['product_name']);
 
     $dao = new CRM_Contribute_DAO_ContributionProduct();
     $dao->contribution_id = $contributionID;
@@ -337,6 +337,9 @@ class CRM_Contribute_Form_AdditionalInfo {
     if (!empty($params['payment_instrument_id'])) {
       $paymentInstrument = CRM_Contribute_PseudoConstant::paymentInstrument();
       $params['paidBy'] = $paymentInstrument[$params['payment_instrument_id']];
+      if ($params['paidBy'] != 'Check' && isset($params['check_number'])) {
+        unset($params['check_number']);
+      }
     }
 
     // retrieve individual prefix value for honoree
@@ -473,7 +476,7 @@ class CRM_Contribute_Form_AdditionalInfo {
     $template = CRM_Core_Smarty::singleton();
     $taxAmt = $template->get_template_vars('dataArray');
     $eventTaxAmt = $template->get_template_vars('totalTaxAmount');
-    $prefixValue = CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::CONTRIBUTE_PREFERENCES_NAME, 'contribution_invoice_settings');
+    $prefixValue = Civi::settings()->get('contribution_invoice_settings');
     $invoicing = CRM_Utils_Array::value('invoicing', $prefixValue);
     if ((!empty($taxAmt) || isset($eventTaxAmt)) && (isset($invoicing) && isset($prefixValue['is_email_pdf']))) {
       $isEmailPdf = TRUE;

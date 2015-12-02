@@ -242,9 +242,15 @@ class CRM_Member_Form_Membership extends CRM_Member_Form {
       }
     }
 
+    if (!$this->_memType) {
+      $params = CRM_Utils_Request::exportValues();
+      if (isset($params['membership_type_id'][1])) {
+        $this->_memType = $params['membership_type_id'][1];
+      }
+    }
     // when custom data is included in this page
     if (!empty($_POST['hidden_custom'])) {
-      CRM_Custom_Form_CustomData::preProcess($this);
+      CRM_Custom_Form_CustomData::preProcess($this, NULL, $this->_memType, 1, 'Membership', $this->_id);
       CRM_Custom_Form_CustomData::buildQuickForm($this);
       CRM_Custom_Form_CustomData::setDefaultValues($this);
     }
@@ -405,7 +411,7 @@ class CRM_Member_Form_Membership extends CRM_Member_Form {
     $this->assign('taxRates', json_encode(CRM_Core_PseudoConstant::getTaxRates()));
 
     $this->assign('currency', CRM_Core_Config::singleton()->defaultCurrencySymbol);
-    $invoiceSettings = CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::CONTRIBUTE_PREFERENCES_NAME, 'contribution_invoice_settings');
+    $invoiceSettings = Civi::settings()->get('contribution_invoice_settings');
     $invoicing = CRM_Utils_Array::value('invoicing', $invoiceSettings);
     if (isset($invoicing)) {
       $this->assign('taxTerm', CRM_Utils_Array::value('tax_term', $invoiceSettings));
@@ -713,8 +719,7 @@ class CRM_Member_Form_Membership extends CRM_Member_Form {
 
     $this->addFormRule(array('CRM_Member_Form_Membership', 'formRule'), $this);
 
-    $this->assign('outBound_option', CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::MAILING_PREFERENCES_NAME,
-      'mailing_backend'));
+    $this->assign('outBound_option', Civi::settings()->get('mailing_backend'));
 
     parent::buildQuickForm();
   }
@@ -1076,7 +1081,7 @@ class CRM_Member_Form_Membership extends CRM_Member_Form {
     $template = CRM_Core_Smarty::singleton();
     $taxAmt = $template->get_template_vars('dataArray');
     $eventTaxAmt = $template->get_template_vars('totalTaxAmount');
-    $prefixValue = CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::CONTRIBUTE_PREFERENCES_NAME, 'contribution_invoice_settings');
+    $prefixValue = Civi::settings()->get('contribution_invoice_settings');
     $invoicing = CRM_Utils_Array::value('invoicing', $prefixValue);
     if ((!empty($taxAmt) || isset($eventTaxAmt)) && (isset($invoicing) && isset($prefixValue['is_email_pdf']))) {
       $isEmailPdf = TRUE;
@@ -1423,7 +1428,8 @@ class CRM_Member_Form_Membership extends CRM_Member_Form {
           ),
           $financialType,
           FALSE,
-          $this->_bltID
+          $this->_bltID,
+          TRUE
         );
 
         //create new soft-credit record, CRM-13981
@@ -1647,7 +1653,7 @@ class CRM_Member_Form_Membership extends CRM_Member_Form {
     }
 
     if (!empty($lineItem[$this->_priceSetId])) {
-      $invoiceSettings = CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::CONTRIBUTE_PREFERENCES_NAME, 'contribution_invoice_settings');
+      $invoiceSettings = Civi::settings()->get('contribution_invoice_settings');
       $invoicing = CRM_Utils_Array::value('invoicing', $invoiceSettings);
       $taxAmount = FALSE;
       $totalTaxAmount = 0;

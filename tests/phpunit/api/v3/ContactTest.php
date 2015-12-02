@@ -1589,6 +1589,56 @@ class api_v3_ContactTest extends CiviUnitTestCase {
   }
 
   /**
+   * Test Address parameters
+   *
+   * This include state_province, state_province_name, country
+   */
+  public function testContactGetWithAddressFields() {
+    $individuals = array(
+      array(
+        'first_name' => 'abc1',
+        'contact_type' => 'Individual',
+        'last_name' => 'xyz1',
+        'api.address.create' => array(
+          'country' => 'United States',
+          'state_province_id' => 'Michigan',
+          'location_type_id' => 1,
+        ),
+      ),
+      array(
+        'first_name' => 'abc2',
+        'contact_type' => 'Individual',
+        'last_name' => 'xyz2',
+        'api.address.create' => array(
+          'country' => 'United States',
+          'state_province_id' => 'Alabama',
+          'location_type_id' => 1,
+        ),
+      ),
+    );
+    foreach ($individuals as $params) {
+      $contact = $this->callAPISuccess('contact', 'create', $params);
+    }
+
+    // Check whether Contact get API return successfully with below Address params.
+    $fieldsToTest = array(
+      'state_province_name' => 'Michigan',
+      'state_province' => 'Michigan',
+      'country' => 'United States',
+      'state_province_name' => array('IN' => array('Michigan', 'Alabama')),
+      'state_province' => array('IN' => array('Michigan', 'Alabama')),
+    );
+    foreach ($fieldsToTest as $field => $value) {
+      $getParams = array(
+        'id' => $contact['id'],
+        $field => $value,
+      );
+      $result = $this->callAPISuccess('Contact', 'get', $getParams);
+      $this->assertEquals(1, $result['count']);
+    }
+  }
+
+  /**
    * Test Deceased date parameters.
    *
    * These include value, array & Deceased_date_high, Deceased date_low
@@ -2784,6 +2834,18 @@ class api_v3_ContactTest extends CiviUnitTestCase {
     $this->assertNotContains($organization['id'], array_keys($result['values']));
     $this->assertNotContains($individual['id'], array_keys($result['values']));
     $this->assertContains($household['id'], array_keys($result['values']));
+  }
+
+  /**
+   * Test merging 2 contacts.
+   */
+  public function testMerge() {
+    $otherContact = $this->callAPISuccess('contact', 'create', $this->_params);
+    $mainContact = $this->callAPISuccess('contact', 'create', $this->_params);
+    $this->callAPISuccess('contact', 'merge', array('main_id' => $mainContact['id'], 'other_id' => $otherContact['id']));
+    $contacts = $this->callAPISuccess('contact', 'get', $this->_params);
+    $this->assertEquals($otherContact['id'], $contacts['id']);
+
   }
 
 }

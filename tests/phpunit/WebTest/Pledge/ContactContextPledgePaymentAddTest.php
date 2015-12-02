@@ -38,7 +38,7 @@ class WebTest_Pledge_ContactContextPledgePaymentAddTest extends CiviSeleniumTest
   public function testAddPledgePaymentWithAdjustPledgePaymentSchedule() {
     $this->webtestLogin();
     $this->openCiviPage('admin/setting/localization', 'reset=1');
-    $this->select("currencyLimit-f", "value=FJD");
+    $this->select("currencyLimit", "value=FJD");
     $this->click("add");
     $this->click("_qf_Localization_next-bottom");
     $this->waitForPageToLoad($this->getTimeoutMsec());
@@ -58,7 +58,8 @@ class WebTest_Pledge_ContactContextPledgePaymentAddTest extends CiviSeleniumTest
     $this->waitForElementPresent('crm-contact-actions-link');
 
     // now add pledge from contact summary
-    $this->click("//a[@id='crm-contact-actions-link']/span/div");
+    $this->click("xpath=//div[@class='crm-actions-ribbon']/ul[@id='actions']/li[@class='crm-contact-activity crm-summary-block']/div/a[@id='crm-contact-actions-link']");
+    $this->waitForElementPresent('crm-contact-actions-list');
 
     // wait for add pledge link
     $this->waitForElementPresent('link=Add Pledge');
@@ -93,8 +94,7 @@ class WebTest_Pledge_ContactContextPledgePaymentAddTest extends CiviSeleniumTest
     $this->waitForElementPresent('link=Add Pledge');
 
     $this->waitForText('crm-notification-container', "Pledge has been recorded and the payment schedule has been created.");
-
-    $this->waitForElementPresent("xpath=//div[@class='view-content']//table//tbody/tr[1]/td[10]/span/a[text()='View']");
+    $this->waitForElementPresent("xpath=//table[@class='selector row-highlight']//tbody/tr[1]/td[10]/span/a[text()='View']");
     //click through to the Pledge view screen
     $this->click("xpath=//div[@class='view-content']//table//tbody/tr[1]/td[10]/span/a[text()='View']");
     $this->waitForElementPresent("_qf_PledgeView_next-bottom");
@@ -179,8 +179,8 @@ class WebTest_Pledge_ContactContextPledgePaymentAddTest extends CiviSeleniumTest
     $this->waitForElementPresent("_qf_Contribution_upload");
     $this->click("_qf_Contribution_upload");
 
-    $this->waitForElementPresent("xpath=//div[@class='view-content']//table//tbody/tr[1]/td[10]/span/a[text()='View']");
-    $this->click("xpath=//div[@class='view-content']//table//tbody/tr[1]/td[10]/span/a[text()='View']");
+    $this->waitForElementPresent("xpath=//form[@class='CRM_Pledge_Form_Search crm-search-form']/div[@class='view-content']//table//tbody/tr[1]/td[10]/span/a[text()='View']");
+    $this->click("xpath=//form[@class='CRM_Pledge_Form_Search crm-search-form']/div[@class='view-content']//table//tbody/tr[1]/td[10]/span/a[text()='View']");
 
     $this->waitForElementPresent("_qf_PledgeView_next-bottom");
     $this->webtestVerifyTabularData(array(
@@ -197,7 +197,8 @@ class WebTest_Pledge_ContactContextPledgePaymentAddTest extends CiviSeleniumTest
       )
     );
     $this->openCiviPage('admin/setting/localization', 'reset=1');
-    $this->select("currencyLimit-t", "value=FJD");
+    $this->waitForElementPresent("currencyLimit");
+    $this->select("currencyLimit", "value=FJD");
     $this->click("remove");
     $this->click("_qf_Localization_next-bottom");
     $this->waitForPageToLoad($this->getTimeoutMsec());
@@ -222,7 +223,8 @@ class WebTest_Pledge_ContactContextPledgePaymentAddTest extends CiviSeleniumTest
     $this->waitForElementPresent('crm-contact-actions-link');
 
     // now add pledge from contact summary
-    $this->click("//a[@id='crm-contact-actions-link']/span/div");
+    $this->click("xpath=//div[@class='crm-actions-ribbon']/ul[@id='actions']/li[@class='crm-contact-activity crm-summary-block']/div/a[@id='crm-contact-actions-link']");
+    $this->waitForElementPresent('crm-contact-actions-list');
 
     // wait for add plegde link
     $this->waitForElementPresent('link=Add Pledge');
@@ -274,11 +276,10 @@ class WebTest_Pledge_ContactContextPledgePaymentAddTest extends CiviSeleniumTest
         'Send additional reminders' => '4 days after the last one sent',
       )
     );
-
     $this->clickLink("_qf_PledgeView_next-bottom", "xpath=//div[@class='view-content']//table//tbody/tr[1]/td[10]/span/a[text()='View']", FALSE);
-    $this->click("xpath=//div[@class='view-content']//table[@class='selector row-highlight']//tbody/tr[1]/td[1]/span/a");
-    $this->waitForElementPresent("xpath=//div[@class='view-content']//table//tbody/tr[2]/td[2]/table/tbody/tr[2]/td[8]/a[text()='Record Payment']");
-    $this->click("xpath=//div[@class='view-content']//table//tbody/tr[2]/td[2]/table/tbody/tr[2]/td[8]/a[text()='Record Payment']");
+    $this->click("xpath=//table[@class='selector row-highlight']/tbody/tr[1]/td[1]/span/a");
+    $this->waitForElementPresent("xpath=//table/tbody/tr[2]/td[2]/table/tbody/tr[2]/td[8]/a[text()='Record Payment']");
+    $this->click("xpath=//table/tbody/tr[2]/td[2]/table/tbody/tr[2]/td[8]/a[text()='Record Payment']");
     $this->waitForElementPresent("xpath=//form[@id='Contribution']//table//tbody/tr[3]/td[2]/a[text()='adjust payment amount']");
     $this->click("xpath=//form[@id='Contribution']//table//tbody/tr[3]/td[2]/a[text()='adjust payment amount']");
     $this->waitForElementPresent("adjust-option-type");
@@ -367,7 +368,8 @@ class WebTest_Pledge_ContactContextPledgePaymentAddTest extends CiviSeleniumTest
     $this->waitForElementPresent('crm-contact-actions-link');
 
     // now add pledge from contact summary
-    $this->click("//a[@id='crm-contact-actions-link']/span/div");
+    $this->click("xpath=//div[@class='crm-actions-ribbon']/ul[@id='actions']/li[@class='crm-contact-activity crm-summary-block']/div/a[@id='crm-contact-actions-link']");
+    $this->waitForElementPresent('crm-contact-actions-list');
 
     // wait for add plegde link
     $this->waitForElementPresent('link=Add Pledge');

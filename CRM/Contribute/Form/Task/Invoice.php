@@ -247,7 +247,7 @@ class CRM_Contribute_Form_Task_Invoice extends CRM_Contribute_Form_Task {
     $cancelledStatusId = CRM_Utils_Array::key('Cancelled', $contributionStatusID);
 
     // getting data from admin page
-    $prefixValue = CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::CONTRIBUTE_PREFERENCES_NAME, 'contribution_invoice_settings');
+    $prefixValue = Civi::settings()->get('contribution_invoice_settings');
 
     foreach ($invoiceElements['details'] as $contribID => $detail) {
       $input = $ids = $objects = array();
@@ -472,7 +472,7 @@ class CRM_Contribute_Form_Task_Invoice extends CRM_Contribute_Form_Task {
       }
       // Fix Invoice email doesnot send out when completed payment using Paypal
       if (empty($contactID)) {
-        $contactID = $contactIds['0'];
+        $contactID = current($contactIds);
       }
       $contactEmails = CRM_Core_BAO_Email::allEmails($contactID);
       $emails = array();
@@ -633,6 +633,8 @@ class CRM_Contribute_Form_Task_Invoice extends CRM_Contribute_Form_Task {
    *
    * @param string $html
    *   Content for pdf in html format.
+   *
+   * @param string $name
    *
    * @return string
    *   Name of file which is in pdf format

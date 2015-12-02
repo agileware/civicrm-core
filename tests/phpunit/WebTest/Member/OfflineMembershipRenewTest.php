@@ -72,7 +72,7 @@ class WebTest_Member_OfflineMembershipRenewTest extends CiviSeleniumTestCase {
     // Because it tends to cause problems, all uses of sleep() must be justified in comments
     // Sleep should never be used for wait for anything to load from the server
     // Justification for this instance: make sure onchange for total_amount has a chance to fire
-    sleep(2);
+    $this->waitForAjaxContent();
 
     // Clicking save.
     $this->click('_qf_Membership_upload-bottom');
@@ -82,11 +82,10 @@ class WebTest_Member_OfflineMembershipRenewTest extends CiviSeleniumTestCase {
 
     // Is status message correct?
     $this->waitForText('crm-notification-container', "{$membershipTypes['membership_type']} membership for $firstName Memberson has been added.");
-
-    $this->waitForElementPresent("xpath=//div[@id='memberships']//table/tbody/tr/td[9]/span[2][text()='Renew...']/ul/li/a[text()='Renew']");
+    $this->waitForElementPresent("xpath=//table[@class='display dataTable no-footer']/tbody/tr/td[9]/span[2][text()='Renew...']/ul/li/a[text()='Renew']");
 
     // click through to the Membership Renewal Link
-    $this->click("xpath=//div[@id='memberships']//table/tbody/tr/td[9]/span[2][text()='Renew...']/ul/li/a[text()='Renew']");
+    $this->click("xpath=//table[@class='display dataTable no-footer']/tbody/tr/td[9]/span[2][text()='Renew...']/ul/li/a[text()='Renew']");
 
     $this->waitForElementPresent('_qf_MembershipRenewal_cancel-bottom');
 
@@ -96,10 +95,10 @@ class WebTest_Member_OfflineMembershipRenewTest extends CiviSeleniumTestCase {
     // page was loaded
     $this->waitForAjaxContent();
     $this->waitForTextPresent($sourceText);
-    $this->waitForElementPresent("xpath=//div[@id='memberships']/div/table[@class='display dataTable no-footer']/tbody/tr/td[9]/span[1]/a[1][contains(text(),'View')]");
+    $this->waitForElementPresent("xpath=//table[@class='display dataTable no-footer']/tbody/tr/td[9]/span[1]/a[1][contains(text(),'View')]");
 
     // click through to the membership view screen
-    $this->click("xpath=//div[@id='memberships']/div/table[@class='display dataTable no-footer']/tbody/tr/td[9]/span[1]/a[1][contains(text(),'View')]");
+    $this->click("xpath=//table[@class='display dataTable no-footer']/tbody/tr/td[9]/span[1]/a[1][contains(text(),'View')]");
 
     $this->waitForElementPresent("xpath=//button//span[contains(text(),'Done')]");
 
@@ -196,14 +195,14 @@ class WebTest_Member_OfflineMembershipRenewTest extends CiviSeleniumTestCase {
     $this->click('_qf_MembershipRenewal_upload-bottom');
 
     // page was loaded
-    $this->waitForTextPresent($sourceText);
+    $this->waitForAjaxContent();
 
     $this->waitForElementPresent("xpath=//table[@class='display dataTable no-footer']/tbody/tr/td[9]/span/a[contains(text(), 'View')]");
 
     // click through to the membership view screen
-
+    $this->waitForAjaxContent();
     $this->click("xpath=//table[@class='display dataTable no-footer']/tbody/tr/td[9]/span/a[contains(text(), 'View')]");
-    $this->waitForElementPresent("xpath=//button//span[contains(text(),'Done')]");
+    $this->waitForElementPresent("_qf_MembershipView_cancel-bottom");
 
     $joinDate = date('F jS, Y');
     $startDate = date('F jS, Y', strtotime("+1 month"));
@@ -259,7 +258,7 @@ class WebTest_Member_OfflineMembershipRenewTest extends CiviSeleniumTestCase {
     // Because it tends to cause problems, all uses of sleep() must be justified in comments
     // Sleep should never be used for wait for anything to load from the server
     // Justification for this instance: make sure onchange for total_amount has a chance to fire
-    sleep(2);
+    $this->waitForAjaxContent();
 
     // Clicking save.
     $this->click('_qf_Membership_upload-bottom');
@@ -287,7 +286,7 @@ class WebTest_Member_OfflineMembershipRenewTest extends CiviSeleniumTestCase {
     // Because it tends to cause problems, all uses of sleep() must be justified in comments
     // Sleep should never be used for wait for anything to load from the server
     // Justification for this instance: wait for onchange handler
-    sleep(2);
+    $this->waitForAjaxContent();
 
     // save the renewed membership
     $this->click('_qf_MembershipRenewal_upload-bottom');

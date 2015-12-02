@@ -509,6 +509,11 @@ class CRM_Utils_System_Drupal6 extends CRM_Utils_System_DrupalBase {
   }
 
   /**
+   * Get CMS root path.
+   *
+   * @param string $scriptFilename
+   *
+   * @return null|string
    */
   public function cmsRootPath($scriptFilename = NULL) {
     $cmsRoot = $valid = NULL;
@@ -744,6 +749,53 @@ class CRM_Utils_System_Drupal6 extends CRM_Utils_System_DrupalBase {
    */
   public function setHttpHeader($name, $value) {
     drupal_set_header("$name: $value");
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public function synchronizeUsers() {
+    $config = CRM_Core_Config::singleton();
+    if (PHP_SAPI != 'cli') {
+      set_time_limit(300);
+    }
+    $rows = array();
+    $id = 'uid';
+    $mail = 'mail';
+    $name = 'name';
+
+    $result = db_query("SELECT uid, mail, name FROM {users} where mail != ''");
+
+    while ($row = db_fetch_array($result)) {
+      $rows[] = $row;
+    }
+
+    $user = new StdClass();
+    $uf = $config->userFramework;
+    $contactCount = 0;
+    $contactCreated = 0;
+    $contactMatching = 0;
+    foreach ($rows as $row) {
+      $user->$id = $row[$id];
+      $user->$mail = $row[$mail];
+      $user->$name = $row[$name];
+      $contactCount++;
+      if ($match = CRM_Core_BAO_UFMatch::synchronizeUFMatch($user, $row[$id], $row[$mail], $uf, 1, 'Individual', TRUE)) {
+        $contactCreated++;
+      }
+      else {
+        $contactMatching++;
+      }
+      if (is_object($match)) {
+        $match->free();
+      }
+    }
+
+    return array(
+      'contactCount' => $contactCount,
+      'contactMatching' => $contactMatching,
+      'contactCreated' => $contactCreated,
+    );
   }
 
 }

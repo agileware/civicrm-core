@@ -259,7 +259,7 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
       $this->_fields['followup_activity_type_id']['attributes'] = array('' => '- select activity type -') + $aTypes;
     }
 
-    $result = parent::buildQuickForm();
+    parent::buildQuickForm();
 
     if ($this->_action & (CRM_Core_Action::DELETE | CRM_Core_Action::DETACH | CRM_Core_Action::RENEW)) {
       return;
@@ -585,10 +585,7 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
     $selectedContacts = array('contact_check');
     $activityContacts = CRM_Core_OptionGroup::values('activity_contacts', FALSE, FALSE, FALSE, NULL, 'name');
     $assigneeID = CRM_Utils_Array::key('Activity Assignees', $activityContacts);
-    if (CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME,
-      'activity_assignee_notification'
-    )
-    ) {
+    if (Civi::settings()->get('activity_assignee_notification')) {
       $selectedContacts[] = 'assignee_contact_id';
     }
 

@@ -42,7 +42,10 @@ class WebTest_Contact_AddTest extends CiviSeleniumTestCase {
 
     // go to display preferences to enable Open ID field
     $this->openCiviPage('admin/setting/preferences/display', "reset=1", "_qf_Display_next-bottom");
-    $this->check("xpath=//ul[@id='contactEditBlocks']//li/span[2]/label[text()='Open ID']/../input");
+    $this->waitForAjaxContent();
+    if (!$this->isChecked("xpath=//ul[@id='contactEditBlocks']//li[@id='preference-10-contactedit']/span/input")) {
+      $this->click("xpath=//ul[@id='contactEditBlocks']//li/span/label[text()='Open ID']");
+    }
     $this->click("_qf_Display_next-bottom");
     $this->waitForPageToLoad($this->getTimeoutMsec());
     $this->openCiviPage('contact/add', 'reset=1&ct=Individual');
@@ -178,7 +181,10 @@ class WebTest_Contact_AddTest extends CiviSeleniumTestCase {
 
     // go to display preferences to enable Open ID field
     $this->openCiviPage('admin/setting/preferences/display', "reset=1", "_qf_Display_next-bottom");
-    $this->check("xpath=//ul[@id='contactEditBlocks']//li/span[2]/label[text()='Open ID']/../input");
+    $this->waitForAjaxContent();
+    if (!$this->isChecked("xpath=//ul[@id='contactEditBlocks']//li[@id='preference-10-contactedit']/span/input")) {
+      $this->click("xpath=//ul[@id='contactEditBlocks']//li/span/label[text()='Open ID']");
+    }
     $this->click("_qf_Display_next-bottom");
     $this->waitForPageToLoad($this->getTimeoutMsec());
 
@@ -289,7 +295,10 @@ class WebTest_Contact_AddTest extends CiviSeleniumTestCase {
 
     // go to display preferences to enable Open ID field
     $this->openCiviPage('admin/setting/preferences/display', "reset=1", "_qf_Display_next-bottom");
-    $this->check("xpath=//ul[@id='contactEditBlocks']//li/span[2]/label[text()='Open ID']/../input");
+    $this->waitForAjaxContent();
+    if (!$this->isChecked("xpath=//ul[@id='contactEditBlocks']//li[@id='preference-10-contactedit']/span/input")) {
+      $this->click("xpath=//ul[@id='contactEditBlocks']//li/span/label[text()='Open ID']");
+    }
     $this->click("_qf_Display_next-bottom");
     $this->waitForPageToLoad($this->getTimeoutMsec());
 

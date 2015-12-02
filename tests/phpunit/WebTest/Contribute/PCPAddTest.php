@@ -176,7 +176,7 @@ class WebTest_Contribute_PCPAddTest extends CiviSeleniumTestCase {
     //Find Contribution
     $this->openCiviPage("contribute/search", "reset=1", "contribution_date_low");
     $this->waitForElementPresent('contribution_pcp_made_through_id');
-    $this->select2('pcp_made_through_id', $lastName . ', ' . $firstName);
+    $this->multiselect2('contribution_pcp_made_through_id', array($pcpTitle));
 
     $this->clickLink("_qf_Search_refresh", "xpath=//table[@class='selector row-highlight']/tbody/tr[1]/td[11]/span/a[1][text()='View']");
     $this->click("xpath=//table[@class='selector row-highlight']/tbody/tr[1]/td[11]/span/a[1][text()='View']");
@@ -196,7 +196,7 @@ class WebTest_Contribute_PCPAddTest extends CiviSeleniumTestCase {
     $this->verifyText("xpath=//div['PCPView']/div[2]/table[@class='crm-info-panel']/tbody/tr[2]/td[2]/a", preg_quote($softCreditor));
 
     // Check PCP Summary Report
-    $this->openCiviPage('report/instance/16', 'reset=1');
+    $this->openCiviPage('report/instance/17', 'reset=1');
     $this->verifyText("PCP", preg_quote($pcpTitle));
     $this->verifyText("PCP", preg_quote("{$lastName}, {$firstName}"));
   }

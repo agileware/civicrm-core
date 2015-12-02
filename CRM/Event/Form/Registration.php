@@ -26,17 +26,12 @@
  */
 
 /**
- *
- *
  * @package CRM
  * @copyright CiviCRM LLC (c) 2004-2015
- * $Id$
- *
  */
 
 /**
- * This class generates form components for processing Event
- *
+ * This class generates form components for processing Event.
  */
 class CRM_Event_Form_Registration extends CRM_Core_Form {
 
@@ -299,7 +294,7 @@ class CRM_Event_Form_Registration extends CRM_Core_Form {
         $this->_paymentProcessorIDs = explode(CRM_Core_DAO::VALUE_SEPARATOR, CRM_Utils_Array::value('payment_processor',
           $this->_values['event']
         ));
-        $this->assignPaymentProcessor();
+        $this->assignPaymentProcessor($isPayLater);
 
       }
       //init event fee.
@@ -370,6 +365,7 @@ class CRM_Event_Form_Registration extends CRM_Core_Form {
       );
       CRM_Utils_System::redirect($url);
     }
+    // The concept of contributeMode is deprecated.
     $this->_contributeMode = $this->get('contributeMode');
     $this->assign('contributeMode', $this->_contributeMode);
 
@@ -426,8 +422,6 @@ class CRM_Event_Form_Registration extends CRM_Core_Form {
 
   /**
    * Assign the minimal set of variables to the template.
-   *
-   * @return void
    */
   public function assignToTemplate() {
     //process only primary participant params
@@ -491,6 +485,7 @@ class CRM_Event_Form_Registration extends CRM_Core_Form {
 
     $this->assign('address', CRM_Utils_Address::format($addressFields));
 
+    // The concept of contributeMode is deprecated.
     if ($this->_contributeMode == 'direct' && empty($params['is_pay_later'])) {
       $date = CRM_Utils_Date::format(CRM_Utils_Array::value('credit_card_exp_date', $params));
       $date = CRM_Utils_Date::mysqlToIso($date);
@@ -529,8 +524,6 @@ class CRM_Event_Form_Registration extends CRM_Core_Form {
    * @param int $id
    * @param string $name
    * @param bool $viewOnly
-   *
-   * @return void
    */
   public function buildCustom($id, $name, $viewOnly = FALSE) {
     if ($id) {
@@ -627,6 +620,8 @@ class CRM_Event_Form_Registration extends CRM_Core_Form {
   }
 
   /**
+   * Initiate event fee.
+   *
    * @param CRM_Core_Form $form
    * @param int $eventID
    *
@@ -710,8 +705,6 @@ class CRM_Event_Form_Registration extends CRM_Core_Form {
    * @param int $contactID
    * @param null $contribution
    * @param null $payment
-   *
-   * @return void
    */
   public function confirmPostProcess($contactID = NULL, $contribution = NULL, $payment = NULL) {
     // add/update contact information
@@ -767,6 +760,7 @@ class CRM_Event_Form_Registration extends CRM_Core_Form {
     }
 
     //set only primary participant's params for transfer checkout.
+    // The concept of contributeMode is deprecated.
     if (($this->_contributeMode == 'checkout' || $this->_contributeMode == 'notify') && !empty($this->_params['is_primary'])) {
       $this->_params['participantID'] = $participant->id;
       $this->set('primaryParticipant', $this->_params);
@@ -812,6 +806,7 @@ class CRM_Event_Form_Registration extends CRM_Core_Form {
    *
    * @param CRM_Core_Form $form
    * @param int $contactID
+   *
    * @return \CRM_Event_BAO_Participant
    */
   public static function addParticipant(&$form, $contactID) {
@@ -912,19 +907,15 @@ WHERE  v.option_group_id = g.id
     return $participant;
   }
 
-  /* Calculate the total participant count as per params.
-   *
-   * @param array $params
-   *   User params.
-   *
-   * @return $totalCount total participant count.
-   */
   /**
+   * Calculate the total participant count as per params.
+   *
    * @param CRM_Core_Form $form
    * @param array $params
+   *   User params.
    * @param bool $skipCurrent
    *
-   * @return int|string
+   * @return int
    */
   public static function getParticipantCount(&$form, $params, $skipCurrent = FALSE) {
     $totalCount = 0;
@@ -1009,21 +1000,17 @@ WHERE  v.option_group_id = g.id
     return $totalCount;
   }
 
-  /* Format user submitted price set params.
+  /**
+   * Format user submitted price set params.
+   *
    * Convert price set each param as an array.
    *
+   * @param CRM_Core_Form $form
    * @param array $params
    *   An array of user submitted params.
    *
-   *
    * @return array
-   *   , formatted price set params.
-   */
-  /**
-   * @param CRM_Core_Form $form
-   * @param array $params
-   *
-   * @return mixed
+   *   Formatted price set params.
    */
   public static function formatPriceSetParams(&$form, $params) {
     if (!is_array($params) || empty($params)) {
@@ -1060,20 +1047,16 @@ WHERE  v.option_group_id = g.id
     return $params;
   }
 
-  /* Calculate total count for each price set options.
-   * those are currently selected by user.
+  /**
+   * Calculate total count for each price set options.
    *
-   * @param $form
+   * - currently selected by user.
+   *
+   * @param CRM_Core_Form $form
    *   Form object.
    *
-   *
    * @return array
-   *   , array of each option w/ count total.
-   */
-  /**
-   * @param $form
-   *
-   * @return array
+   *   array of each option w/ count total.
    */
   public static function getPriceSetOptionCount(&$form) {
     $params = $form->get('params');
@@ -1141,6 +1124,8 @@ WHERE  v.option_group_id = g.id
   }
 
   /**
+   * Check if template file exists.
+   *
    * @param string $suffix
    *
    * @return null|string
@@ -1162,6 +1147,8 @@ WHERE  v.option_group_id = g.id
   }
 
   /**
+   * Get template file name.
+   *
    * @return null|string
    */
   public function getTemplateFileName() {
@@ -1170,6 +1157,8 @@ WHERE  v.option_group_id = g.id
   }
 
   /**
+   * Override extra template name.
+   *
    * @return null|string
    */
   public function overrideExtraTemplateFileName() {
@@ -1181,7 +1170,7 @@ WHERE  v.option_group_id = g.id
    * Reset values for all options those are full.
    *
    * @param array $optionFullIds
-   * @param $form
+   * @param CRM_Core_Form $form
    */
   public static function resetElementValue($optionFullIds = array(), &$form) {
     if (!is_array($optionFullIds) ||
@@ -1250,6 +1239,8 @@ WHERE  v.option_group_id = g.id
   }
 
   /**
+   * Reset submitted value.
+   *
    * @param string $elementName
    * @param array $optionIds
    * @param CRM_Core_form $form
@@ -1295,8 +1286,9 @@ WHERE  v.option_group_id = g.id
   }
 
   /**
-   * Validate price set submitted params for price option limit,
-   * as well as user should select at least one price field option.
+   * Validate price set submitted params for price option limit.
+   *
+   * User should select at least one price field option.
    *
    * @param CRM_Core_Form $form
    * @param array $params
@@ -1417,11 +1409,11 @@ WHERE  v.option_group_id = g.id
           }
           elseif (($optMax - $opDbCount) == 1) {
             $errors[$soldOutPnum[$optId]]["price_{$fieldId}"]
-              = ts('Sorry, currently only a single seat is available for this option.', array(1 => ($optMax - $opDbCount)));
+              = ts('Sorry, currently only a single space is available for this option.', array(1 => ($optMax - $opDbCount)));
           }
           else {
             $errors[$soldOutPnum[$optId]]["price_{$fieldId}"]
-              = ts('Sorry, currently only %1 seats are available for this option.', array(1 => ($optMax - $opDbCount)));
+              = ts('Sorry, currently only %1 spaces are available for this option.', array(1 => ($optMax - $opDbCount)));
           }
         }
       }
@@ -1430,7 +1422,9 @@ WHERE  v.option_group_id = g.id
   }
 
   /**
-   * set the first participant ID if not set, CRM-10032
+   * Set the first participant ID if not set.
+   *
+   * CRM-10032.
    *
    * @param int $participantID
    */
@@ -1455,6 +1449,8 @@ WHERE  v.option_group_id = g.id
   }
 
   /**
+   * Check if event is valid.
+   *
    * @todo - combine this with CRM_Event_BAO_Event::validRegistrationRequest
    * (probably extract relevant values here & call that with them & handle bounces & redirects here -as
    * those belong in the form layer)
@@ -1500,6 +1496,209 @@ WHERE  v.option_group_id = g.id
         $endDate = CRM_Utils_Date::customFormat(CRM_Utils_Array::value('event_end_date', $this->_values['event']));
       }
       CRM_Core_Error::statusBounce(ts('Registration for this event ended on %1', array(1 => $endDate)), $redirect);
+    }
+  }
+
+  /**
+   * Get the amount level for the event payment.
+   *
+   * The amount level is the string stored on the contribution record that describes the purchase.
+   *
+   * @param array $params
+   * @param int|null $discountID
+   *
+   * @return string
+   */
+  protected function getAmountLevel($params, $discountID) {
+    // @todo move handling of discount ID to the BAO function - preferably by converting it to a price_set with
+    // time settings.
+    if (!empty($this->_values['discount'][$discountID])) {
+      return $this->_values['discount'][$discountID][$params['amount']]['label'];
+    }
+    if (empty($params['priceSetId'])) {
+      // CRM-17509 An example of this is where the person is being waitlisted & there is no payment.
+      // ideally we would have calculated amount first & only call this is there is an
+      // amount but the flow needs more changes for that.
+      return '';
+    }
+    return CRM_Price_BAO_PriceSet::getAmountLevelText($params);
+  }
+
+  /**
+   * Process Registration of free event.
+   *
+   * @param array $params
+   *   Form values.
+   * @param int $contactID
+   */
+  public function processRegistration($params, $contactID = NULL) {
+    $session = CRM_Core_Session::singleton();
+    $this->_participantInfo = array();
+
+    // CRM-4320, lets build array of cancelled additional participant ids
+    // those are drop or skip by primary at the time of confirmation.
+    // get all in and then unset those are confirmed.
+    $cancelledIds = $this->_additionalParticipantIds;
+
+    $participantCount = array();
+    foreach ($params as $participantNum => $record) {
+      if ($record == 'skip') {
+        $participantCount[$participantNum] = 'skip';
+      }
+      elseif ($participantNum) {
+        $participantCount[$participantNum] = 'participant';
+      }
+    }
+
+    $registerByID = NULL;
+    foreach ($params as $key => $value) {
+      if ($value != 'skip') {
+        $fields = NULL;
+
+        // setting register by Id and unset contactId.
+        if (empty($value['is_primary'])) {
+          $contactID = NULL;
+          $registerByID = $this->get('registerByID');
+          if ($registerByID) {
+            $value['registered_by_id'] = $registerByID;
+          }
+          // get an email if one exists for the participant
+          $participantEmail = '';
+          foreach (array_keys($value) as $valueName) {
+            if (substr($valueName, 0, 6) == 'email-') {
+              $participantEmail = $value[$valueName];
+            }
+          }
+          if ($participantEmail) {
+            $this->_participantInfo[] = $participantEmail;
+          }
+          else {
+            $this->_participantInfo[] = $value['first_name'] . ' ' . $value['last_name'];
+          }
+        }
+        elseif (!empty($value['contact_id'])) {
+          $contactID = $value['contact_id'];
+        }
+        else {
+          $contactID = $this->getContactID();
+        }
+
+        CRM_Event_Form_Registration_Confirm::fixLocationFields($value, $fields, $this);
+        //for free event or additional participant, dont create billing email address.
+        if (empty($value['is_primary']) || !$this->_values['event']['is_monetary']) {
+          unset($value["email-{$this->_bltID}"]);
+        }
+
+        $contactID = CRM_Event_Form_Registration_Confirm::updateContactFields($contactID, $value, $fields, $this);
+
+        // lets store the contactID in the session
+        // we dont store in userID in case the user is doing multiple
+        // transactions etc
+        // for things like tell a friend
+        if (!$this->getContactID() && !empty($value['is_primary'])) {
+          $session->set('transaction.userID', $contactID);
+        }
+
+        //lets get the status if require approval or waiting.
+
+        $waitingStatuses = CRM_Event_PseudoConstant::participantStatus(NULL, "class = 'Waiting'");
+        if ($this->_allowWaitlist && !$this->_allowConfirmation) {
+          $value['participant_status_id'] = $value['participant_status'] = array_search('On waitlist', $waitingStatuses);
+        }
+        elseif ($this->_requireApproval && !$this->_allowConfirmation) {
+          $value['participant_status_id'] = $value['participant_status'] = array_search('Awaiting approval', $waitingStatuses);
+        }
+
+        $this->set('value', $value);
+        $this->confirmPostProcess($contactID, NULL, NULL);
+
+        //lets get additional participant id to cancel.
+        if ($this->_allowConfirmation && is_array($cancelledIds)) {
+          $additonalId = CRM_Utils_Array::value('participant_id', $value);
+          if ($additonalId && $key = array_search($additonalId, $cancelledIds)) {
+            unset($cancelledIds[$key]);
+          }
+        }
+      }
+    }
+
+    // update status and send mail to cancelled additional participants, CRM-4320
+    if ($this->_allowConfirmation && is_array($cancelledIds) && !empty($cancelledIds)) {
+      $cancelledId = array_search('Cancelled',
+        CRM_Event_PseudoConstant::participantStatus(NULL, "class = 'Negative'")
+      );
+      CRM_Event_BAO_Participant::transitionParticipants($cancelledIds, $cancelledId);
+    }
+
+    //set information about additional participants if exists
+    if (count($this->_participantInfo)) {
+      $this->set('participantInfo', $this->_participantInfo);
+    }
+
+    //send mail Confirmation/Receipt
+    if ($this->_contributeMode != 'checkout' ||
+      $this->_contributeMode != 'notify'
+    ) {
+      $isTest = FALSE;
+      if ($this->_action & CRM_Core_Action::PREVIEW) {
+        $isTest = TRUE;
+      }
+
+      //handle if no additional participant.
+      if (!$registerByID) {
+        $registerByID = $this->get('registerByID');
+      }
+      $primaryContactId = $this->get('primaryContactId');
+
+      //build an array of custom profile and assigning it to template.
+      $additionalIDs = CRM_Event_BAO_Event::buildCustomProfile($registerByID, NULL,
+        $primaryContactId, $isTest, TRUE
+      );
+
+      //lets carry all participant params w/ values.
+      foreach ($additionalIDs as $participantID => $contactId) {
+        $participantNum = NULL;
+        if ($participantID == $registerByID) {
+          $participantNum = 0;
+        }
+        else {
+          if ($participantNum = array_search('participant', $participantCount)) {
+            unset($participantCount[$participantNum]);
+          }
+        }
+
+        if ($participantNum === NULL) {
+          break;
+        }
+
+        //carry the participant submitted values.
+        $this->_values['params'][$participantID] = $params[$participantNum];
+      }
+
+      //lets send  mails to all with meanigful text, CRM-4320.
+      $this->assign('isOnWaitlist', $this->_allowWaitlist);
+      $this->assign('isRequireApproval', $this->_requireApproval);
+
+      foreach ($additionalIDs as $participantID => $contactId) {
+        if ($participantID == $registerByID) {
+          //set as Primary Participant
+          $this->assign('isPrimary', 1);
+
+          $customProfile = CRM_Event_BAO_Event::buildCustomProfile($participantID, $this->_values, NULL, $isTest);
+
+          if (count($customProfile)) {
+            $this->assign('customProfile', $customProfile);
+            $this->set('customProfile', $customProfile);
+          }
+        }
+        else {
+          $this->assign('isPrimary', 0);
+          $this->assign('customProfile', NULL);
+        }
+
+        //send Confirmation mail to Primary & additional Participants if exists
+        CRM_Event_BAO_Event::sendMail($contactId, $this->_values, $participantID, $isTest);
+      }
     }
   }
 

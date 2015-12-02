@@ -65,9 +65,9 @@ class CRM_Mailing_Info extends CRM_Core_Component_Info {
   public function getAngularModules() {
     // load angular files only if valid permissions are granted to the user
     if (!CRM_Core_Permission::check('access CiviMail')
-      || !CRM_Core_Permission::check('create mailings')
-      || !CRM_Core_Permission::check('schedule mailings')
-      || !CRM_Core_Permission::check('approve mailings')
+      && !CRM_Core_Permission::check('create mailings')
+      && !CRM_Core_Permission::check('schedule mailings')
+      && !CRM_Core_Permission::check('approve mailings')
     ) {
       return array();
     }
@@ -165,8 +165,8 @@ class CRM_Mailing_Info extends CRM_Core_Component_Info {
           'mailTokens' => $mailTokens['values'],
           'contactid' => $contactID,
           'requiredTokens' => CRM_Utils_Token::getRequiredTokens(),
-          'enableReplyTo' => (int) CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::MAILING_PREFERENCES_NAME, 'replyTo'),
-          'disableMandatoryTokensCheck' => (int) CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::MAILING_PREFERENCES_NAME, 'disable_mandatory_tokens_check'),
+          'enableReplyTo' => (int) Civi::settings()->get('replyTo'),
+          'disableMandatoryTokensCheck' => (int) Civi::settings()->get('disable_mandatory_tokens_check'),
           'fromAddress' => $fromAddress['values'],
           'defaultTestEmail' => civicrm_api3('Contact', 'getvalue', array(
               'id' => 'user_contact_id',
@@ -206,11 +206,7 @@ class CRM_Mailing_Info extends CRM_Core_Component_Info {
       return FALSE;
     }
 
-    $enableWorkflow = CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::MAILING_PREFERENCES_NAME,
-      'civimail_workflow',
-      NULL,
-      FALSE
-    );
+    $enableWorkflow = Civi::settings()->get('civimail_workflow');
 
     return ($enableWorkflow &&
       $config->userSystem->is_drupal

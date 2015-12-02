@@ -116,7 +116,21 @@ class CRM_Contact_Selector extends CRM_Core_Selector_Base implements CRM_Core_Se
 
   protected $_searchContext;
 
+  /**
+   * Query object for this selector.
+   *
+   * @var CRM_Contact_BAO_Query
+   */
   protected $_query;
+
+  /**
+   * Get the query object for this selector.
+   *
+   * @return CRM_Contact_BAO_Query
+   */
+  public function getQueryObject() {
+    return $this->_query;
+  }
 
   /**
    * Group id
@@ -491,7 +505,7 @@ class CRM_Contact_Selector extends CRM_Core_Selector_Base implements CRM_Core_Se
   /**
    * Returns total number of rows for the query.
    *
-   * @param
+   * @param int $action
    *
    * @return int
    *   Total number of rows

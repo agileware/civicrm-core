@@ -220,6 +220,7 @@ class CRM_Core_SelectValues {
       'Activity' => ts('Activities'),
       'Relationship' => ts('Relationships'),
       'Contribution' => ts('Contributions'),
+      'ContributionRecur' => ts('Recurring Contributions'),
       'Group' => ts('Groups'),
       'Membership' => ts('Memberships'),
       'Event' => ts('Events'),
@@ -357,8 +358,8 @@ class CRM_Core_SelectValues {
   public static function ufVisibility() {
     return array(
       'User and User Admin Only' => ts('User and User Admin Only'),
-      'Public Pages' => ts('Public Pages'),
-      'Public Pages and Listings' => ts('Public Pages and Listings'),
+      'Public Pages' => ts('Expose Publicly'),
+      'Public Pages and Listings' => ts('Expose Publicly and for Listings'),
     );
   }
 
@@ -687,6 +688,25 @@ class CRM_Core_SelectValues {
         else {
           $tokens["{participant.$val}"] = $exportFields[$val]['title'];
         }
+      }
+    }
+    return $tokens;
+  }
+
+  /**
+   * @param int $caseTypeId
+   * @return array
+   */
+  public static function caseTokens($caseTypeId = NULL) {
+    static $tokens = NULL;
+    if (!$tokens) {
+      foreach (CRM_Case_BAO_Case::fields() as $field) {
+        $tokens["{case.{$field['name']}}"] = $field['title'];
+      }
+
+      $customFields = CRM_Core_BAO_CustomField::getFields('Case', FALSE, FALSE, $caseTypeId);
+      foreach ($customFields as $id => $field) {
+        $tokens["{case.custom_$id}"] = "{$field['label']} :: {$field['groupTitle']}";
       }
     }
     return $tokens;

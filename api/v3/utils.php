@@ -845,10 +845,16 @@ SELECT f.id, f.label, f.data_type,
  *   Array of options (so we can modify the filter).
  * @param bool $getCount
  *   Are we just after the count.
+ * @param int $mode
+ *   This basically correlates to the component.
+ * @param null|array $defaultReturnProperties
+ *   Default return properties for the entity
+ *  (used if return not set - but don't do that - set return!).
  *
  * @return array
+ * @throws API_Exception
  */
-function _civicrm_api3_get_using_query_object($entity, $params, $additional_options = array(), $getCount = NULL) {
+function _civicrm_api3_get_using_query_object($entity, $params, $additional_options = array(), $getCount = NULL, $mode = 1, $defaultReturnProperties = NULL) {
   $lowercase_entity = _civicrm_api_get_entity_name_from_camel($entity);
   // Convert id to e.g. contact_id
   if (empty($params[$lowercase_entity . '_id']) && isset($params['id'])) {
@@ -867,7 +873,7 @@ function _civicrm_api3_get_using_query_object($entity, $params, $additional_opti
     CRM_Utils_Array::value('return', $additional_options, array())
   );
   if (empty($returnProperties)) {
-    $returnProperties = NULL;
+    $returnProperties = $defaultReturnProperties;
   }
   if (!empty($params['check_permissions'])) {
     // we will filter query object against getfields
@@ -905,7 +911,7 @@ function _civicrm_api3_get_using_query_object($entity, $params, $additional_opti
 
   $skipPermissions = !empty($params['check_permissions']) ? 0 : 1;
 
-  list($entities, $options) = CRM_Contact_BAO_Query::apiQuery(
+  list($entities) = CRM_Contact_BAO_Query::apiQuery(
     $newParams,
     $returnProperties,
     NULL,
@@ -914,7 +920,8 @@ function _civicrm_api3_get_using_query_object($entity, $params, $additional_opti
     $limit,
     $smartGroupCache,
     $getCount,
-    $skipPermissions
+    $skipPermissions,
+    $mode
   );
   if ($getCount) {
     // only return the count of contacts
@@ -2602,7 +2609,7 @@ function _civicrm_api3_api_resolve_alias($entity, $fieldName, $action = 'create'
     return $meta[$fieldName]['name'];
   }
   foreach ($meta as $info) {
-    if ($fieldName == CRM_Utils_Array::value('uniqueName', $info)) {
+    if ($fieldName == $info['name'] || $fieldName == CRM_Utils_Array::value('uniqueName', $info)) {
       return $info['name'];
     }
     if (array_search($fieldName, CRM_Utils_Array::value('api.aliases', $info, array())) !== FALSE) {

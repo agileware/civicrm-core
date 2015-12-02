@@ -117,14 +117,14 @@ class WebTest_Mailing_MailingTest extends CiviSeleniumTestCase {
     $this->click("xpath=//button[@title='Close']");
 
     // select default header and footer ( with label )
-    $this->click("xpath=//ul/li/a[text()='Header and Footer']");
+    $this->click('link=Header and Footer');
     $this->select2("s2id_crmUiId_10", "Mailing Header");
     $this->select2("s2id_crmUiId_11", "Mailing Footer");
 
     //--------track and respond----------
 
     // check for default settings options
-    $this->click("xpath=//ul/li/a[text()='Tracking']");
+    $this->click('link=Tracking');
     $this->assertChecked("url_tracking");
     $this->assertChecked("open_tracking");
 
@@ -326,6 +326,7 @@ class WebTest_Mailing_MailingTest extends CiviSeleniumTestCase {
 
     // configure default mail-box
     $this->openCiviPage("admin/mailSettings", "action=update&id=1&reset=1", '_qf_MailSettings_cancel-bottom');
+    $this->waitForElementPresent('name');
     $this->type('name', 'Test Domain');
     $this->type('domain', 'example.com');
     $this->select('protocol', 'value=1');
@@ -348,6 +349,7 @@ class WebTest_Mailing_MailingTest extends CiviSeleniumTestCase {
     $this->waitForTextPresent("~1 recipient");
 
     // fill subject for mailing
+    $this->waitForElementPresent("xpath=//input[@name='subject']");
     $this->type("xpath=//input[@name='subject']", "Test subject {$mailingName} for Webtest");
 
     // HTML format message
@@ -370,14 +372,14 @@ class WebTest_Mailing_MailingTest extends CiviSeleniumTestCase {
     $this->click("xpath=//button[@title='Close']");
 
     // select default header and footer ( with label )
-    $this->click("xpath=//ul/li/a[text()='Header and Footer']");
+    $this->click('link=Header and Footer');
     $this->select2("s2id_crmUiId_10", "Mailing Header");
     $this->select2("s2id_crmUiId_11", "Mailing Footer");
 
     //--------track and respond----------
 
     // check for default settings options
-    $this->click("xpath=//ul/li/a[text()='Tracking']");
+    $this->click('link=Tracking');
     $this->assertChecked("url_tracking");
     $this->assertChecked("open_tracking");
 
@@ -420,7 +422,8 @@ class WebTest_Mailing_MailingTest extends CiviSeleniumTestCase {
     $summaryInfoLinks = array(
       'Intended Recipients',
       'Successful Deliveries',
-      'Tracked Opens',
+      'Unique Opens', //as per CRM-16506- Fixed and improve mailing stats changes
+      'Total Opens',
       'Click-throughs',
       'Forwards',
       'Replies',
@@ -457,7 +460,7 @@ class WebTest_Mailing_MailingTest extends CiviSeleniumTestCase {
           'Mailing Delivery -' => "Successful",
         ),
       ),
-      'Tracked Opens' => array(
+      'Unique Opens' => array(
         'report' => array('report_name' => 'Mail Opened', 'Mailing' => "Mailing $mailingName Webtest"),
         'search' => array(
           'Mailing Name IN' => "\"Mailing {$mailingName} Webtest",

@@ -232,6 +232,11 @@ class CRM_Case_Form_CaseView extends CRM_Core_Form {
     $emailActivityType = array_search('Email', $allActTypes);
     $pdfActivityType = array_search('Print PDF Letter', $allActTypes);
 
+    if ($pdfActivityType) {
+      $this->assign('exportDoc', CRM_Utils_System::url('civicrm/activity/pdf/add',
+        "action=add&context=standalone&reset=1&cid={$this->_contactID}&caseid={$this->_caseID}&atype=$pdfActivityType"));
+    }
+
     // remove Open Case activity type since we're inside an existing case
     if ($openActTypeId = array_search('Open Case', $allActTypes)) {
       unset($aTypes[$openActTypeId]);
@@ -269,17 +274,17 @@ class CRM_Case_Form_CaseView extends CRM_Core_Form {
       $activityLinks[$url] = $label;
     }
 
-    $this->add('select', 'add_activity_type_id', '', $activityLinks, FALSE, array('class' => 'crm-select2 crm-action-menu action-icon-plus twenty'));
+    $this->add('select', 'add_activity_type_id', '', $activityLinks, FALSE, array('class' => 'crm-select2 crm-action-menu fa-calendar-check-o twenty'));
     if ($this->_hasAccessToAllCases) {
       $this->add('select', 'report_id', '',
         array('' => ts('Activity Audit')) + $reports,
         FALSE,
-        array('class' => 'crm-select2 crm-action-menu action-icon-clipboard')
+        array('class' => 'crm-select2 crm-action-menu fa-list-alt')
       );
       $this->add('select', 'timeline_id', '',
         array('' => ts('Add Timeline')) + $reports,
         FALSE,
-        array('class' => 'crm-select2 crm-action-menu action-icon-play')
+        array('class' => 'crm-select2 crm-action-menu fa-list-ol')
       );
     }
     $this->addElement('submit', $this->getButtonName('next'), ' ', array('class' => 'hiddenElement'));

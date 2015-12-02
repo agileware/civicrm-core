@@ -260,13 +260,24 @@ class CiviMailUtils extends PHPUnit_Framework_TestCase {
    */
   public function checkMailLog($strings, $absentStrings = array(), $prefix = '') {
     $mail = $this->getMostRecentEmail('raw');
-    foreach ($strings as $string) {
-      $this->_ut->assertContains($string, $mail, "$string .  not found in  $mail  $prefix");
-    }
-    foreach ($absentStrings as $string) {
-      $this->_ut->assertEmpty(strstr($mail, $string), "$string  incorrectly found in $mail $prefix");;
-    }
-    return $mail;
+    return $this->checkMailForStrings($strings, $absentStrings, $prefix, $mail);
+  }
+
+  /**
+   * Check contents of mail log.
+   *
+   * @param array $strings
+   *   Strings that should be included.
+   * @param array $absentStrings
+   *   Strings that should not be included.
+   * @param string $prefix
+   *
+   * @return \ezcMail|string
+   */
+  public function checkAllMailLog($strings, $absentStrings = array(), $prefix = '') {
+    $mails = $this->getAllMessages('raw');
+    $mail = implode(',', $mails);
+    return $this->checkMailForStrings($strings, $absentStrings, $prefix, $mail);
   }
 
   /**
@@ -327,13 +338,17 @@ class CiviMailUtils extends PHPUnit_Framework_TestCase {
 
   /**
    * Remove any sent messages from the log.
+   *
+   * @param int $limit
+   *
+   * @throws \Exception
    */
-  public function clearMessages() {
+  public function clearMessages($limit = 1) {
     if ($this->_webtest) {
       throw new Exception("Not implementated: clearMessages for WebTest");
     }
     else {
-      CRM_Core_DAO::executeQuery('DELETE FROM civicrm_mailing_spool ORDER BY id DESC LIMIT 1');
+      CRM_Core_DAO::executeQuery('DELETE FROM civicrm_mailing_spool ORDER BY id DESC LIMIT ' . $limit);
     }
   }
 
@@ -348,6 +363,23 @@ class CiviMailUtils extends PHPUnit_Framework_TestCase {
     $mail = $parser->parseMail($set);
     $this->_ut->assertNotEmpty($mail, 'Cannot parse mail');
     return $mail[0];
+  }
+
+  /**
+   * @param $strings
+   * @param $absentStrings
+   * @param $prefix
+   * @param $mail
+   * @return mixed
+   */
+  public function checkMailForStrings($strings, $absentStrings, $prefix, $mail) {
+    foreach ($strings as $string) {
+      $this->_ut->assertContains($string, $mail, "$string .  not found in  $mail  $prefix");
+    }
+    foreach ($absentStrings as $string) {
+      $this->_ut->assertEmpty(strstr($mail, $string), "$string  incorrectly found in $mail $prefix");;
+    }
+    return $mail;
   }
 
 }

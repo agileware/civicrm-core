@@ -205,6 +205,12 @@ class WebTest_Contribute_OfflineContributionTest extends CiviSeleniumTestCase {
   public function testDeductibleAmount() {
     $this->webtestLogin();
 
+    // disable verify ssl when using authorize .net
+    $this->openCiviPage("admin/setting/url", "reset=1");
+    $this->click("id=CIVICRM_QFID_0_verifySSL");
+    $this->click("id=_qf_Url_next-bottom");
+    $this->waitForPageToLoad($this->getTimeoutMsec());
+
     //add authorize .net payment processor
     $processorName = 'Webtest AuthNet' . substr(sha1(rand()), 0, 7);
     $this->webtestAddPaymentProcessor($processorName, 'AuthNet');
@@ -283,7 +289,7 @@ class WebTest_Contribute_OfflineContributionTest extends CiviSeleniumTestCase {
       'From' => "{$firstName} {$lastName}",
       'Financial Type' => 'Donation',
       'Total Amount' => 123,
-      'Non-deductible Amount' => 123,
+      'Non-deductible Amount' => '0.00',
       'sort_name' => "$lastName, $firstName",
     );
     $this->_verifyAmounts($checkScenario4);
@@ -359,7 +365,7 @@ class WebTest_Contribute_OfflineContributionTest extends CiviSeleniumTestCase {
     $this->waitForPageToLoad($this->getTimeoutMsec());
 
     // Is status message correct?
-    $this->assertTrue($this->isTextPresent("The contribution record has been processed."), "Status message didn't show up after saving!");
+    $this->assertTrue($this->isTextPresent("The contribution record has been saved."), "Status message didn't show up after saving!");
   }
 
   /**

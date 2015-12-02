@@ -83,7 +83,10 @@ class CRM_Contact_BAO_Relationship extends CRM_Contact_DAO_Relationship {
       self::disableEnableRelationship($id, $action, $params, $ids, $active);
     }
 
-    self::addRecent($params, $relationship);
+    if (empty($params['skipRecentView'])) {
+      self::addRecent($params, $relationship);
+    }
+
     return $relationship;
   }
 
@@ -914,9 +917,54 @@ WHERE  relationship_type_id = " . CRM_Utils_Type::escape($type, 'Integer');
 
     $relationship = new CRM_Contact_BAO_Relationship();
     $relationship->query($queryString);
-    $relationship->fetch();
+    while ($relationship->fetch()) {
+      // Check whether the custom field values are identical.
+      $result = self::checkDuplicateCustomFields($params, $relationship->id);
+      if ($result) {
+        $relationship->free();
+        return TRUE;
+      }
+    }
     $relationship->free();
-    return ($relationship->id) ? TRUE : FALSE;
+    return FALSE;
+  }
+
+  /**
+   * this function checks whether the values of the custom fields in $params are
+   * the same as the values of the custom fields of the relation with given
+   * $relationshipId.
+   *
+   * @param array $params (reference) an assoc array of name/value pairs
+   * @param int $relationshipId ID of an existing duplicate relation
+   *
+   * @return boolean true if custom field values are identical
+   * @access private
+   * @static
+   */
+  private static function checkDuplicateCustomFields(&$params, $relationshipId) {
+    // Get the custom values of the existing relationship.
+    $existingValues = CRM_Core_BAO_CustomValueTable::getEntityValues($relationshipId, 'Relationship');
+    // Create a similar array for the new relationship.
+    $newValues = array();
+    if (array_key_exists('custom', $params)) {
+      // $params['custom'] seems to be an array. Each value is again an array.
+      // This array contains one value (key -1), and this value seems to be
+      // an array with the information about the custom value.
+      foreach ($params['custom'] as $value) {
+        foreach ($value as $customValue) {
+          $newValues[$customValue['custom_field_id']] = $customValue['value'];
+        }
+      }
+    }
+
+    // Calculate difference between arrays. If the only key-value pairs
+    // that are in one array but not in the other are empty, the
+    // custom fields are considered to be equal.
+    // See https://github.com/civicrm/civicrm-core/pull/6515#issuecomment-137985667
+    $diff1 = array_diff_assoc($existingValues, $newValues);
+    $diff2 = array_diff_assoc($newValues, $existingValues);
+
+    return !array_filter($diff1) && !array_filter($diff2);
   }
 
   /**
@@ -944,7 +992,7 @@ WHERE  relationship_type_id = " . CRM_Utils_Type::escape($type, 'Integer');
       'version' => 3,
     ));
 
-    if (is_array($result) && !empty($result['is_error']) && $result['error_message'] != 'Relationship already exists') {
+    if (is_array($result) && !empty($result['is_error']) && $result['error_message'] != 'Duplicate Relationship') {
       throw new CiviCRM_API3_Exception($result['error_message'], CRM_Utils_Array::value('error_code', $result, 'undefined'), $result);
     }
 
@@ -1391,22 +1439,26 @@ LEFT JOIN  civicrm_country ON (civicrm_address.country_id = civicrm_country.id)
     // accordingly.
     $status = self::CURRENT;
     $targetContact = $targetContact = CRM_Utils_Array::value('contact_check', $params, array());
+    $today = date('Ymd');
+
+    // If a relationship hasn't yet started, just return for now
+    // TODO: handle edge-case of updating start_date of an existing relationship
+    if (!empty($params['start_date'])) {
+      $startDate = substr(CRM_Utils_Date::format($params['start_date']), 0, 8);
+      if ($today < $startDate) {
+        return;
+      }
+    }
 
     if (!empty($params['end_date'])) {
-      $endDate = CRM_Utils_Date::setDateDefaults(CRM_Utils_Date::format($params['end_date']), NULL, 'Ymd');
-      $today = date('Ymd');
-
+      $endDate = substr(CRM_Utils_Date::format($params['end_date']), 0, 8);
       if ($today > $endDate) {
         $status = self::PAST;
       }
     }
 
-    if (($action & CRM_Core_Action::ADD) &&
-      ($status & self::PAST)
-    ) {
-      // if relationship is PAST and action is ADD, no qustion
-      // of creating RELATED membership and return back to
-      // calling method
+    if (($action & CRM_Core_Action::ADD) && ($status & self::PAST)) {
+      // If relationship is PAST and action is ADD, do nothing.
       return;
     }
 
@@ -1476,11 +1528,10 @@ LEFT JOIN  civicrm_country ON (civicrm_address.country_id = civicrm_country.id)
 
     $query = 'SELECT * FROM `civicrm_membership_status`';
     if ($active) {
-      $query .= 'WHERE `is_current_member` = 1 OR `id` = %1 ';
+      $query .= ' WHERE `is_current_member` = 1 OR `id` = %1 ';
     }
 
-    $params[1] = array($pendingStatusId, 'String');
-    $dao = CRM_Core_DAO::executeQuery($query, $params);
+    $dao = CRM_Core_DAO::executeQuery($query, array(1 => array($pendingStatusId, 'Integer')));
 
     while ($dao->fetch()) {
       $membershipStatusRecordIds[$dao->id] = $dao->id;
@@ -1614,6 +1665,19 @@ SELECT relationship_type_id, relationship_direction
               if (!empty($membershipValues[$dateField])) {
                 $membershipValues[$dateField] = CRM_Utils_Date::processDate($membershipValues[$dateField]);
               }
+            }
+
+            if ($action & CRM_Core_Action::UPDATE) {
+              //if updated relationship is already related to contact don't delete existing inherited membership
+              if (in_array($relTypeId, $relTypeIds
+                ) && !empty($values[$relatedContactId]['memberships']) && !empty($ownerMemIds
+                ) && in_array($membershipValues['owner_membership_id'], $ownerMemIds[$relatedContactId])) {
+                continue;
+              }
+
+              //delete the membership record for related
+              //contact before creating new membership record.
+              CRM_Member_BAO_Membership::deleteRelatedMemberships($membershipId, $relatedContactId);
             }
 
             // check whether we have some related memberships still available

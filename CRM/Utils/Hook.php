@@ -640,6 +640,7 @@ abstract class CRM_Utils_Hook {
    *   The contactID for whom the dashboard is being rendered.
    *
    * @return null
+   * @deprecated Use tabset() instead.
    */
   public static function tabs(&$tabs, $contactID) {
     return self::singleton()->invoke(2, $tabs, $contactID,
@@ -995,6 +996,21 @@ abstract class CRM_Utils_Hook {
     return self::singleton()->invoke(3, $membershipStatus, $arguments,
       $membership, self::$_nullObject, self::$_nullObject, self::$_nullObject,
       'civicrm_alterCalculatedMembershipStatus'
+    );
+  }
+
+  /**
+   * This hook is called after getting the content of the mail and before tokenizing it.
+   *
+   * @param array $content
+   *   Array fields include: html, text, subject
+   *
+   * @return mixed
+   */
+  public static function alterMailContent(&$content) {
+    return self::singleton()->invoke(1, $content,
+      self::$_nullObject, self::$_nullObject, self::$_nullObject, self::$_nullObject, self::$_nullObject,
+      'civicrm_alterMailContent'
     );
   }
 
@@ -1880,12 +1896,13 @@ abstract class CRM_Utils_Hook {
    * This hook fires whenever a record in a case changes.
    *
    * @param \Civi\CCase\Analyzer $analyzer
+   *   A bundle of data about the case (such as the case and activity records).
    */
   public static function caseChange(\Civi\CCase\Analyzer $analyzer) {
     $event = new \Civi\CCase\Event\CaseChangeEvent($analyzer);
     \Civi::service('dispatcher')->dispatch("hook_civicrm_caseChange", $event);
 
-    return self::singleton()->invoke(1, $angularModules,
+    self::singleton()->invoke(1, $analyzer,
       self::$_nullObject, self::$_nullObject, self::$_nullObject, self::$_nullObject, self::$_nullObject,
       'civicrm_caseChange'
     );
@@ -1966,6 +1983,10 @@ abstract class CRM_Utils_Hook {
 
   /**
    * This hook is called when a query string of the CSV Batch export is generated.
+   *
+   * @param string $query
+   *
+   * @return mixed
    */
   public static function batchQuery(&$query) {
     return self::singleton()->invoke(1, $query, self::$_nullObject,
@@ -1976,6 +1997,11 @@ abstract class CRM_Utils_Hook {
 
   /**
    * This hook is called when the entries of the CSV Batch export are mapped.
+   *
+   * @param array $results
+   * @param array $items
+   *
+   * @return mixed
    */
   public static function batchItems(&$results, &$items) {
     return self::singleton()->invoke(2, $results, $items,

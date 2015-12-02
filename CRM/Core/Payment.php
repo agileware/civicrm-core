@@ -777,7 +777,7 @@ abstract class CRM_Core_Payment {
    *
    * @return string cancel url
    */
-  protected function getCancelUrl($qfKey, $participantID) {
+  public function getCancelUrl($qfKey, $participantID) {
     if ($this->_component == 'event') {
       return CRM_Utils_System::url($this->getBaseReturnUrl(), array(
         'reset' => 1,
@@ -916,6 +916,15 @@ abstract class CRM_Core_Payment {
   public function doPayment(&$params, $component = 'contribute') {
     $this->_component = $component;
     $statuses = CRM_Contribute_BAO_Contribution::buildOptions('contribution_status_id');
+
+    // If we have a $0 amount, skip call to processor and set payment_status to Completed.
+    // Conceivably a processor might override this - perhaps for setting up a token - but we don't
+    // have an example of that at the mome.
+    if ($params['amount'] == 0) {
+      $result['payment_status_id'] = array_search('Completed', $statuses);
+      return $result;
+    }
+
     if ($this->_paymentProcessor['billing_mode'] == 4) {
       $result = $this->doTransferCheckout($params, $component);
       if (is_array($result) && !isset($result['payment_status_id'])) {
@@ -1268,6 +1277,15 @@ INNER JOIN civicrm_contribution con ON ( con.contribution_recur_id = rec.id )
       }
     }
     return substr(implode('-', $validParts), 0, $length);
+  }
+
+  /**
+   * Checks if backoffice recurring edit is allowed
+   *
+   * @return bool
+   */
+  public function supportsEditRecurringContribution() {
+    return FALSE;
   }
 
 }

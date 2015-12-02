@@ -298,7 +298,7 @@ class CRM_Price_BAO_PriceField extends CRM_Price_DAO_PriceField {
     //use value field.
     $valueFieldName = 'amount';
     $seperator = '|';
-    $invoiceSettings = CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::CONTRIBUTE_PREFERENCES_NAME, 'contribution_invoice_settings');
+    $invoiceSettings = Civi::settings()->get('contribution_invoice_settings');
     $taxTerm = CRM_Utils_Array::value('tax_term', $invoiceSettings);
     $displayOpt = CRM_Utils_Array::value('tax_display_settings', $invoiceSettings);
     $invoicing = CRM_Utils_Array::value('invoicing', $invoiceSettings);
@@ -430,6 +430,8 @@ class CRM_Price_BAO_PriceField extends CRM_Price_DAO_PriceField {
         if (!empty($qf->_membershipBlock) && $field->name == 'contribution_amount') {
           $choice[] = $qf->createElement('radio', NULL, '', ts('No thank you'), '-1',
             array(
+              'price' => json_encode(array($elementName, '0|0')),
+              'data-currency' => $currencyName,
               'onclick' => 'clearAmountOther();',
             )
           );
@@ -794,9 +796,10 @@ WHERE  id IN (" . implode(',', array_keys($priceFields)) . ')';
    * @param string $displayOpt
    *   Tax display setting option.
    *
-   * @return string
-   *   tax label for custom field
+   * @param string $taxTerm
    *
+   * @return string
+   *   Tax label for custom field.
    */
   public static function getTaxLabel($opt, $valueFieldName, $displayOpt, $taxTerm) {
     if ($displayOpt == 'Do_not_show') {

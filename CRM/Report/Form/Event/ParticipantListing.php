@@ -161,6 +161,8 @@ class CRM_Report_Form_Event_ParticipantListing extends CRM_Report_Form_Event {
         'dao' => 'CRM_Core_DAO_Address',
         'fields' => array(
           'street_address' => NULL,
+          'supplemental_address_1' => NULL,
+          'supplemental_address_2' => NULL,
           'city' => NULL,
           'postal_code' => NULL,
           'state_province_id' => array(
@@ -197,8 +199,11 @@ class CRM_Report_Form_Event_ParticipantListing extends CRM_Report_Form_Event {
             'required' => TRUE,
             'no_display' => TRUE,
           ),
+          'registered_by_id' => array(
+            'title' => ts('Registered by Participant ID'),
+          ),
           'participant_fee_level' => NULL,
-          'participant_fee_amount' => NULL,
+          'participant_fee_amount' => array('title' => ts('Participant Fee')),
           'participant_register_date' => array('title' => ts('Registration Date')),
           'total_paid' => array(
             'title' => ts('Total Paid'),
@@ -246,7 +251,11 @@ class CRM_Report_Form_Event_ParticipantListing extends CRM_Report_Form_Event {
             'default' => NULL,
             'type' => CRM_Utils_Type::T_STRING,
           ),
-
+          'registered_by_id' => array(
+            'title' => ts('Registered by Participant ID'),
+            'type' => CRM_Utils_Type::T_STRING,
+            'operator' => 'like',
+          ),
         ),
         'order_bys' => array(
           'participant_register_date' => array(
@@ -296,6 +305,9 @@ class CRM_Report_Form_Event_ParticipantListing extends CRM_Report_Form_Event {
             'title' => ts('Event Type'),
             'default_weight' => '2',
             'default_order' => 'ASC',
+          ),
+          'event_start_date' => array(
+            'title' => ts('Event Start Date'),
           ),
         ),
       ),
@@ -575,8 +587,13 @@ ORDER BY  cv.label
             if ($fieldName == 'rid') {
               $value = CRM_Utils_Array::value("{$fieldName}_value", $this->_params);
               if (!empty($value)) {
-                $clause = "( {$field['dbAlias']} REGEXP '[[:<:]]" .
-                  implode('[[:>:]]|[[:<:]]', $value) . "[[:>:]]' )";
+                $operator = '';
+                if ($op == 'notin') {
+                  $operator = 'NOT';
+                }
+
+                $regexp = "[[:cntrl:]]*" . implode('[[:>:]]*|[[:<:]]*', $value) . "[[:cntrl:]]*";
+                $clause = "{$field['dbAlias']} {$operator} REGEXP '{$regexp}'";
               }
               $op = NULL;
             }

@@ -70,7 +70,7 @@ class WebTest_Report_AddTest extends CiviSeleniumTestCase {
     $this->assertElementContainsText('css=td.crm-report-civicrm_email_email', $emailId, "Email did not found!");
 
     // check criteria
-    $this->click("xpath=//div[@id='mainTabContainer']/ul/li[3]/a");
+    $this->click("xpath=//div[@id='mainTabContainer']/ul//li/a[text()='Filters']");
     $this->waitForElementPresent("xpath=//div[@class='crm-submit-buttons']");
 
     // Is Contact Name filter?
@@ -88,8 +88,7 @@ class WebTest_Report_AddTest extends CiviSeleniumTestCase {
     $reportDescription = "New Contact Summary Report";
     $emaiSubject = "Contact Summary Report";
     $emailCC = "tesmail@example.org";
-
-    $this->click("xpath=//div[@id='mainTabContainer']/ul/li[4]/a");
+    $this->click("xpath=//div[@id='mainTabContainer']/ul//li/a[text()='Developer']");
     $this->waitForElementPresent("xpath=//div[@class='crm-submit-buttons']");
     $this->click("_qf_Summary_submit_save");
 
@@ -104,18 +103,20 @@ class WebTest_Report_AddTest extends CiviSeleniumTestCase {
     $this->waitForElementPresent('_qf_Summary_submit_save');
 
     // Fill Email Subject
-    $this->click("xpath=//div[@id='mainTabContainer']/ul/li[5]/a");
+    $this->click("xpath=//div[@id='mainTabContainer']/ul//li/a[text()='Email Delivery']");
     $this->waitForAjaxContent();
     $this->type("email_subject", $emaiSubject);
 
     // Fill Email To
+    $this->waitForElementPresent('email_to');
     $this->type("email_to", $emailId);
 
     // Fill Email CC
+    $this->waitForElementPresent('email_cc');
     $this->type("email_cc", $emailCC);
 
     // We want navigation menu
-    $this->click("xpath=//div[@id='mainTabContainer']/ul/li[6]/a");
+    $this->click("xpath=//div[@id='mainTabContainer']/ul//li/a[text()='Access']");
     $this->click("is_navigation");
 
     // Navigation menu under Reports section
@@ -139,7 +140,8 @@ class WebTest_Report_AddTest extends CiviSeleniumTestCase {
     // Visit report
     $this->click("xpath=//div[@id='Contact']//table/tbody//tr/td/a/strong[text() = '$reportName']");
     $this->waitForPageToLoad($this->getTimeoutMsec());
-
+    $this->click("_qf_Summary_submit");
+    $this->waitForAjaxContent();
     // Is filter statistics present?
     $this->assertElementContainsText("xpath=//tr/th[@class='statistics'][text()='Contact Name']/../td", "Contains $firstName", "Statistics did not found!");
 
@@ -173,6 +175,7 @@ class WebTest_Report_AddTest extends CiviSeleniumTestCase {
     $this->assertContains($reportDescription, $this->getValue("description"), "Report Description expected $reportDescription");
 
     // Is correct email Subject?
+    $this->waitForElementPresent("mainTabContainer");
     $this->click("xpath=//div[@id='mainTabContainer']/ul/li[5]/a");
     $this->waitForAjaxContent();
     $this->assertContains($emaiSubject, $this->getValue("email_subject"), "Email Subject expected $emaiSubject");

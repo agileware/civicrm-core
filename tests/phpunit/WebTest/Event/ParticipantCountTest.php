@@ -176,10 +176,8 @@ class WebTest_Event_ParticipantCountTest extends CiviSeleniumTestCase {
     );
 
     foreach ($fields as $label => $field) {
-      $this->type('label', $label);
       $this->waitForAjaxContent();
       $this->select('html_type', "value={$field['type']}");
-
       if ($field['type'] == 'Text') {
         $this->type('price', $field['amount']);
         //yash
@@ -190,6 +188,7 @@ class WebTest_Event_ParticipantCountTest extends CiviSeleniumTestCase {
       else {
         $this->_testAddMultipleChoiceOptions($field['options']);
       }
+      $this->type('label', $label);
       $this->clickLink('_qf_Field_next_new-bottom', '_qf_Field_next-bottom', FALSE);
       $this->waitForText("crm-notification-container", "Price Field '$label' has been saved.");
     }
@@ -292,6 +291,7 @@ class WebTest_Event_ParticipantCountTest extends CiviSeleniumTestCase {
     $this->waitForPageToLoad($this->getTimeoutMsec());
 
     // verify number of participants records and total participant count
+    $this->waitForAjaxContent();
     $this->assertStringsPresent(array('2 Results', 'Actual participant count : 24'));
 
     // CRM-7953, check custom search Price Set Details for Event
@@ -307,6 +307,7 @@ class WebTest_Event_ParticipantCountTest extends CiviSeleniumTestCase {
     $this->openCiviPage('admin/price', 'reset=1&action=add', '_qf_Set_next-bottom');
 
     // Enter Priceset fields (Title, Used For ...)
+    $this->waitForElementPresent("title");
     $this->type('title', $setTitle);
     $this->check('extends[1]');
     $this->select("css=select.crm-form-select", "label={$financialType}");
@@ -366,7 +367,8 @@ class WebTest_Event_ParticipantCountTest extends CiviSeleniumTestCase {
     $this->click('link=Fees');
     $this->waitForElementPresent('_qf_Fee_upload-bottom');
     $this->click('CIVICRM_QFID_1_is_monetary');
-    $this->click("xpath=//tr[@class='crm-event-manage-fee-form-block-payment_processor']/td[2]/label[text()='" . $params['payment_processor'] . "']");
+    $this->select2('payment_processor', $params['payment_processor'], TRUE);
+
     $this->select('financial_type_id', 'Event Fee');
     if (array_key_exists('price_set', $params)) {
       $this->select('price_set_id', 'label=' . $params['price_set']);
@@ -390,8 +392,8 @@ class WebTest_Event_ParticipantCountTest extends CiviSeleniumTestCase {
     $this->check('is_online_registration');
     $this->assertChecked('is_online_registration');
 
-    $this->click('intro_text-plain');
-    $this->fillRichTextField('intro_text', 'Fill in all the fields below and click Continue.');
+    $this->click('intro_text');
+    $this->fillRichTextField('intro_text', 'Fill in all the fields below and click Continue.', 'CKEditor', TRUE);
 
     // enable confirmation email
     $this->click('CIVICRM_QFID_1_is_email_confirm');

@@ -26,17 +26,12 @@
  */
 
 /**
- *
- *
  * @package CRM
  * @copyright CiviCRM LLC (c) 2004-2015
- * $Id$
- *
  */
 
 /**
- * This class generates form components for processing Event
- *
+ * This class generates form components for processing Event.
  */
 class CRM_Event_Form_ManageEvent_Registration extends CRM_Event_Form_ManageEvent {
 
@@ -52,8 +47,6 @@ class CRM_Event_Form_ManageEvent_Registration extends CRM_Event_Form_ManageEvent
 
   /**
    * Set variables up before form is built.
-   *
-   * @return void
    */
   public function preProcess() {
     $this->_addProfileBottom = CRM_Utils_Array::value('addProfileBottom', $_GET, FALSE);
@@ -90,10 +83,8 @@ class CRM_Event_Form_ManageEvent_Registration extends CRM_Event_Form_ManageEvent
 
   /**
    * Set default values for the form.
-   * the default values are retrieved from the database
    *
-   *
-   * @return void
+   * The default values are retrieved from the database.
    */
   public function setDefaultValues() {
     if ($this->_addProfileBottom || $this->_addProfileBottomAdd) {
@@ -298,7 +289,9 @@ class CRM_Event_Form_ManageEvent_Registration extends CRM_Event_Form_ManageEvent
 
     $this->add('text', 'expiration_time', ts('Pending participant expiration (hours)'));
     $this->addRule('expiration_time', ts('Please enter the number of hours (as an integer).'), 'integer');
-
+    $this->addField('allow_selfcancelxfer', array('label' => ts('Allow self-service cancellation or transfer?'), 'type' => 'advcheckbox'));
+    $this->add('text', 'selfcancelxfer_time', ts('Cancellation or transfer time limit (hours)'));
+    $this->addRule('selfcancelxfer_time', ts('Please enter the number of hours (as an integer).'), 'integer');
     self::buildRegistrationBlock($this);
     self::buildConfirmationBlock($this);
     self::buildMailBlock($this);
@@ -780,6 +773,10 @@ class CRM_Event_Form_ManageEvent_Registration extends CRM_Event_Form_ManageEvent
 
   /**
    * Add additional profiles from the form to an array of profile ids.
+   *
+   * @param array $profileIds
+   * @param array $values
+   * @param string $field
    */
   public static function addMultipleProfiles(&$profileIds, $values, $field) {
     if ($multipleProfiles = CRM_Utils_Array::value($field, $values)) {
@@ -810,6 +807,9 @@ class CRM_Event_Form_ManageEvent_Registration extends CRM_Event_Form_ManageEvent
     // reset is_email confirm if not online reg
     if (!$params['is_online_registration']) {
       $params['is_email_confirm'] = FALSE;
+    }
+    if (!empty($params['allow_selfcancelxfer'])) {
+      $params['selfcancelxfer_time'] = !empty($params['selfcancelxfer_time']) ? $params['selfcancelxfer_time'] : 0;
     }
 
     if (!$this->_isTemplate) {

@@ -85,9 +85,9 @@ class CRM_Utils_System_WordPress extends CRM_Utils_System_Base {
     $upload_dir      = wp_upload_dir();
     $settingsDir     = $upload_dir['basedir'] . DIRECTORY_SEPARATOR . 'civicrm' . DIRECTORY_SEPARATOR;
     $settingsURL     = $upload_dir['baseurl'] . DIRECTORY_SEPARATOR . 'civicrm' . DIRECTORY_SEPARATOR;
-    if (is_dir(ABSPATH . 'wp-content/plugins/files/civicrm/')) {
+    if (is_dir(WP_PLUGIN_DIR . '/files/civicrm/')) {
       //for legacy path
-      $filesURL = $baseURL . "wp-content/plugins/files/civicrm/";
+      $filesURL = WP_PLUGIN_URL . "/files/civicrm/";
     }
     elseif (is_dir($settingsDir)) {
       $filesURL = $settingsURL;
@@ -180,13 +180,12 @@ class CRM_Utils_System_WordPress extends CRM_Utils_System_Base {
     $query = NULL,
     $absolute = FALSE,
     $fragment = NULL,
-    $htmlize = TRUE,
     $frontend = FALSE,
     $forceBackend = FALSE
   ) {
     $config = CRM_Core_Config::singleton();
     $script = '';
-    $separator = $htmlize ? '&amp;' : '&';
+    $separator = '&';
     $wpPageParam = '';
     $fragment = isset($fragment) ? ('#' . $fragment) : '';
 
@@ -301,12 +300,18 @@ class CRM_Utils_System_WordPress extends CRM_Utils_System_Base {
 
   /**
    * FIXME: Do something
+   *
+   * @param string $message
    */
   public function setMessage($message) {
   }
 
   /**
    * FIXME: Do something
+   *
+   * @param \obj $user
+   *
+   * @return bool
    */
   public function loadUser($user) {
     return TRUE;
@@ -369,13 +374,17 @@ class CRM_Utils_System_WordPress extends CRM_Utils_System_Base {
    * @return bool
    */
   public function loadBootStrap($name = NULL, $pass = NULL) {
-    global $wp, $wp_rewrite, $wp_the_query, $wp_query, $wpdb;
+    global $wp, $wp_rewrite, $wp_the_query, $wp_query, $wpdb, $current_site, $current_blog, $current_user;
+
+    if (!defined('WP_USE_THEMES')) {
+      define('WP_USE_THEMES', FALSE);
+    }
 
     $cmsRootPath = $this->cmsRootPath();
     if (!$cmsRootPath) {
       CRM_Core_Error::fatal("Could not find the install directory for WordPress");
     }
-    $path = CRM_Core_BAO_Setting::getItem('CiviCRM Preferences', 'wpLoadPhp');
+    $path = Civi::settings()->get('wpLoadPhp');
     if (!empty($path)) {
       require_once $path;
     }
@@ -396,7 +405,7 @@ class CRM_Utils_System_WordPress extends CRM_Utils_System_Base {
       $name = $name ? $name : trim(CRM_Utils_Array::value('name', $_REQUEST));
       $pass = $pass ? $pass : trim(CRM_Utils_Array::value('pass', $_REQUEST));
       if ($name) {
-        $uid = wp_authenticate($name, $pass);
+        $uid = wp_authenticate($name, $pass); // this returns a WP_User object if successful
         if (!$uid) {
           if ($throwError) {
             echo '<br />Sorry, unrecognized username or password.';
@@ -407,7 +416,12 @@ class CRM_Utils_System_WordPress extends CRM_Utils_System_Base {
       }
     }
     if ($uid) {
-      $account = wp_set_current_user($uid);
+      if ($uid instanceof WP_User) {
+        $account = wp_set_current_user($uid->ID);
+      }
+      else {
+        $account = wp_set_current_user($uid);
+      }
       if ($account && $account->data->ID) {
         global $user;
         $user = $account;
@@ -623,7 +637,11 @@ class CRM_Utils_System_WordPress extends CRM_Utils_System_Base {
   }
 
   /**
-   * FIXME: Do something
+   * FIXME: Do something.
+   *
+   * @param \CRM_Core_Form $form
+   *
+   * @return NULL|string
    */
   public function getLoginDestination(&$form) {
     return NULL;
@@ -662,9 +680,59 @@ class CRM_Utils_System_WordPress extends CRM_Utils_System_Base {
 
   /**
    * Append WP js to coreResourcesList.
+   *
+   * @param array $list
    */
   public function appendCoreResources(&$list) {
     $list[] = 'js/crm.wordpress.js';
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public function synchronizeUsers() {
+    $config = CRM_Core_Config::singleton();
+    if (PHP_SAPI != 'cli') {
+      set_time_limit(300);
+    }
+    $id = 'ID';
+    $mail = 'user_email';
+
+    $uf = $config->userFramework;
+    $contactCount = 0;
+    $contactCreated = 0;
+    $contactMatching = 0;
+
+    global $wpdb;
+    $wpUserIds = $wpdb->get_col("SELECT $wpdb->users.ID FROM $wpdb->users");
+
+    foreach ($wpUserIds as $wpUserId) {
+      $wpUserData = get_userdata($wpUserId);
+      $contactCount++;
+      if ($match = CRM_Core_BAO_UFMatch::synchronizeUFMatch($wpUserData,
+        $wpUserData->$id,
+        $wpUserData->$mail,
+        $uf,
+        1,
+        'Individual',
+        TRUE
+      )
+      ) {
+        $contactCreated++;
+      }
+      else {
+        $contactMatching++;
+      }
+      if (is_object($match)) {
+        $match->free();
+      }
+    }
+
+    return array(
+      'contactCount' => $contactCount,
+      'contactMatching' => $contactMatching,
+      'contactCreated' => $contactCreated,
+    );
   }
 
 }

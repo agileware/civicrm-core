@@ -168,7 +168,11 @@ class CRM_Event_Form_Search extends CRM_Core_Form_Search {
    */
   public function buildQuickForm() {
     parent::buildQuickForm();
-    $this->addElement('text', 'sort_name', ts('Participant Name or Email'), CRM_Core_DAO::getAttribute('CRM_Contact_DAO_Contact', 'sort_name'));
+    $this->addSortNameField();
+
+    if (CRM_Core_Permission::check('access deleted contacts') and Civi::settings()->get('contact_undelete')) {
+      $this->addElement('checkbox', 'deleted_contacts', ts('Search in Trash') . '<br />' . ts('(deleted contacts)'));
+    }
 
     CRM_Event_BAO_Query::buildSearchForm($this);
 
@@ -201,7 +205,11 @@ class CRM_Event_Form_Search extends CRM_Core_Form_Search {
           }
         }
         if (!empty($this->_formValues['participant_role_id'])) {
-          $seatClause[] = '( participant.role_id IN ( ' . implode(' , ', (array) $this->_formValues['participant_role_id']) . ' ) )';
+          $escapedRoles = array();
+          foreach ((array) $this->_formValues['participant_role_id'] as $participantRole) {
+            $escapedRoles[] = CRM_Utils_Type::escape($participantRole, 'String');
+          }
+          $seatClause[] = "( participant.role_id IN ( '" . implode("' , '", $escapedRoles) . "' ) )";
         }
 
         // CRM-15379
@@ -237,6 +245,28 @@ class CRM_Event_Form_Search extends CRM_Core_Form_Search {
       $this->addTaskMenu($tasks);
     }
 
+  }
+
+  /**
+   * Get the label for the sortName field if email searching is on.
+   *
+   * (email searching is a setting under search preferences).
+   *
+   * @return string
+   */
+  protected function getSortNameLabelWithEmail() {
+    return ts('Participant Name or Email');
+  }
+
+  /**
+   * Get the label for the sortName field if email searching is off.
+   *
+   * (email searching is a setting under search preferences).
+   *
+   * @return string
+   */
+  protected function getSortNameLabelWithOutEmail() {
+    return ts('Participant Name');
   }
 
   /**

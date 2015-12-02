@@ -1118,6 +1118,10 @@ class CRM_Core_BAO_CustomField extends CRM_Core_DAO_CustomField {
     $attributes = &$option['attributes'];
     $html_type = $attributes['html_type'];
     $data_type = $attributes['data_type'];
+    // set $id as $fieldID if not passed in the params.
+    if (empty($fieldID)) {
+      $fieldID = $id;
+    }
 
     return self::getDisplayValueCommon($value,
       $option,
@@ -1214,6 +1218,11 @@ class CRM_Core_BAO_CustomField extends CRM_Core_DAO_CustomField {
       case 'AdvMulti-Select':
       case 'Multi-Select':
         if (is_array($value)) {
+          if ($html_type == 'CheckBox') {
+            // CRM-12989 fix
+            CRM_Utils_Array::formatArrayKeys($value);
+          }
+
           $checkedData = $value;
         }
         else {
@@ -1436,6 +1445,8 @@ class CRM_Core_BAO_CustomField extends CRM_Core_DAO_CustomField {
    * @param int $fileID
    * @param bool $absolute
    *
+   * @param string $multiRecordWhereClause
+   *
    * @return array
    */
   public static function getFileURL($contactID, $cfID, $fileID = NULL, $absolute = FALSE, $multiRecordWhereClause = NULL) {
@@ -1621,13 +1632,7 @@ SELECT id
       $customFields[$customFieldId]['html_type'] == 'AdvMulti-Select'
     ) {
       if ($value) {
-        // Note that only during merge this is not an array,
-        // and you can directly use value, CRM-4385
-        if (is_array($value)) {
-          $value = CRM_Core_DAO::VALUE_SEPARATOR . implode(CRM_Core_DAO::VALUE_SEPARATOR,
-              array_values($value)
-            ) . CRM_Core_DAO::VALUE_SEPARATOR;
-        }
+        $value = CRM_Utils_Array::implodePadded($value);
       }
       else {
         $value = '';

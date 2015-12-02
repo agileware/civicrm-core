@@ -55,11 +55,11 @@ class CRM_Core_Payment_AuthorizeNetIPN extends CRM_Core_Payment_BaseIPN {
     //we only get invoice num as a key player from payment gateway response.
     //for ARB we get x_subscription_id and x_subscription_paynum
     $x_subscription_id = $this->retrieve('x_subscription_id', 'String');
+    $ids = $objects = $input = array();
 
     if ($x_subscription_id) {
       //Approved
 
-      $ids = $objects = array();
       $input['component'] = $component;
 
       // load post vars in $input
@@ -231,7 +231,9 @@ class CRM_Core_Payment_AuthorizeNetIPN extends CRM_Core_Payment_BaseIPN {
     if ($input['trxn_id']) {
       $input['is_test'] = 0;
     }
-    else {
+    // Only assume trxn_id 'should' have been returned for success.
+    // Per CRM-17611 it would also not be passed back for a decline.
+    elseif ($input['response_code'] == 1) {
       $input['is_test'] = 1;
       $input['trxn_id'] = md5(uniqid(rand(), TRUE));
     }
@@ -280,10 +282,10 @@ INNER JOIN civicrm_contribution co ON co.contribution_recur_id = cr.id
       $ids['contact'] = $contRecur->contact_id;
     }
     if (!$ids['contributionRecur']) {
-      $message = ts("Could not find contributionRecur id: %1", array(1 => htmlspecialchars(print_r($input, TRUE))));
-      CRM_Core_Error::debug_log_message($message);
-      echo "Failure: $message<p>";
-      exit();
+      $message = ts("Could not find contributionRecur id");
+      $log = new CRM_Utils_SystemLogger();
+      $log->error('payment_notification', array('message' => $message, 'ids' => $ids, 'input' => $input));
+      throw new CRM_Core_Exception($message);
     }
 
     // get page id based on contribution id
@@ -344,15 +346,19 @@ INNER JOIN civicrm_membership_payment mp ON m.id = mp.membership_id AND mp.contr
    * @param CRM_Core_Payment_AuthorizeNet $paymentObject
    * @param array $input
    *
-   * @return bool
+   * @throws CRM_Core_Exception
    */
   public function checkMD5($paymentObject, $input) {
-    if (!$paymentObject->checkMD5($input['MD5_Hash'], $input['trxn_id'], $input['amount'], TRUE)) {
-      CRM_Core_Error::debug_log_message("MD5 Verification failed.");
-      echo "Failure: Security verification failed<p>";
-      exit();
+    if (empty($input['trxn_id'])) {
+      // For decline we have nothing to check against.
+      return;
     }
-    return TRUE;
+    if (!$paymentObject->checkMD5($input['MD5_Hash'], $input['trxn_id'], $input['amount'], TRUE)) {
+      $message = "Failure: Security verification failed";
+      $log = new CRM_Utils_SystemLogger();
+      $log->error('payment_notification', array('message' => $message, 'input' => $input));
+      throw new CRM_Core_Exception($message);
+    }
   }
 
 }

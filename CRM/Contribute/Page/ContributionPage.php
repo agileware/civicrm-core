@@ -182,6 +182,11 @@ class CRM_Contribute_Page_ContributionPage extends CRM_Core_Page {
           'uniqueName' => 'pcp',
         ),
       );
+      $context = array(
+        'urlString' => $urlString,
+        'urlParams' => $urlParams,
+      );
+      CRM_Utils_Hook::tabset('civicrm/admin/contribute', self::$_configureActionLinks, $context);
     }
 
     return self::$_configureActionLinks;
@@ -389,6 +394,8 @@ AND         cp.page_type = 'contribute'
    *   Unused parameter.
    */
   public function browse($action = NULL) {
+    Civi::resources()->addStyleFile('civicrm', 'css/searchForm.css', 1, 'html-header');
+
     $this->_sortByCharacter = CRM_Utils_Request::retrieve('sortByCharacter',
       'String',
       $this

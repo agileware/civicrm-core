@@ -355,7 +355,7 @@ GROUP BY  currency
     $end = substr($endDate, 0, 8);
     $pCount = 0;
     $pamount = array();
-    $dao = CRM_Core_DAO::executeQuery($query, CRM_Core_DAO::$_nullArray);
+    $dao = CRM_Core_DAO::executeQuery($query);
     while ($dao->fetch()) {
       $pCount += $dao->pledge_count;
       $pamount[] = CRM_Utils_Money::format($dao->pledge_amount, $dao->currency);
@@ -417,7 +417,7 @@ GROUP BY  currency
  GROUP BY  cp.currency
 ";
     if ($select) {
-      $dao = CRM_Core_DAO::executeQuery($query, CRM_Core_DAO::$_nullArray);
+      $dao = CRM_Core_DAO::executeQuery($query);
       $amount = array();
       $count = 0;
 
@@ -466,7 +466,7 @@ GROUP BY  currency
         $pledgeDAO->id = $pledgePaymentDAO->pledge_id;
         if ($pledgeDAO->find(TRUE)) {
           $params[$pledgeDAO->id] = array(
-            'honor_type' => CRM_Core_OptionGroup::getLabel('soft_credit_type', $honorDAO->soft_credit_type_id, 'value'),
+            'honor_type' => CRM_Core_PseudoConstant::getLabel('CRM_Contribute_BAO_ContributionSoft', 'soft_credit_type_id', $honorDAO->soft_credit_type_id),
             'honorId' => $pledgeDAO->contact_id,
             'amount' => $pledgeDAO->amount,
             'status' => CRM_Contribute_PseudoConstant::contributionStatus($pledgeDAO->status_id),

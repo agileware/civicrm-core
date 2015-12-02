@@ -27,12 +27,8 @@
  */
 
 /**
- *
- *
  * @package CRM
  * @copyright CiviCRM LLC (c) 2004-2015
- * $Id$
- *
  */
 class CRM_Event_BAO_Participant extends CRM_Event_DAO_Participant {
 
@@ -387,7 +383,12 @@ class CRM_Event_BAO_Participant extends CRM_Event_DAO_Participant {
       $where[] = ' ( participant.is_test = 0 OR participant.is_test IS NULL ) ';
     }
     if (!empty($participantRoles)) {
-      $where[] = ' participant.role_id IN ( ' . implode(', ', array_keys($participantRoles)) . ' ) ';
+      $escapedRoles = array();
+      foreach (array_keys($participantRoles) as $participantRole) {
+        $escapedRoles[] = CRM_Utils_Type::escape($participantRole, 'String');
+      }
+
+      $where[] = " participant.role_id IN ( '" . implode("', '", $escapedRoles) . "' ) ";
     }
 
     $eventParams = array(1 => array($eventId, 'Positive'));
@@ -817,8 +818,6 @@ WHERE  civicrm_participant.id = {$participantId}
    *   (reference) the default values, some of which need to be resolved.
    * @param bool $reverse
    *   True if we want to resolve the values in the reverse direction (value -> name).
-   *
-   * @return void
    */
   public static function resolveDefaults(&$defaults, $reverse = FALSE) {
     self::lookupValue($defaults, 'event', CRM_Event_PseudoConstant::event(), $reverse);
@@ -827,12 +826,18 @@ WHERE  civicrm_participant.id = {$participantId}
   }
 
   /**
-   * convert associative array names to values
-   * and vice-versa.
+   * Convert associative array names to values and vice-versa.
    *
    * This function is used by both the web form layer and the api. Note that
    * the api needs the name => value conversion, also the view layer typically
    * requires value => name conversion
+   *
+   * @param array $defaults
+   * @param string $property
+   * @param string $lookup
+   * @param bool $reverse
+   *
+   * @return bool
    */
   public static function lookupValue(&$defaults, $property, $lookup, $reverse) {
     $id = $property . '_id';
@@ -856,12 +861,12 @@ WHERE  civicrm_participant.id = {$participantId}
   }
 
   /**
-   * Delete the record that are associated with this participation.
+   * Delete the records that are associated with this participation.
    *
    * @param int $id
    *   Id of the participation to delete.
    *
-   * @return void
+   * @return \CRM_Event_DAO_Participant
    */
   public static function deleteParticipant($id) {
     CRM_Utils_Hook::pre('delete', 'Participant', $id, CRM_Core_DAO::$_nullArray);
@@ -967,10 +972,7 @@ WHERE  civicrm_participant.id = {$participantId}
    * separated string before using fee_level in view mode.
    *
    * @param string $eventLevel
-   *   Event_leval string from db.
-   *
-   *
-   * @return void
+   *   Event_level string from db.
    */
   public static function fixEventLevel(&$eventLevel) {
     if ((substr($eventLevel, 0, 1) == CRM_Core_DAO::VALUE_SEPARATOR) &&
@@ -1185,9 +1187,6 @@ INNER JOIN civicrm_price_field_value value ON ( value.id = lineItem.price_field_
    * @param int $statusId
    *   Status id for participant.
    * @param bool $updateRegisterDate
-   *
-   * @return void
-   *
    */
   public static function updateStatus($participantIds, $statusId, $updateRegisterDate = FALSE) {
     if (!is_array($participantIds) || empty($participantIds) || !$statusId) {
@@ -1877,7 +1876,8 @@ WHERE cpf.price_set_id = %1 AND cpfv.label LIKE %2";
           unset($insertLines[$previousLineItem['price_field_value_id']]);
           // for updating the line items i.e. use-case - once deselect-option selecting again
           if (($previousLineItem['line_total'] != $submittedLineItems[$previousLineItem['price_field_value_id']]['line_total']) ||
-            ($submittedLineItems[$previousLineItem['price_field_value_id']]['line_total'] == 0 && $submittedLineItems[$previousLineItem['price_field_value_id']]['qty'] == 1)
+            ($submittedLineItems[$previousLineItem['price_field_value_id']]['line_total'] == 0 && $submittedLineItems[$previousLineItem['price_field_value_id']]['qty'] == 1) ||
+            ($previousLineItem['qty'] != $submittedLineItems[$previousLineItem['price_field_value_id']]['qty'])
           ) {
             $updateLines[$previousLineItem['price_field_value_id']] = $submittedLineItems[$previousLineItem['price_field_value_id']];
             $updateLines[$previousLineItem['price_field_value_id']]['id'] = $id;
@@ -1910,7 +1910,7 @@ GROUP BY li.entity_table, li.entity_id, price_field_value_id
       $updateFinancialItemInfoDAO = CRM_Core_DAO::executeQuery($updateFinancialItem);
       $trxn = CRM_Core_BAO_FinancialTrxn::getFinancialTrxnId($contributionId, 'DESC', TRUE);
       $trxnId['id'] = $trxn['financialTrxnId'];
-      $invoiceSettings = CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::CONTRIBUTE_PREFERENCES_NAME, 'contribution_invoice_settings');
+      $invoiceSettings = Civi::settings()->get('contribution_invoice_settings');
       $taxTerm = CRM_Utils_Array::value('tax_term', $invoiceSettings);
       $updateFinancialItemInfoValues = array();
       $financialItemsArray = array();
@@ -2078,9 +2078,16 @@ WHERE (entity_table = 'civicrm_participant' AND entity_id = {$participantId} AND
   }
 
   /**
-   * @param $updatedAmount
-   * @param $paidAmount
+   * Record adjusted amount.
+   *
+   * @param int $updatedAmount
+   * @param int $paidAmount
    * @param int $contributionId
+   *
+   * @param int $taxAmount
+   * @param bool $updateAmountLevel
+   *
+   * @return bool|\CRM_Core_BAO_FinancialTrxn
    */
   public static function recordAdjustedAmt($updatedAmount, $paidAmount, $contributionId, $taxAmount = NULL, $updateAmountLevel = NULL) {
     $pendingAmount = CRM_Core_BAO_FinancialTrxn::getBalanceTrxnAmt($contributionId);
@@ -2208,7 +2215,7 @@ WHERE (entity_table = 'civicrm_participant' AND entity_id = {$participantId} AND
     if ($fieldName == 'status_id' && $context != 'validate') {
       // Get rid of cart-related option if disabled
       // FIXME: Why does this option even exist if cart is disabled?
-      if (!CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::EVENT_PREFERENCES_NAME, 'enable_cart')) {
+      if (!Civi::settings()->get('enable_cart')) {
         $params['condition'][] = "name <> 'Pending in cart'";
       }
     }

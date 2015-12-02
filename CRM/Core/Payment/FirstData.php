@@ -80,10 +80,16 @@ class CRM_Core_Payment_FirstData extends CRM_Core_Payment {
   }
 
   /**
+   * Map fields from params array.
+   *
    * This function is set up and put here to make the mapping of fields
-   * from the params object  as visually clear as possible for easy editing
+   * as visually clear as possible for easy editing
    *
    *  Comment out irrelevant fields
+   *
+   * @param array $params
+   *
+   * @return array
    */
   public function mapProcessorFieldstoParams($params) {
     /*concatenate full customer name first  - code from EWAY gateway
@@ -142,10 +148,15 @@ class CRM_Core_Payment_FirstData extends CRM_Core_Payment {
   /**
    * This function sends request and receives response from
    * the processor
+   *
+   * @param array $params
+   *
+   * @return array|object
+   * @throws \Exception
    */
   public function doDirectPayment(&$params) {
     if ($params['is_recur'] == TRUE) {
-      CRM_Core_Error::fatal(ts('%1 - recurring payments not implemented', array(1 => $paymentProcessor)));
+      CRM_Core_Error::fatal(ts('First Data - recurring payments not implemented'));
     }
 
     if (!defined('CURLOPT_SSLCERT')) {
@@ -199,8 +210,8 @@ class CRM_Core_Payment_FirstData extends CRM_Core_Payment {
     curl_setopt($ch, CURLOPT_POST, 1);
     curl_setopt($ch, CURLOPT_POSTFIELDS, $requestxml);
     curl_setopt($ch, CURLOPT_SSLCERT, $key);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME, 'verifySSL') ? 2 : 0);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, CRM_Core_BAO_Setting::getItem(CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME, 'verifySSL'));
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, Civi::settings()->get('verifySSL') ? 2 : 0);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, Civi::settings()->get('verifySSL'));
     // return the result on success, FALSE on failure
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_TIMEOUT, 36000);
@@ -302,6 +313,11 @@ class CRM_Core_Payment_FirstData extends CRM_Core_Payment {
 
   /**
    * Produces error message and returns from class.
+   *
+   * @param int $errorCode
+   * @param string $errorMessage
+   *
+   * @return object
    */
   public function &errorExit($errorCode = NULL, $errorMessage = NULL) {
     $e = CRM_Core_Error::singleton();

@@ -351,12 +351,14 @@ class CRM_Activity_BAO_Query {
         //from civicrm_activity_target or civicrm_activity_assignment.
         //as component specific activities does not have entry in
         //activity target table so lets consider civicrm_activity_assignment.
-        $from .= " INNER JOIN civicrm_activity_contact
+        $from .= " $side JOIN civicrm_activity_contact
                       ON ( civicrm_activity_contact.contact_id = contact_a.id ) ";
-        $from .= " INNER JOIN civicrm_activity
+        $from .= " $side JOIN civicrm_activity
                       ON ( civicrm_activity.id = civicrm_activity_contact.activity_id
                       AND civicrm_activity.is_deleted = 0 AND civicrm_activity.is_current_revision = 1 )";
-
+        // Do not show deleted contact's activity
+        $from .= " INNER JOIN civicrm_contact
+                      ON ( civicrm_activity_contact.contact_id = civicrm_contact.id and civicrm_contact.is_deleted != 1 )";
         break;
 
       case 'activity_status':
@@ -467,7 +469,7 @@ class CRM_Activity_BAO_Query {
 
     CRM_Campaign_BAO_Campaign::addCampaignInComponentSearch($form, 'activity_campaign_id');
 
-    //add engagement level CRM-7775
+    // Add engagement level CRM-7775.
     $buildEngagementLevel = FALSE;
     $buildSurveyResult = FALSE;
     if (CRM_Campaign_BAO_Campaign::isCampaignEnable() &&

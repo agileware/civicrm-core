@@ -181,7 +181,8 @@ class CRM_Case_Form_Case extends CRM_Core_Form {
 
     // for case custom fields to populate with defaults
     if (!empty($_POST['hidden_custom'])) {
-      CRM_Custom_Form_CustomData::preProcess($this);
+      $params = CRM_Utils_Request::exportValues();
+      CRM_Custom_Form_CustomData::preProcess($this, NULL, CRM_Utils_Array::value('case_type_id', $params, $this->_caseTypeId), 1, 'Case', $this->_caseId);
       CRM_Custom_Form_CustomData::buildQuickForm($this);
     }
 
