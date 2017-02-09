@@ -3,7 +3,7 @@
 +--------------------------------------------------------------------+
 | CiviCRM version 4.7                                                |
 +--------------------------------------------------------------------+
-| Copyright CiviCRM LLC (c) 2004-2016                                |
+| Copyright CiviCRM LLC (c) 2004-2017                                |
 +--------------------------------------------------------------------+
 | This file is a part of CiviCRM.                                    |
 |                                                                    |
@@ -24,7 +24,7 @@
 | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
 +--------------------------------------------------------------------+
 */
-// (GenCodeChecksum:3785fda6260a05bff2e3914c11b593e7)
+// (GenCodeChecksum:5846411ffbd219fb1d7ead90f03e49a4)
 return array(
   'CRM_Core_DAO_AddressFormat' => array(
     'name' => 'AddressFormat',

@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -141,6 +141,10 @@ class Api3SelectQuery extends SelectQuery {
    * Fetch a field from the getFields list
    *
    * Searches by name, uniqueName, and api.aliases
+   *
+   * @param string $fieldName
+   *   Field name.
+   * @return NULL|mixed
    */
   protected function getField($fieldName) {
     if (!$fieldName) {

@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2016                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -115,7 +115,7 @@ class api_v3_ContributionPageTest extends CiviUnitTestCase {
       'currency' => 'NZD',
       'financial_type_id' => 1,
     );
-    $getResult = $this->callAPIAndDocument($this->_entity, 'get', $getParams, __FUNCTION__, __FILE__);
+    $getResult = $this->callAPISuccess($this->_entity, 'get', $getParams);
     $this->assertEquals(1, $getResult['count']);
   }
 
@@ -337,7 +337,7 @@ class api_v3_ContributionPageTest extends CiviUnitTestCase {
       'cvv2' => 123,
     );
 
-    $this->callAPIAndDocument('contribution_page', 'submit', $submitParams, __FUNCTION__, __FILE__, 'submit contribution page', NULL);
+    $this->callAPISuccess('contribution_page', 'submit', $submitParams);
     $contribution = $this->callAPISuccess('contribution', 'getsingle', array('contribution_page_id' => $this->_ids['contribution_page']));
     $this->callAPISuccess('membership_payment', 'getsingle', array('contribution_id' => $contribution['id']));
     $mut->checkMailLog(array(
@@ -367,7 +367,7 @@ class api_v3_ContributionPageTest extends CiviUnitTestCase {
       'email-Primary' => 'billy-goat@the-new-bridge.net',
     );
 
-    $this->callAPIAndDocument('contribution_page', 'submit', $submitParams, __FUNCTION__, __FILE__, 'submit contribution page', NULL);
+    $this->callAPISuccess('contribution_page', 'submit', $submitParams);
     $contribution = $this->callAPISuccess('contribution', 'getsingle', array('contribution_page_id' => $this->_ids['contribution_page']));
     $this->callAPISuccess('membership_payment', 'getsingle', array('contribution_id' => $contribution['id']));
     $mut->checkMailLog(array(
@@ -398,7 +398,7 @@ class api_v3_ContributionPageTest extends CiviUnitTestCase {
       'selectMembership' => $this->_ids['membership_type'],
     );
 
-    $this->callAPIAndDocument('contribution_page', 'submit', $submitParams, __FUNCTION__, __FILE__, 'submit contribution page', NULL);
+    $this->callAPISuccess('contribution_page', 'submit', $submitParams);
     $contributions = $this->callAPISuccess('contribution', 'get', array('contribution_page_id' => $this->_ids['contribution_page']));
     $this->assertCount(2, $contributions['values']);
     $lines = $this->callAPISuccess('LineItem', 'get', array('sequential' => 1));
@@ -433,7 +433,7 @@ class api_v3_ContributionPageTest extends CiviUnitTestCase {
       'cvv2' => 123,
     );
 
-    $this->callAPIAndDocument('contribution_page', 'submit', $submitParams, __FUNCTION__, __FILE__, 'submit contribution page', NULL);
+    $this->callAPISuccess('contribution_page', 'submit', $submitParams);
     $contributions = $this->callAPISuccess('contribution', 'get', array('contribution_page_id' => $this->_ids['contribution_page']));
     $this->assertCount(2, $contributions['values']);
     $membershipPayment = $this->callAPISuccess('membership_payment', 'getsingle', array());
@@ -1352,6 +1352,130 @@ class api_v3_ContributionPageTest extends CiviUnitTestCase {
     $pledgePayment = $this->callAPISuccess('pledge_payment', 'get', $params);
     $this->assertEquals($pledgePayment['values'][2]['status_id'], 1, "This pledge payment should have been completed");
     $this->assertEquals($pledgePayment['values'][2]['contribution_id'], $contribution['id']);
+  }
+
+  /**
+   * Test form submission with multiple option price set.
+   */
+  public function testSubmitContributionPageWithPriceSet() {
+    $this->_priceSetParams['is_quick_config'] = 0;
+    $this->setUpContributionPage();
+    $submitParams = array(
+      'price_' . $this->_ids['price_field'][0] => reset($this->_ids['price_field_value']),
+      'id' => (int) $this->_ids['contribution_page'],
+      'amount' => 80,
+      'first_name' => 'Billy',
+      'last_name' => 'Gruff',
+      'email' => 'billy@goat.gruff',
+      'is_pay_later' => TRUE,
+    );
+    $this->addPriceFields($submitParams);
+
+    $this->callAPISuccess('contribution_page', 'submit', $submitParams);
+    $contribution = $this->callAPISuccessGetSingle('contribution', array(
+      'contribution_page_id' => $this->_ids['contribution_page'],
+      'contribution_status_id' => 2,
+    ));
+    $this->callAPISuccessGetCount(
+      'LineItem',
+      array(
+        'contribution_id' => $contribution['id'],
+      ),
+      3
+    );
+  }
+
+  /**
+   * Function to add additional price fields to priceset.
+   * @param array $params
+   */
+  public function addPriceFields(&$params) {
+    $priceSetID = reset($this->_ids['price_set']);
+    $priceField = $this->callAPISuccess('price_field', 'create', array(
+      'price_set_id' => $priceSetID,
+      'label' => 'Chicken Breed',
+      'html_type' => 'CheckBox',
+    ));
+    $priceFieldValue1 = $this->callAPISuccess('price_field_value', 'create', array(
+      'price_set_id' => $priceSetID,
+      'price_field_id' => $priceField['id'],
+      'label' => 'Shoe-eating chicken -1',
+      'financial_type_id' => 'Donation',
+      'amount' => 30,
+    ));
+    $priceFieldValue2 = $this->callAPISuccess('price_field_value', 'create', array(
+      'price_set_id' => $priceSetID,
+      'price_field_id' => $priceField['id'],
+      'label' => 'Shoe-eating chicken -2',
+      'financial_type_id' => 'Donation',
+      'amount' => 40,
+    ));
+    $params['price_' . $priceField['id']] = array(
+      $priceFieldValue1['id'] => 1,
+      $priceFieldValue2['id'] => 1,
+    );
+  }
+
+  /**
+   * Test Tax Amount is calculated properly when using PriceSet with Field Type = Text/Numeric Quantity
+   */
+  public function testSubmitContributionPageWithPriceSetQuantity() {
+    $this->_priceSetParams['is_quick_config'] = 0;
+    $this->enableTaxAndInvoicing();
+    $financialType = $this->createFinancialType();
+    $financialTypeId = $financialType['id'];
+    // This function sets the Tax Rate at 10% - it currently has no way to pass Tax Rate into it - so let's work with 10%
+    $financialAccount = $this->relationForFinancialTypeWithFinancialAccount($financialType['id'], 5);
+
+    $this->setUpContributionPage();
+    $submitParams = array(
+      'price_' . $this->_ids['price_field'][0] => reset($this->_ids['price_field_value']),
+      'id' => (int) $this->_ids['contribution_page'],
+      'first_name' => 'J',
+      'last_name' => 'T',
+      'email' => 'JT@ohcanada.ca',
+      'is_pay_later' => TRUE,
+    );
+
+    // Create PriceSet/PriceField
+    $priceSetID = reset($this->_ids['price_set']);
+    $priceField = $this->callAPISuccess('price_field', 'create', array(
+      'price_set_id' => $priceSetID,
+      'label' => 'Printing Rights',
+      'html_type' => 'Text',
+    ));
+    $priceFieldValue = $this->callAPISuccess('price_field_value', 'create', array(
+      'price_set_id' => $priceSetID,
+      'price_field_id' => $priceField['id'],
+      'label' => 'Printing Rights',
+      'financial_type_id' => $financialTypeId,
+      'amount' => '16.95',
+    ));
+    $priceFieldId = $priceField['id'];
+
+    // Set quantity for our test
+    $submitParams['price_' . $priceFieldId] = 180;
+
+    // contribution_page submit requires amount and tax_amount - and that's ok we're not testing that - we're testing at the LineItem level
+    $submitParams['amount'] = 180 * 16.95;
+    // This is the correct Tax Amount - use it later to compare to what the CiviCRM Core came up with at the LineItem level
+    $submitParams['tax_amount'] = 180 * 16.95 * 0.10;
+
+    $this->callAPISuccess('contribution_page', 'submit', $submitParams);
+    $contribution = $this->callAPISuccessGetSingle('contribution', array(
+      'contribution_page_id' => $this->_ids['contribution_page'],
+    ));
+
+    // Retrieve the lineItem that belongs to the Printing Rights and check the tax_amount CiviCRM Core calculated for it
+    $lineItem = $this->callAPISuccess('LineItem', 'get', array(
+      'contribution_id' => $contribution['id'],
+      'label' => 'Printing Rights',
+    ));
+    $lineItemId = $lineItem['id'];
+    $lineItem_TaxAmount = round($lineItem['values'][$lineItemId]['tax_amount'], 2);
+
+    // Compare this to what it should be!
+    $this->assertEquals($lineItem_TaxAmount, round($submitParams['tax_amount'], 2), 'Wrong Sales Tax Amount is calculated and stored.');
   }
 
 }

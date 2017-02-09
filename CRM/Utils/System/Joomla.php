@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2016                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2016
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -136,6 +136,8 @@ class CRM_Utils_System_Joomla extends CRM_Utils_System_Base {
     $query = $db->getQuery(TRUE);
     $query->select('username, email');
     $query->from($JUserTable->getTableName());
+
+    // LOWER in query below roughly translates to 'hurt my database without deriving any benefit' See CRM-19811.
     $query->where('(LOWER(username) = LOWER(\'' . $name . '\')) OR (LOWER(email) = LOWER(\'' . $email . '\'))');
     $db->setQuery($query, 0, 10);
     $users = $db->loadAssocList();

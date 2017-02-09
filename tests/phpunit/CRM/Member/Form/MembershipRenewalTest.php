@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2016                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -404,8 +404,10 @@ class CRM_Member_Form_MembershipRenewalTest extends CiviUnitTestCase {
     $contribution = $this->callAPISuccessGetSingle('Contribution', array(
       'contact_id' => $this->_individualId,
       'contribution_status_id' => 2,
+      'return' => array("tax_amount", "trxn_id"),
     ));
     $this->assertEquals($contribution['trxn_id'], 777);
+    $this->assertEquals($contribution['tax_amount'], NULL);
 
     $this->callAPISuccessGetCount('LineItem', array(
       'entity_id' => $membership['id'],

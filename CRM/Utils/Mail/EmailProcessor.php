@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2016                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2016
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 // we should consider moving these to the settings table
@@ -259,10 +259,9 @@ class CRM_Utils_Mail_EmailProcessor {
           }
           else {
             $matches = TRUE;
+            CRM_Utils_Hook::emailProcessor('activity', $params, $mail, $result);
             echo "Processed as Activity: {$mail->subject}\n";
           }
-
-          CRM_Utils_Hook::emailProcessor('activity', $params, $mail, $result);
         }
 
         // if $matches is empty, this email is not CiviMail-bound

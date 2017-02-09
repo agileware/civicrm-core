@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2016                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -31,7 +31,7 @@
  * smart caching scheme on a per domain basis
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2016
+ * @copyright CiviCRM LLC (c) 2004-2017
  * $Id$
  *
  */
@@ -1107,6 +1107,19 @@ class CRM_Core_SelectValues {
     return array(
       'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'odt' => 'application/vnd.oasis.opendocument.text',
+    );
+  }
+
+  /**
+   * Activity Text options.
+   *
+   * @return array
+   */
+  public static function activityTextOptions() {
+    return array(
+      2 => ts('Details Only'),
+      3 => ts('Subject Only'),
+      6 => ts('Both'),
     );
   }
 

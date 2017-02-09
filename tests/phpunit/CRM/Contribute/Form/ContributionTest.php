@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2016                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -773,6 +773,82 @@ Price Field - Price Field 1        1   $ 100.00      $ 100.00
       'credit_card_exp_date' => array('M' => 5, 'Y' => 2012),
       'credit_card_number' => '411111111111111',
     );
+  }
+
+  /**
+   * Test the submit function for FT with tax.
+   */
+  public function testSubmitSaleTax() {
+    $this->enableTaxAndInvoicing();
+    $this->relationForFinancialTypeWithFinancialAccount($this->_financialTypeId);
+    $form = new CRM_Contribute_Form_Contribution();
+
+    $form->testSubmit(array(
+       'total_amount' => 100,
+        'financial_type_id' => $this->_financialTypeId,
+        'receive_date' => '04/21/2015',
+        'receive_date_time' => '11:27PM',
+        'contact_id' => $this->_individualId,
+        'payment_instrument_id' => array_search('Check', $this->paymentInstruments),
+        'contribution_status_id' => 1,
+        'price_set_id' => 0,
+      ),
+      CRM_Core_Action::ADD
+    );
+    $contribution = $this->callAPISuccessGetSingle('Contribution',
+      array(
+        'contact_id' => $this->_individualId,
+        'return' => array('tax_amount', 'total_amount'),
+      )
+    );
+    $this->assertEquals(110, $contribution['total_amount']);
+    $this->assertEquals(10, $contribution['tax_amount']);
+    $this->callAPISuccessGetCount('FinancialTrxn', array(), 1);
+    $this->callAPISuccessGetCount('FinancialItem', array(), 2);
+    $lineItem = $this->callAPISuccessGetSingle('LineItem', array('contribution_id' => $contribution['id']));
+    $this->assertEquals(100, $lineItem['line_total']);
+    $this->assertEquals(10, $lineItem['tax_amount']);
+  }
+
+  /**
+   * Test the submit function for FT without tax.
+   */
+  public function testSubmitWithOutSaleTax() {
+    $this->enableTaxAndInvoicing();
+    $this->relationForFinancialTypeWithFinancialAccount($this->_financialTypeId);
+    $form = new CRM_Contribute_Form_Contribution();
+
+    $form->testSubmit(array(
+       'total_amount' => 100,
+        'financial_type_id' => 3,
+        'receive_date' => '04/21/2015',
+        'receive_date_time' => '11:27PM',
+        'contact_id' => $this->_individualId,
+        'payment_instrument_id' => array_search('Check', $this->paymentInstruments),
+        'contribution_status_id' => 1,
+        'price_set_id' => 0,
+      ),
+      CRM_Core_Action::ADD
+    );
+    $contribution = $this->callAPISuccessGetSingle('Contribution',
+      array(
+        'contact_id' => $this->_individualId,
+        'return' => array('tax_amount', 'total_amount'),
+      )
+    );
+    $this->assertEquals(100, $contribution['total_amount']);
+    $this->assertEquals(NULL, $contribution['tax_amount']);
+    $this->callAPISuccessGetCount('FinancialTrxn', array(), 1);
+    $this->callAPISuccessGetCount('FinancialItem', array(), 1);
+    $lineItem = $this->callAPISuccessGetSingle(
+      'LineItem',
+      array(
+        'contribution_id' => $contribution['id'],
+        'return' => array('line_total', 'tax_amount'),
+      )
+    );
+    $this->assertEquals(100, $lineItem['line_total']);
+    $this->assertTrue(empty($lineItem['tax_amount']));
   }
 
 }

@@ -3630,6 +3630,23 @@ AND    ( TABLE_NAME LIKE 'civicrm_value_%' )
   }
 
   /**
+   * Create Financial Type.
+   *
+   * @param array $params
+   *
+   * @return array
+   */
+  protected function createFinancialType($params = array()) {
+    $params = array_merge($params,
+      array(
+        'name' => 'Financial-Type -' . substr(sha1(rand()), 0, 7),
+        'is_active' => 1,
+      )
+    );
+    return $this->callAPISuccess('FinancialType', 'create', $params);
+  }
+
+  /**
    * Enable Tax and Invoicing
    */
   protected function enableTaxAndInvoicing($params = array()) {
@@ -3648,6 +3665,32 @@ AND    ( TABLE_NAME LIKE 'civicrm_value_%' )
       )
     );
     return Civi::settings()->set('contribution_invoice_settings', $contributeSetting);
+  }
+
+  /**
+   * Add Sales Tax relation for financial type with financial account.
+   *
+   * @param int $financialTypeId
+   *
+   * @return obj
+   */
+  protected function relationForFinancialTypeWithFinancialAccount($financialTypeId) {
+    $params = array(
+      'name' => 'Sales tax account ' . substr(sha1(rand()), 0, 4),
+      'financial_account_type_id' => key(CRM_Core_PseudoConstant::accountOptionValues('financial_account_type', NULL, " AND v.name LIKE 'Liability' ")),
+      'is_deductible' => 1,
+      'is_tax' => 1,
+      'tax_rate' => 10,
+      'is_active' => 1,
+    );
+    $account = CRM_Financial_BAO_FinancialAccount::add($params);
+    $entityParams = array(
+      'entity_table' => 'civicrm_financial_type',
+      'account_relationship' => key(CRM_Core_PseudoConstant::accountOptionValues('account_relationship', NULL, " AND v.name LIKE 'Sales Tax Account is' ")),
+      'entity_id' => $financialTypeId,
+      'financial_account_id' => $account->id,
+    );
+    return CRM_Financial_BAO_FinancialTypeAccount::add($entityParams);
   }
 
   /**
