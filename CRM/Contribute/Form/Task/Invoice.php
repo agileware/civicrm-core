@@ -553,11 +553,7 @@ class CRM_Contribute_Form_Task_Invoice extends CRM_Contribute_Form_Task {
       }
       else {
         $pdfFileName = "{$invoiceId}.pdf";
-        CRM_Utils_PDF_Utils::html2pdf($messageInvoice, $pdfFileName, FALSE, array(
-          'margin_top' => 10,
-          'margin_left' => 65,
-          'metric' => 'px',
-        ));
+        CRM_Utils_PDF_Utils::html2pdf($messageInvoice, $pdfFileName, FALSE);
         // functions call for adding activity with attachment
         $fileName = self::putFile($html, $pdfFileName);
         self::addActivities($subject, $contactIds, $fileName, $params);
