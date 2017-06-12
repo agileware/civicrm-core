@@ -2,7 +2,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -54,7 +54,7 @@
     </fieldset>
   {/if}
   {if $billingDetailsFields|@count && $paymentProcessor.payment_processor_type neq 'PayPal_Express'}
-    {if $profileAddressFields}
+    {if $profileAddressFields && !$ccid}
       <input type="checkbox" id="billingcheckbox" value="0">
       <label for="billingcheckbox">{ts}My billing address is the same as above{/ts}</label>
     {/if}
@@ -204,33 +204,20 @@
       });
     });
 
-    $('input[name="payment_processor_id"]').change( function() {
-      function toggleConfirmButton() {
-        var suppressSubmitButton = {/literal}"{$suppressSubmitButton}"{literal};
-        var elementObj = $('input[name="payment_processor"]');
-        if ( elementObj.attr('type') == 'hidden' ) {
-          var processorTypeId = elementObj.val( );
-        }
-        else {
-          var processorTypeId = elementObj.filter(':checked').val();
-        }
-
-        if (suppressSubmitButton) {
-          $("#crm-submit-buttons").hide();
-        }
-        else {
-          $("#crm-submit-buttons").show();
-        }
-      }
-      toggleConfirmButton();
-    });
-
   </script>
   {/literal}
+{/if}
+{if $suppressSubmitButton}
+{literal}
+  <script type="text/javascript">
+    CRM.$(function($) {
+      $('.crm-submit-buttons', $('#billing-payment-block').closest('form')).hide();
+    });
+  </script>
+{/literal}
 {/if}
 {/crmRegion}
 {crmRegion name="billing-block-post"}
   {* Payment processors sometimes need to append something to the end of the billing block. We create a region for
      clarity  - the plan is to move to assigning this through the payment processor to this region *}
 {/crmRegion}
-

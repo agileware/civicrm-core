@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  * $Id$
  *
  */
@@ -139,6 +139,84 @@ class CRM_Core_BAO_OptionGroup extends CRM_Core_DAO_OptionGroup {
     $optionGroup->id = $optionGroupId;
     $optionGroup->find(TRUE);
     return $optionGroup->name;
+  }
+
+  /**
+   * Get DataType for a specified option Group
+   *
+   * @param int $optionGroupId
+   *   Id of the Option Group.
+   *
+   * @return string|null
+   *   Data Type
+   */
+  public static function getDataType($optionGroupId) {
+    $optionGroup = new CRM_Core_DAO_OptionGroup();
+    $optionGroup->id = $optionGroupId;
+    $optionGroup->find(TRUE);
+    return $optionGroup->data_type;
+  }
+
+  /**
+   * Ensure an option group exists.
+   *
+   * This function is intended to be called from the upgrade script to ensure
+   * that an option group exists, without hitting an error if it already exists.
+   *
+   * This is sympathetic to sites who might pre-add it.
+   *
+   * @param array $params
+   *
+   * @return int
+   *   ID of the option group.
+   */
+  public static function ensureOptionGroupExists($params) {
+    $existingValues = civicrm_api3('OptionGroup', 'get', array(
+      'name' => $params['name'],
+      'return' => 'id',
+    ));
+    if (!$existingValues['count']) {
+      $result = civicrm_api3('OptionGroup', 'create', $params);
+      return $result['id'];
+    }
+    else {
+      return $existingValues['id'];
+    }
+  }
+
+  /**
+   * Get the title of an option group by name.
+   *
+   * @param string $name
+   *   The name value for the option group table.
+   *
+   * @return string
+   *   The relevant title.
+   */
+  public static function getTitleByName($name) {
+    $groups = self::getTitlesByNames();
+    return $groups[$name];
+  }
+
+  /**
+   * Get a cached mapping of all group titles indexed by their unique name.
+   *
+   * We tend to only have a limited number of option groups so memory caching
+   * makes more sense than multiple look-ups.
+   *
+   * @return array
+   *   Array of all group titles by name.
+   *   e.g
+   *   array('activity_status' => 'Activity Status', 'msg_mode' => 'Message Mode'....)
+   */
+  public static function getTitlesByNames() {
+    if (!isset(\Civi::$statics[__CLASS__]) || !isset(\Civi::$statics[__CLASS__]['titles_by_name'])) {
+      $dao = CRM_Core_DAO::executeQuery("SELECT name, title FROM civicrm_option_group");
+      while ($dao->fetch()) {
+        \Civi::$statics[__CLASS__]['titles_by_name'][$dao->name] = $dao->title;
+      }
+    }
+    return \Civi::$statics[__CLASS__]['titles_by_name'];
   }
 
 }

@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -125,6 +125,7 @@ class CRM_Contact_Form_Inline_Address extends CRM_Contact_Form_Inline {
   public function buildQuickForm() {
     parent::buildQuickForm();
     CRM_Contact_Form_Edit_Address::buildQuickForm($this, $this->_locBlockNo, TRUE, TRUE);
+    $this->addFormRule(array('CRM_Contact_Form_Edit_Address', 'formRule'), $this);
   }
 
   /**
@@ -150,6 +151,7 @@ class CRM_Contact_Form_Inline_Address extends CRM_Contact_Form_Inline {
       }
 
       $address['country_id'] = $config->defaultContactCountry;
+      $address['state_province_id'] = $config->defaultContactStateProvince;
       $defaults['address'][$this->_locBlockNo] = $address;
     }
 

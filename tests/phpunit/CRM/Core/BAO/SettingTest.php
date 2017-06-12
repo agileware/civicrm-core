@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -25,11 +25,9 @@
  +--------------------------------------------------------------------+
  */
 
-
-require_once 'CiviTest/CiviUnitTestCase.php';
-
 /**
  * Class CRM_Core_BAO_SettingTest
+ * @group headless
  */
 class CRM_Core_BAO_SettingTest extends CiviUnitTestCase {
   public function setUp() {
@@ -87,7 +85,7 @@ class CRM_Core_BAO_SettingTest extends CiviUnitTestCase {
     Civi::service('settings_manager')->useMandatory();
     $values = CRM_Core_BAO_Setting::getItem('Test Preferences');
     $this->assertEquals('/test/override', $values['overrideSetting']);
-    CRM_Core_BAO_Setting::setItem('/test/database', 'Test Preferences', 'databaseSetting');
+    Civi::settings()->set('databaseSetting', '/test/database');
     $values = CRM_Core_BAO_Setting::getItem('Test Preferences');
     $this->assertEquals('/test/override', $values['overrideSetting']);
     $this->assertEquals('/test/database', $values['databaseSetting']);
@@ -153,22 +151,14 @@ class CRM_Core_BAO_SettingTest extends CiviUnitTestCase {
 
     // set initial value
     $_testOnChange_hookCalls = array('count' => 0);
-    CRM_Core_BAO_Setting::setItem(
-      array('First', 'Value'),
-      'CiviCRM Preferences',
-      'onChangeExample'
-    );
+    Civi::settings()->set('onChangeExample', array('First', 'Value'));
     $this->assertEquals(1, $_testOnChange_hookCalls['count']);
     $this->assertEquals(array('First', 'Value'), $_testOnChange_hookCalls['newValue']);
     $this->assertEquals('List of Components', $_testOnChange_hookCalls['metadata']['title']);
 
     // change value
     $_testOnChange_hookCalls = array('count' => 0);
-    CRM_Core_BAO_Setting::setItem(
-      array('Second', 'Value'),
-      'CiviCRM Preferences',
-      'onChangeExample'
-    );
+    Civi::settings()->set('onChangeExample', array('Second', 'Value'));
     $this->assertEquals(1, $_testOnChange_hookCalls['count']);
     $this->assertEquals(array('First', 'Value'), $_testOnChange_hookCalls['oldValue']);
     $this->assertEquals(array('Second', 'Value'), $_testOnChange_hookCalls['newValue']);

@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -51,10 +51,10 @@ class CRM_Contact_Page_Inline_CustomData extends CRM_Core_Page {
     //custom groups Inline
     $entityType = CRM_Contact_BAO_Contact::getContactType($contactId);
     $entitySubType = CRM_Contact_BAO_Contact::getContactSubType($contactId);
-    $groupTree = &CRM_Core_BAO_CustomGroup::getTree($entityType, $this, $contactId,
+    $groupTree = CRM_Core_BAO_CustomGroup::getTree($entityType, NULL, $contactId,
       $cgId, $entitySubType
     );
-    $details = CRM_Core_BAO_CustomGroup::buildCustomDataView($this, $groupTree);
+    $details = CRM_Core_BAO_CustomGroup::buildCustomDataView($this, $groupTree, FALSE, NULL, NULL, NULL, $contactId);
     //get the fields of single custom group record
     if ($customRecId == 1) {
       $fields = reset($details[$cgId]);

@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
 | CiviCRM version 4.7                                                |
 +--------------------------------------------------------------------+
-| Copyright CiviCRM LLC (c) 2004-2015                                |
+| Copyright CiviCRM LLC (c) 2004-2017                                |
 +--------------------------------------------------------------------+
 | This file is a part of CiviCRM.                                    |
 |                                                                    |
@@ -25,10 +25,9 @@
 +--------------------------------------------------------------------+
  */
 
-require_once 'CiviTest/CiviUnitTestCase.php';
-
 /**
  * Class api_v3_PriceFieldValueTest
+ * @group headless
  */
 class api_v3_PriceFieldValueTest extends CiviUnitTestCase {
   protected $_apiversion = 3;
@@ -215,6 +214,23 @@ class api_v3_PriceFieldValueTest extends CiviUnitTestCase {
     $this->assertEquals(2, $result['count']);
     $this->callAPISuccess($this->_entity, 'delete', array('id' => $result1['id']));
     $this->callAPISuccess($this->_entity, 'delete', array('id' => $result2['id']));
+  }
+
+  public function testCreatePriceFieldValueWithDisabledFinancialType() {
+    $financialTypeParams = array(
+      'is_active' => 0,
+      'name' => 'Disabled Donations',
+    );
+    $financialType = $this->callAPISuccess('financial_type', 'create', $financialTypeParams);
+    $params = array(
+      'price_field_id' => $this->priceFieldID,
+      'name' => 'DonType1',
+      'label' => 'DonType1',
+      'amount' => 90,
+      'is_active' => 1,
+      'financial_type_id' => $financialType['id'],
+    );
+    $this->callAPIFailure($this->_entity, 'create', $params);
   }
 
 }

@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -27,7 +27,7 @@
 
 /**
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -259,6 +259,9 @@ class CRM_Event_Form_ManageEvent_Fee extends CRM_Event_Form_ManageEvent {
     $this->addEntityRef('payment_processor', ts('Payment Processor'), array(
       'entity' => 'PaymentProcessor',
       'multiple' => TRUE,
+      'api' => array(
+        'params' => array('domain_id' => CRM_Core_Config::domainID()),
+      ),
       'select' => array('minimumInputLength' => 0),
     ));
 
@@ -383,7 +386,10 @@ class CRM_Event_Form_ManageEvent_Fee extends CRM_Event_Form_ManageEvent {
     $this->addElement('submit', $this->getButtonName('submit'), ts('Add Discount Set to Fee Table'),
       array('class' => 'crm-form-submit cancel')
     );
-
+    if (CRM_Contribute_BAO_Contribution::checkContributeSettings('deferred_revenue_enabled')) {
+      $deferredFinancialType = CRM_Financial_BAO_FinancialAccount::getDeferredFinancialType();
+      $this->assign('deferredFinancialType', array_keys($deferredFinancialType));
+    }
     $this->buildAmountLabel();
     parent::buildQuickForm();
   }

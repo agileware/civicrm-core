@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 class CRM_Utils_Check {
   // How often to run checks and notify admins about issues.
@@ -162,20 +162,26 @@ class CRM_Utils_Check {
   /**
    * Throw an exception if any of the checks fail.
    *
-   * @param array|NULL $messages list of CRM_Utils_Check_Message; or NULL if the default list should be fetched
+   * @param array|NULL $messages
+   *   [CRM_Utils_Check_Message]
+   * @param string $threshold
    *
-   * @throws Exception
+   * @throws \CRM_Core_Exception
+   * @throws \Exception
    */
-  public function assertValid($messages = NULL) {
+  public function assertValid($messages = NULL, $threshold = \Psr\Log\LogLevel::ERROR) {
     if ($messages === NULL) {
       $messages = $this->checkAll();
     }
-    if (!empty($messages)) {
-      $messagesAsArray = array();
-      foreach ($messages as $message) {
-        $messagesAsArray[] = $message->toArray();
+    $minLevel = self::severityMap($threshold);
+    $errors = array();
+    foreach ($messages as $message) {
+      if ($message->getLevel() >= $minLevel) {
+        $errors[] = $message->toArray();
       }
-      throw new Exception('There are configuration problems with this installation: ' . print_r($messagesAsArray, TRUE));
+    }
+    if ($errors) {
+      throw new Exception("System $threshold: " . print_r($errors, TRUE));
     }
   }
 
@@ -194,24 +200,14 @@ class CRM_Utils_Check {
    *   Array of CRM_Utils_Check_Message objects
    */
   public static function checkAll($max = FALSE) {
-    $checks = array();
-    $checks[] = new CRM_Utils_Check_Security();
-    $checks[] = new CRM_Utils_Check_Env();
-
-    $compInfo = CRM_Core_Component::getEnabledComponents();
-    foreach ($compInfo as $compObj) {
-      switch ($compObj->info['name']) {
-        case 'CiviCase':
-          $checks[] = new CRM_Utils_Check_Case(CRM_Case_XMLRepository::singleton(), CRM_Case_PseudoConstant::caseType('name'));
-          break;
-
-        default:
-      }
-    }
-
     $messages = array();
-    foreach ($checks as $check) {
-      $messages = array_merge($messages, $check->checkAll());
+    foreach (glob(__DIR__ . '/Check/Component/*.php') as $filePath) {
+      $className = 'CRM_Utils_Check_Component_' . basename($filePath, '.php');
+      /* @var CRM_Utils_Check_Component $check */
+      $check = new $className();
+      if ($check->isEnabled()) {
+        $messages = array_merge($messages, $check->checkAll());
+      }
     }
 
     CRM_Utils_Hook::check($messages);

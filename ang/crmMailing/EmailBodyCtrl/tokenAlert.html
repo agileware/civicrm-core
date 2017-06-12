@@ -6,12 +6,11 @@
 <div ng-show="missing['domain.address'] && insertable">
   <a ng-click="insertToken('domain.address')" class="button"><span><i class="crm-i fa-plus-circle"></i> {{ts('Address')}}</span></a>
 
-  <div class="clear"/>
+  <div class="clear"></div>
 </div>
 
 <p ng-show="missing['action.optOut']">
-  {{ts('The mailing must allow recipients to (a) unsubscribe from the mailing-list or (b) completely opt-out from all
-  mailings. Please insert an unsubscribe or opt-out token.')}}
+  {{ts('The mailing must allow recipients to (a) unsubscribe from the mailing-list or (b) completely opt-out from all mailings. Please insert an unsubscribe or opt-out token.')}}
 </p>
 
 <div ng-show="missing['action.optOut'] && insertable">

@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -34,6 +34,8 @@
 /**
  * Add an Address for a contact.
  *
+ * FIXME: Should be using basic_create util
+ *
  * @param array $params
  *   Array per getfields metadata.
  *
@@ -41,6 +43,7 @@
  *   API result array
  */
 function civicrm_api3_address_create(&$params) {
+  _civicrm_api3_check_edit_permissions('CRM_Core_BAO_Address', $params);
   /**
    * If street_parsing, street_address has to be parsed into
    * separate parts
@@ -67,6 +70,10 @@ function civicrm_api3_address_create(&$params) {
         }
       }
     }
+  }
+
+  if (!isset($params['check_permissions'])) {
+    $params['check_permissions'] = 0;
   }
 
   /**
@@ -97,12 +104,19 @@ function _civicrm_api3_address_create_spec(&$params) {
     'description' => 'Optional param to indicate you want the street_address field parsed into individual params',
     'type' => CRM_Utils_Type::T_BOOLEAN,
   );
+  $params['skip_geocode'] = array(
+    'title' => 'Skip geocode',
+    'description' => 'Optional param to indicate you want to skip geocoding (useful when importing a lot of addresses
+      at once, the job \'Geocode and Parse Addresses\' can execute this task after the import)',
+    'type' => CRM_Utils_Type::T_BOOLEAN,
+  );
   $params['world_region'] = array(
     'title' => ts('World Region'),
     'name' => 'world_region',
     'type' => CRM_Utils_Type::T_TEXT,
   );
 }
+
 /**
  * Adjust Metadata for Get action.
  *

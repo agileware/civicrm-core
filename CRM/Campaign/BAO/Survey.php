@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -78,7 +78,7 @@ class CRM_Campaign_BAO_Survey extends CRM_Campaign_DAO_Survey {
 
     if (!empty($params['is_default'])) {
       $query = "UPDATE civicrm_survey SET is_default = 0";
-      CRM_Core_DAO::executeQuery($query, CRM_Core_DAO::$_nullArray);
+      CRM_Core_DAO::executeQuery($query);
     }
 
     if (!(CRM_Utils_Array::value('id', $params))) {
@@ -269,7 +269,7 @@ SELECT  survey.id                         as id,
       if (!$includePetition) {
         //we only have activity type as a
         //difference between survey and petition.
-        $petitionTypeID = CRM_Core_OptionGroup::getValue('activity_type', 'petition', 'name');
+        $petitionTypeID = CRM_Core_PseudoConstant::getKey('CRM_Activity_BAO_Activity', 'activity_type_id', 'petition');
 
         $where = array();
         if ($petitionTypeID) {
@@ -304,6 +304,8 @@ SELECT  survey.id    as id,
    *
    * @param string $returnColumn
    * @param bool $includePetitionActivityType
+   *
+   * @return string
    */
   public static function getSurveyActivityType($returnColumn = 'label', $includePetitionActivityType = FALSE) {
     static $activityTypes;
@@ -479,8 +481,7 @@ SELECT  survey.id    as id,
       $query = "
   SELECT  contact.id as contactId, $selectClause
     FROM  $fromClause
-   WHERE  $whereClause
-Group By  contact.id";
+   WHERE  $whereClause";
 
       $contact = CRM_Core_DAO::executeQuery($query);
       while ($contact->fetch()) {

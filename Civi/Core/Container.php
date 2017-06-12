@@ -1,6 +1,8 @@
 <?php
 namespace Civi\Core;
 
+use Civi\API\Provider\ActionObjectProvider;
+use Civi\Core\Event\SystemInstallEvent;
 use Civi\Core\Lock\LockManager;
 use Doctrine\Common\Annotations\AnnotationReader;
 use Doctrine\Common\Annotations\AnnotationRegistry;
@@ -67,7 +69,9 @@ class Container {
 
     // In pre-installation environments, don't bother with caching.
     if (!defined('CIVICRM_TEMPLATE_COMPILEDIR') || !defined('CIVICRM_DSN') || $cacheMode === 'never' || \CRM_Utils_System::isInUpgradeMode()) {
-      return $this->createContainer();
+      $containerBuilder = $this->createContainer();
+      $containerBuilder->compile();
+      return $containerBuilder;
     }
 
     $envId = \CRM_Core_Config_Runtime::getId();
@@ -102,6 +106,9 @@ class Container {
     $container->addObjectResource($this);
     $container->setParameter('civicrm_base_path', $civicrm_base_path);
     //$container->set(self::SELF, $this);
+
+    $container->addResource(new \Symfony\Component\Config\Resource\FileResource(__FILE__));
+
     $container->setDefinition(self::SELF, new Definition(
       'Civi\Core\Container',
       array()
@@ -130,7 +137,7 @@ class Container {
       ->setFactoryService(self::SELF)->setFactoryMethod('createAngularManager');
 
     $container->setDefinition('dispatcher', new Definition(
-      'Symfony\Component\EventDispatcher\ContainerAwareEventDispatcher',
+      'Civi\Core\CiviEventDispatcher',
       array(new Reference('service_container'))
     ))
       ->setFactoryService(self::SELF)->setFactoryMethod('createEventDispatcher');
@@ -166,6 +173,11 @@ class Container {
       ))->setFactoryClass('CRM_Utils_Cache')->setFactoryMethod('create');
     }
 
+    $container->setDefinition('sql_triggers', new Definition(
+      'Civi\Core\SqlTriggers',
+      array()
+    ));
+
     $container->setDefinition('pear_mail', new Definition('Mail'))
       ->setFactoryClass('CRM_Utils_Mail')->setFactoryMethod('createMailer');
 
@@ -173,9 +185,7 @@ class Container {
       throw new \RuntimeException("Cannot initialize container. Boot services are undefined.");
     }
     foreach (\Civi::$statics[__CLASS__]['boot'] as $bootService => $def) {
-      $container->setDefinition($bootService, new Definition($def['class'], array($bootService)))
-        ->setFactoryClass(__CLASS__)
-        ->setFactoryMethod('getBootService');
+      $container->setDefinition($bootService, new Definition())->setSynthetic(TRUE);
     }
 
     // Expose legacy singletons as services in the container.
@@ -198,12 +208,20 @@ class Container {
       'Civi\Token\TokenCompatSubscriber',
       array()
     ))->addTag('kernel.event_subscriber');
+    $container->setDefinition("crm_mailing_action_tokens", new Definition(
+      "CRM_Mailing_ActionTokens",
+      array()
+    ))->addTag('kernel.event_subscriber');
 
-    foreach (array('Activity', 'Contribute', 'Event', 'Member') as $comp) {
+    foreach (array('Activity', 'Contribute', 'Event', 'Mailing', 'Member') as $comp) {
       $container->setDefinition("crm_" . strtolower($comp) . "_tokens", new Definition(
         "CRM_{$comp}_Tokens",
         array()
       ))->addTag('kernel.event_subscriber');
+    }
+
+    if (\CRM_Utils_Constant::value('CIVICRM_FLEXMAILER_HACK_SERVICES')) {
+      \Civi\Core\Resolver::singleton()->call(CIVICRM_FLEXMAILER_HACK_SERVICES, array($container));
     }
 
     \CRM_Utils_Hook::container($container);
@@ -223,24 +241,36 @@ class Container {
    * @return \Symfony\Component\EventDispatcher\ContainerAwareEventDispatcher
    */
   public function createEventDispatcher($container) {
-    $dispatcher = new ContainerAwareEventDispatcher($container);
+    $dispatcher = new CiviEventDispatcher($container);
+    $dispatcher->addListener(SystemInstallEvent::EVENT_NAME, array('\Civi\Core\InstallationCanary', 'check'));
+    $dispatcher->addListener(SystemInstallEvent::EVENT_NAME, array('\Civi\Core\DatabaseInitializer', 'initialize'));
+    $dispatcher->addListener('hook_civicrm_pre', array('\Civi\Core\Event\PreEvent', 'dispatchSubevent'), 100);
+    $dispatcher->addListener('hook_civicrm_post', array('\Civi\Core\Event\PostEvent', 'dispatchSubevent'), 100);
     $dispatcher->addListener('hook_civicrm_post::Activity', array('\Civi\CCase\Events', 'fireCaseChange'));
     $dispatcher->addListener('hook_civicrm_post::Case', array('\Civi\CCase\Events', 'fireCaseChange'));
     $dispatcher->addListener('hook_civicrm_caseChange', array('\Civi\CCase\Events', 'delegateToXmlListeners'));
     $dispatcher->addListener('hook_civicrm_caseChange', array('\Civi\CCase\SequenceListener', 'onCaseChange_static'));
-    $dispatcher->addListener('DAO::post-insert', array('\CRM_Core_BAO_RecurringEntity', 'triggerInsert'));
-    $dispatcher->addListener('DAO::post-update', array('\CRM_Core_BAO_RecurringEntity', 'triggerUpdate'));
-    $dispatcher->addListener('DAO::post-delete', array('\CRM_Core_BAO_RecurringEntity', 'triggerDelete'));
+    $dispatcher->addListener('hook_civicrm_eventDefs', array('\Civi\Core\CiviEventInspector', 'findBuiltInEvents'));
+    // TODO We need a better code-convention for metadata about non-hook events.
+    $dispatcher->addListener('hook_civicrm_eventDefs', array('\Civi\API\Events', 'hookEventDefs'));
+    $dispatcher->addListener('hook_civicrm_eventDefs', array('\Civi\Core\Event\SystemInstallEvent', 'hookEventDefs'));
+    $dispatcher->addListener('civi.dao.postInsert', array('\CRM_Core_BAO_RecurringEntity', 'triggerInsert'));
+    $dispatcher->addListener('civi.dao.postUpdate', array('\CRM_Core_BAO_RecurringEntity', 'triggerUpdate'));
+    $dispatcher->addListener('civi.dao.postDelete', array('\CRM_Core_BAO_RecurringEntity', 'triggerDelete'));
     $dispatcher->addListener('hook_civicrm_unhandled_exception', array(
       'CRM_Core_LegacyErrorHandler',
       'handleException',
-    ));
+    ), -200);
     $dispatcher->addListener(\Civi\ActionSchedule\Events::MAPPINGS, array('CRM_Activity_ActionMapping', 'onRegisterActionMappings'));
     $dispatcher->addListener(\Civi\ActionSchedule\Events::MAPPINGS, array('CRM_Contact_ActionMapping', 'onRegisterActionMappings'));
     $dispatcher->addListener(\Civi\ActionSchedule\Events::MAPPINGS, array('CRM_Contribute_ActionMapping_ByPage', 'onRegisterActionMappings'));
     $dispatcher->addListener(\Civi\ActionSchedule\Events::MAPPINGS, array('CRM_Contribute_ActionMapping_ByType', 'onRegisterActionMappings'));
     $dispatcher->addListener(\Civi\ActionSchedule\Events::MAPPINGS, array('CRM_Event_ActionMapping', 'onRegisterActionMappings'));
     $dispatcher->addListener(\Civi\ActionSchedule\Events::MAPPINGS, array('CRM_Member_ActionMapping', 'onRegisterActionMappings'));
+
+    if (\CRM_Utils_Constant::value('CIVICRM_FLEXMAILER_HACK_LISTENERS')) {
+      \Civi\Core\Resolver::singleton()->call(CIVICRM_FLEXMAILER_HACK_LISTENERS, array($dispatcher));
+    }
 
     return $dispatcher;
   }
@@ -326,64 +356,59 @@ class Container {
    * @throws \CRM_Core_Exception
    */
   public static function boot($loadFromDB) {
+    // Array(string $serviceId => object $serviceInstance).
     $bootServices = array();
     \Civi::$statics[__CLASS__]['boot'] = &$bootServices;
 
-    $bootServices['runtime'] = array(
-      'class' => 'CRM_Core_Config_Runtime',
-      'obj' => ($runtime = new \CRM_Core_Config_Runtime()),
-    );
+    $bootServices['runtime'] = $runtime = new \CRM_Core_Config_Runtime();
     $runtime->initialize($loadFromDB);
 
-    $bootServices['paths'] = array(
-      'class' => 'Civi\Core\Paths',
-      'obj' => new \Civi\Core\Paths(),
-    );
+    $bootServices['paths'] = new \Civi\Core\Paths();
 
     $class = $runtime->userFrameworkClass;
-    $bootServices['userSystem'] = array(
-      'class' => 'CRM_Utils_Cache_Interface',
-      'obj' => ($userSystem = new $class()),
-    );
+    $bootServices['userSystem'] = $userSystem = new $class();
     $userSystem->initialize();
 
     $userPermissionClass = 'CRM_Core_Permission_' . $runtime->userFramework;
-    $bootServices['userPermissionClass'] = array(
-      // Ugh, silly name.
-      'class' => 'CRM_Core_Permission_Base',
-      'obj' => new $userPermissionClass(),
-    );
+    $bootServices['userPermissionClass'] = new $userPermissionClass();
 
-    $bootServices['cache.settings'] = array(
-      'class' => 'CRM_Utils_Cache_Interface',
-      'obj' => \CRM_Utils_Cache::create(array(
-        'name' => 'settings',
-        'type' => array('*memory*', 'SqlGroup', 'ArrayCache'),
-      )),
-    );
+    $bootServices['cache.settings'] = \CRM_Utils_Cache::create(array(
+      'name' => 'settings',
+      'type' => array('*memory*', 'SqlGroup', 'ArrayCache'),
+    ));
 
-    $bootServices['settings_manager'] = array(
-      'class' => 'Civi\Core\SettingsManager',
-      'obj' => new \Civi\Core\SettingsManager($bootServices['cache.settings']['obj']),
-    );
+    $bootServices['settings_manager'] = new \Civi\Core\SettingsManager($bootServices['cache.settings']);
 
-    $bootServices['lockManager'] = array(
-      'class' => 'Civi\Core\Lock\LockManager',
-      'obj' => self::createLockManager(),
-    );
+    $bootServices['lockManager'] = self::createLockManager();
 
     if ($loadFromDB && $runtime->dsn) {
       \CRM_Core_DAO::init($runtime->dsn);
       \CRM_Utils_Hook::singleton(TRUE);
       \CRM_Extension_System::singleton(TRUE);
+      \CRM_Extension_System::singleton(TRUE)->getClassLoader()->register();
+
+      $runtime->includeCustomPath();
 
       $c = new self();
-      \Civi::$statics[__CLASS__]['container'] = $c->loadContainer();
+      $container = $c->loadContainer();
+      foreach ($bootServices as $name => $obj) {
+        $container->set($name, $obj);
+      }
+      \Civi::$statics[__CLASS__]['container'] = $container;
     }
   }
 
   public static function getBootService($name) {
-    return \Civi::$statics[__CLASS__]['boot'][$name]['obj'];
+    return \Civi::$statics[__CLASS__]['boot'][$name];
+  }
+
+  /**
+   * Determine whether the container services are available.
+   *
+   * @return bool
+   */
+  public static function isContainerBooted() {
+    return isset(\Civi::$statics[__CLASS__]['container']);
   }
 
 }

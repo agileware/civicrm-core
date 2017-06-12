@@ -3,7 +3,7 @@
   +--------------------------------------------------------------------+
   | CiviCRM version 4.7                                                |
   +--------------------------------------------------------------------+
-  | Copyright CiviCRM LLC (c) 2004-2015                                |
+  | Copyright CiviCRM LLC (c) 2004-2017                                |
   +--------------------------------------------------------------------+
   | This file is a part of CiviCRM.                                    |
   |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  * $Id$
  *
  */
@@ -89,18 +89,26 @@ class CRM_Price_BAO_PriceField extends CRM_Price_DAO_PriceField {
       return $priceField;
     }
 
+    if (!empty($params['id']) && empty($priceField->html_type)) {
+      $priceField->html_type = CRM_Core_DAO::getFieldValue('CRM_Price_DAO_PriceField', $params['id'], 'html_type');
+    }
     $optionsIds = array();
     $maxIndex = CRM_Price_Form_Field::NUM_OPTION;
-
     if ($priceField->html_type == 'Text') {
       $maxIndex = 1;
-
-      $fieldValue = new CRM_Price_DAO_PriceFieldValue();
-      $fieldValue->price_field_id = $priceField->id;
-
-      // update previous field values( if any )
-      if ($fieldValue->find(TRUE)) {
-        $optionsIds['id'] = $fieldValue->id;
+      $fieldOptions = civicrm_api3('price_field_value', 'get', array(
+        'price_field_id' => $priceField->id,
+        'sequential' => 1,
+      ));
+      foreach ($fieldOptions['values'] as $option) {
+        $optionsIds['id'] = $option['id'];
+        // CRM-19741 If we are dealing with price fields that are Text only set the field value label to match
+        if (!empty($params['id']) && $priceField->label != $option['label']) {
+          $fieldValue = new CRM_Price_DAO_PriceFieldValue();
+          $fieldValue->label = $priceField->label;
+          $fieldValue->id = $option['id'];
+          $fieldValue->save();
+        }
       }
     }
     $defaultArray = array();
@@ -138,10 +146,12 @@ class CRM_Price_BAO_PriceField extends CRM_Price_DAO_PriceField {
           'is_active' => 1,
           'is_default' => CRM_Utils_Array::value($params['option_weight'][$index], $defaultArray) ? $defaultArray[$params['option_weight'][$index]] : 0,
           'membership_num_terms' => NULL,
+          'non_deductible_amount' => CRM_Utils_Array::value('non_deductible_amount', $params),
         );
 
         if ($options['membership_type_id']) {
           $options['membership_num_terms'] = CRM_Utils_Array::value($index, CRM_Utils_Array::value('membership_num_terms', $params), 1);
+          $options['is_default'] = CRM_Utils_Array::value($params['membership_type_id'][$index], $defaultArray) ? $defaultArray[$params['membership_type_id'][$index]] : 0;
         }
 
         if (CRM_Utils_Array::value($index, CRM_Utils_Array::value('option_financial_type_id', $params))) {
@@ -150,7 +160,6 @@ class CRM_Price_BAO_PriceField extends CRM_Price_DAO_PriceField {
         elseif (!empty($params['financial_type_id'])) {
           $options['financial_type_id'] = $params['financial_type_id'];
         }
-
         if ($opIds = CRM_Utils_Array::value('option_id', $params)) {
           if ($opId = CRM_Utils_Array::value($index, $opIds)) {
             $optionsIds['id'] = $opId;
@@ -159,7 +168,25 @@ class CRM_Price_BAO_PriceField extends CRM_Price_DAO_PriceField {
             $optionsIds['id'] = NULL;
           }
         }
-        CRM_Price_BAO_PriceFieldValue::create($options, $optionsIds);
+        try {
+          CRM_Price_BAO_PriceFieldValue::create($options, $optionsIds);
+        }
+        catch (Exception $e) {
+          $transaction->rollback();
+          throw new CRM_Core_Exception($e->getMessage());
+        }
+      }
+      elseif (!empty($optionsIds)) {
+        $optionsLoad = civicrm_api3('price_field_value', 'get', array('id' => $optionsIds['id']));
+        $options = $optionsLoad['values'][$optionsIds['id']];
+        $options['is_active'] = CRM_Utils_Array::value('is_active', $params, 1);
+        try {
+          CRM_Price_BAO_PriceFieldValue::create($options, $optionsIds);
+        }
+        catch (Exception $e) {
+          $transaction->rollback();
+          throw new CRM_Core_Exception($e->getMessage());
+        }
       }
     }
 
@@ -243,7 +270,6 @@ class CRM_Price_BAO_PriceField extends CRM_Price_DAO_PriceField {
    * @param array $freezeOptions
    *
    * @return null
-   * @internal param bool $search true if used for search else false
    */
   public static function addQuickFormElement(
     &$qf,
@@ -314,10 +340,10 @@ class CRM_Price_BAO_PriceField extends CRM_Price_DAO_PriceField {
           $qf->assign('invoicing', $invoicing);
         }
         $priceVal = implode($seperator, array(
-            $customOption[$optionKey][$valueFieldName] + $taxAmount,
-            $count,
-            $max_value,
-          ));
+          $customOption[$optionKey][$valueFieldName] + $taxAmount,
+          $count,
+          $max_value,
+        ));
 
         $extra = array();
         if (!empty($qf->_membershipBlock) && !empty($qf->_quickConfig) && $field->name == 'other_amount' && empty($qf->_contributionAmount)) {
@@ -376,7 +402,14 @@ class CRM_Price_BAO_PriceField extends CRM_Price_DAO_PriceField {
         foreach ($customOption as $opId => $opt) {
           $taxAmount = CRM_Utils_Array::value('tax_amount', $opt);
           if ($field->is_display_amounts) {
-            $opt['label'] = !empty($opt['label']) ? $opt['label'] . '&nbsp;-&nbsp;' : '';
+            $opt['label'] = !empty($opt['label']) ? $opt['label'] . '<span class="crm-price-amount-label-separator">&nbsp;-&nbsp;</span>' : '';
+            $preHelpText = $postHelpText = '';
+            if (isset($opt['help_pre'])) {
+              $preHelpText = '<span class="crm-price-amount-help-pre description">' . $opt['help_pre'] . '</span>: ';
+            }
+            if (isset($opt['help_post'])) {
+              $postHelpText = ': <span class="crm-price-amount-help-post description">' . $opt['help_post'] . '</span>';
+            }
             if (isset($taxAmount) && $invoicing) {
               if ($displayOpt == 'Do_not_show') {
                 $opt['label'] = '<span class="crm-price-amount-label">' . $opt['label'] . '</span>' . '<span class="crm-price-amount-amount">' . CRM_Utils_Money::format($opt[$valueFieldName] + $taxAmount) . '</span>';
@@ -393,6 +426,7 @@ class CRM_Price_BAO_PriceField extends CRM_Price_DAO_PriceField {
             else {
               $opt['label'] = '<span class="crm-price-amount-label">' . $opt['label'] . '</span>' . '<span class="crm-price-amount-amount">' . CRM_Utils_Money::format($opt[$valueFieldName]) . '</span>';
             }
+            $opt['label'] = $preHelpText . $opt['label'] . $postHelpText;
           }
           $count = CRM_Utils_Array::value('count', $opt, '');
           $max_value = CRM_Utils_Array::value('max_value', $opt, '');
@@ -415,7 +449,6 @@ class CRM_Price_BAO_PriceField extends CRM_Price_DAO_PriceField {
           }
 
           $choice[$opId] = $qf->createElement('radio', NULL, '', $opt['label'], $opt['id'], $extra);
-
           if ($is_pay_later) {
             $qf->add('text', 'txt-' . $elementName, $label, array('size' => '4'));
           }
@@ -528,6 +561,13 @@ class CRM_Price_BAO_PriceField extends CRM_Price_DAO_PriceField {
           $max_value = CRM_Utils_Array::value('max_value', $opt, '');
 
           if ($field->is_display_amounts) {
+            $preHelpText = $postHelpText = '';
+            if (isset($opt['help_pre'])) {
+              $preHelpText = '<span class="crm-price-amount-help-pre description">' . $opt['help_pre'] . '</span>: ';
+            }
+            if (isset($opt['help_post'])) {
+              $postHelpText = ': <span class="crm-price-amount-help-post description">' . $opt['help_post'] . '</span>';
+            }
             $opt['label'] = '<span class="crm-price-amount-label">' . $opt['label'] . '</span>&nbsp;-&nbsp;';
             if (isset($taxAmount) && $invoicing) {
               $opt['label'] .= self::getTaxLabel($opt, $valueFieldName, $displayOpt, $taxTerm);
@@ -535,6 +575,7 @@ class CRM_Price_BAO_PriceField extends CRM_Price_DAO_PriceField {
             else {
               $opt['label'] .= CRM_Utils_Money::format($opt[$valueFieldName]);
             }
+            $opt['label'] = $preHelpText . $opt['label'] . $postHelpText;
           }
           $priceVal = implode($seperator, array($opt[$valueFieldName] + $taxAmount, $count, $max_value));
           $check[$opId] = &$qf->createElement('checkbox', $opt['id'], NULL, $opt['label'],
@@ -575,11 +616,13 @@ class CRM_Price_BAO_PriceField extends CRM_Price_DAO_PriceField {
    *   Include inactive options.
    * @param bool $reset
    *   Discard stored values.
+   * @param bool $isDefaultContributionPriceSet
+   *   Discard tax amount calculation for price set = default_contribution_amount.
    *
    * @return array
    *   array of options
    */
-  public static function getOptions($fieldId, $inactiveNeeded = FALSE, $reset = FALSE) {
+  public static function getOptions($fieldId, $inactiveNeeded = FALSE, $reset = FALSE, $isDefaultContributionPriceSet = FALSE) {
     static $options = array();
     if ($reset) {
       $options = array();
@@ -598,7 +641,7 @@ class CRM_Price_BAO_PriceField extends CRM_Price_DAO_PriceField {
       // ToDo - Code for Hook Invoke
 
       foreach ($options[$fieldId] as $priceFieldId => $priceFieldValues) {
-        if (isset($priceFieldValues['financial_type_id']) && array_key_exists($priceFieldValues['financial_type_id'], $taxRates)) {
+        if (isset($priceFieldValues['financial_type_id']) && array_key_exists($priceFieldValues['financial_type_id'], $taxRates) && !$isDefaultContributionPriceSet) {
           $options[$fieldId][$priceFieldId]['tax_rate'] = $taxRates[$priceFieldValues['financial_type_id']];
           $taxAmount = CRM_Contribute_BAO_Contribution_Utils::calculateTaxAmount($priceFieldValues['amount'], $options[$fieldId][$priceFieldId]['tax_rate']);
           $options[$fieldId][$priceFieldId]['tax_amount'] = $taxAmount['tax_amount'];
@@ -634,9 +677,9 @@ WHERE
     AND option_value.label = %2";
 
     $dao = CRM_Core_DAO::executeQuery($query, array(
-        1 => array($optionGroupName, 'String'),
-        2 => array($optionLabel, 'String'),
-      ));
+      1 => array($optionGroupName, 'String'),
+      2 => array($optionLabel, 'String'),
+    ));
 
     while ($dao->fetch()) {
       return $dao->id;

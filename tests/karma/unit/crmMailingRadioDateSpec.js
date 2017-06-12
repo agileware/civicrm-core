@@ -87,23 +87,34 @@ describe('crmMailingRadioDate', function() {
       expect(element.find('.crm-form-time').timeEntry('getTime').getMinutes()).toBe(3);
 
       var now = new Date();
-      var month = '' + now.getMonth();
+      var month = '';
+      var day = '';
+      if (now.getMonth() == 12) {
+        month = '1';
+      } else {
+        month = month + (now.getMonth() + 1);
+      }
+      if (now.getDate() >= 28) {
+        day = '1';
+      } else {
+        day = day + (now.getDate() + 1);
+      }
       var year = (now.getFullYear() + 1);
+      if (day.length < 2) day = '0' + day;
       if (month.length < 2) month = '0' + month;
-      var day = "01";
       var minutes = "30";
       var hours = "09";
       var datenow = [year, month, day].join('-');
       var time = [hours, minutes, "00"].join(':');
       var currentDate = datenow + ' ' + time;
       var ndate = new Date(datenow);
-      var n = ndate.toDateString();
       model.the_date = currentDate;
+
       $rootScope.$digest();
       expect($rootScope.myForm.$valid).toBe(true);
       expect(element.find('.radio-now').prop('checked')).toBe(false);
       expect(element.find('.radio-at').prop('checked')).toBe(true);
-      expect(element.find('.crm-form-date').datepicker('getDate').toDateString()).toEqual(n);
+      expect(element.find('.crm-form-date').datepicker('getDate').toDateString()).toEqual(ndate.toDateString());
       expect(element.find('.crm-hidden-date').val()).toEqual(currentDate);
     });
 

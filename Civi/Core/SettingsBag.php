@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -98,7 +98,7 @@ class SettingsBag {
    *
    * @param array $defaults
    *   Array(string $settingName => mixed $value).
-   * @return $this
+   * @return SettingsBag
    */
   public function loadDefaults($defaults) {
     $this->defaults = $defaults;
@@ -111,7 +111,7 @@ class SettingsBag {
    *
    * @param array $mandatory
    *   Array(string $settingName => mixed $value).
-   * @return $this
+   * @return SettingsBag
    */
   public function loadMandatory($mandatory) {
     $this->mandatory = $mandatory;
@@ -122,7 +122,7 @@ class SettingsBag {
   /**
    * Load all explicit settings that apply to this domain or contact.
    *
-   * @return $this
+   * @return SettingsBag
    */
   public function loadValues() {
     // Note: Don't use DAO child classes. They require fields() which require
@@ -162,7 +162,7 @@ class SettingsBag {
    *
    * @param array $settings
    *   Array(string $settingName => mixed $settingValue).
-   * @return $this
+   * @return SettingsBag
    */
   public function add(array $settings) {
     foreach ($settings as $key => $value) {
@@ -251,7 +251,7 @@ class SettingsBag {
    *
    * @param string $key
    *   The simple name of the setting.
-   * @return $this
+   * @return SettingsBag
    */
   public function revert($key) {
     // It might be better to DELETE (to avoid long-term leaks),
@@ -266,7 +266,7 @@ class SettingsBag {
    *   The simple name of the setting.
    * @param mixed $value
    *   The new, explicit value of the setting.
-   * @return $this
+   * @return SettingsBag
    */
   public function set($key, $value) {
     $this->setDb($key, $value);
@@ -364,21 +364,35 @@ class SettingsBag {
       }
     }
 
-    if (\CRM_Utils_System::isNull($value)) {
+    if (!is_array($value) && \CRM_Utils_System::isNull($value)) {
       $dao->value = 'null';
     }
     else {
       $dao->value = serialize($value);
     }
 
-    $dao->created_date = \CRM_Utils_Time::getTime('Ymdhis');
+    if (!isset(\Civi::$statics[__CLASS__]['upgradeMode'])) {
+      \Civi::$statics[__CLASS__]['upgradeMode'] = \CRM_Core_Config::isUpgradeMode();
+    }
+    if (\Civi::$statics[__CLASS__]['upgradeMode'] && \CRM_Core_DAO::checkFieldExists('civicrm_setting', 'group_name')) {
+      $dao->group_name = 'placeholder';
+    }
+
+    $dao->created_date = \CRM_Utils_Time::getTime('YmdHis');
 
     $session = \CRM_Core_Session::singleton();
     if (\CRM_Contact_BAO_Contact_Utils::isContactId($session->get('userID'))) {
       $dao->created_id = $session->get('userID');
     }
 
-    $dao->save();
+    if ($dao->id) {
+      $dao->save();
+    }
+    else {
+      // Cannot use $dao->save(); in upgrade mode (eg WP + Civi 4.4=>4.7), the DAO will refuse
+      // to save the field `group_name`, which is required in older schema.
+      \CRM_Core_DAO::executeQuery(\CRM_Utils_SQL_Insert::dao($dao)->toSQL());
+    }
     $dao->free();
   }
 

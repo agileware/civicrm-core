@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  * $Id$
  *
  */
@@ -51,6 +51,19 @@ class CRM_Report_Form_Contribute_SoftCredit extends CRM_Report_Form {
   );
 
   public $_drilldownReport = array('contribute/detail' => 'Link to Detail Report');
+
+  /**
+   * This report has not been optimised for group filtering.
+   *
+   * The functionality for group filtering has been improved but not
+   * all reports have been adjusted to take care of it. This report has not
+   * and will run an inefficient query until fixed.
+   *
+   * CRM-19170
+   *
+   * @var bool
+   */
+  protected $groupFilterNotOptimised = TRUE;
 
   /**
    */
@@ -218,6 +231,7 @@ class CRM_Report_Form_Contribute_SoftCredit extends CRM_Report_Form {
           'id' => array(
             'name' => 'id',
             'title' => ts('Financial Type'),
+            'type' => CRM_Utils_Type::T_INT,
             'operatorType' => CRM_Report_Form::OP_MULTISELECT,
             'options' => CRM_Financial_BAO_FinancialType::getAvailableFinancialTypes(),
           ),
@@ -237,7 +251,7 @@ class CRM_Report_Form_Contribute_SoftCredit extends CRM_Report_Form {
         'filters' => array(
           'receive_date' => array('operatorType' => CRM_Report_Form::OP_DATE),
           'currency' => array(
-            'title' => 'Currency',
+            'title' => ts('Currency'),
             'operatorType' => CRM_Report_Form::OP_MULTISELECT,
             'options' => CRM_Core_OptionGroup::values('currencies_enabled'),
             'default' => NULL,
@@ -276,7 +290,7 @@ class CRM_Report_Form_Contribute_SoftCredit extends CRM_Report_Form {
         ),
         'filters' => array(
           'soft_credit_type_id' => array(
-            'title' => 'Soft Credit Type',
+            'title' => ts('Soft Credit Type'),
             'operatorType' => CRM_Report_Form::OP_MULTISELECT,
             'options' => CRM_Core_OptionGroup::values('soft_credit_type'),
             'default' => NULL,
@@ -287,6 +301,24 @@ class CRM_Report_Form_Contribute_SoftCredit extends CRM_Report_Form {
           ),
         ),
         'grouping' => 'softcredit-fields',
+      ),
+      'civicrm_financial_trxn' => array(
+        'dao' => 'CRM_Financial_DAO_FinancialTrxn',
+        'fields' => array(
+          'card_type_id' => array(
+            'title' => ts('Credit Card Type'),
+            'dbAlias' => 'GROUP_CONCAT(financial_trxn_civireport.card_type_id SEPARATOR ",")',
+          ),
+        ),
+        'filters' => array(
+          'card_type_id' => array(
+            'title' => ts('Credit Card Type'),
+            'operatorType' => CRM_Report_Form::OP_MULTISELECT,
+            'options' => CRM_Financial_DAO_FinancialTrxn::buildOptions('card_type_id'),
+            'default' => NULL,
+            'type' => CRM_Utils_Type::T_STRING,
+          ),
+        ),
       ),
     );
 
@@ -300,6 +332,7 @@ class CRM_Report_Form_Contribute_SoftCredit extends CRM_Report_Form {
         'title' => ts('Campaign'),
         'operatorType' => CRM_Report_Form::OP_MULTISELECT,
         'options' => $this->activeCampaigns,
+        'type' => CRM_Utils_Type::T_INT,
       );
     }
 
@@ -378,6 +411,7 @@ class CRM_Report_Form_Contribute_SoftCredit extends CRM_Report_Form {
         }
       }
     }
+    $this->selectClause = $select;
 
     $this->_select = 'SELECT ' . implode(', ', $select) . ' ';
   }
@@ -452,10 +486,13 @@ class CRM_Report_Form_Contribute_SoftCredit extends CRM_Report_Form {
                          {$alias}.contact_id  AND
                          {$alias}.is_primary = 1\n";
     }
+    // for credit card type
+    $this->addFinancialTrxnFromClause();
   }
 
   public function groupBy() {
     $this->_rollup = 'WITH ROLLUP';
+    $this->_select = CRM_Contact_BAO_Query::appendAnyValueToSelect($this->selectClause, array("{$this->_aliases['civicrm_contribution_soft']}.contact_id", "constituentname.id"));
     $this->_groupBy = "
 GROUP BY {$this->_aliases['civicrm_contribution_soft']}.contact_id, constituentname.id {$this->_rollup}";
   }
@@ -621,6 +658,11 @@ GROUP BY   {$this->_aliases['civicrm_contribution']}.currency
         if ($birthDate) {
           $rows[$rowNum]['civicrm_contact_birth_date'] = CRM_Utils_Date::customFormat($birthDate, '%Y%m%d');
         }
+        $entryFound = TRUE;
+      }
+
+      if (!empty($row['civicrm_financial_trxn_card_type_id']) && !in_array('Subtotal', $rows[$rowNum])) {
+        $rows[$rowNum]['civicrm_financial_trxn_card_type_id'] = $this->getLabels($row['civicrm_financial_trxn_card_type_id'], 'CRM_Financial_DAO_FinancialTrxn', 'card_type_id');
         $entryFound = TRUE;
       }
 

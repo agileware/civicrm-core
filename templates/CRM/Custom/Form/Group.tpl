@@ -2,7 +2,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -63,6 +63,10 @@
     <tr>
         <td>&nbsp;</td>
         <td>{$form.is_active.html} {$form.is_active.label}</td>
+    </tr>
+    <tr>
+        <td>&nbsp;</td>
+        <td>{$form.is_public.html} {$form.is_public.label}</td>
     </tr>
     <tr class="html-adjust">
         <td class="label">{$form.help_pre.label} <!--{if $action == 2}{include file='CRM/Core/I18n/Dialog.tpl' table='civicrm_custom_group' field='help_pre' id=$gid}{/if}-->{help id="id-help_pre"}</td>
@@ -188,7 +192,7 @@ CRM.$(function($) {
     });
 
     if (warning) {
-      return confirm({/literal}'{ts escape='js'}Warning: You have chosen to remove one or more subtypes. This will cause any custom data records associated with those subtypes to be removed.{/ts}'{literal});
+      return confirm({/literal}'{ts escape='js'}Warning: You have chosen to remove one or more subtypes. This will cause any custom data records associated with those subtypes to be removed as long as the contact does not have a contact subtype still selected.{/ts}'{literal});
     }
     return true;
   });

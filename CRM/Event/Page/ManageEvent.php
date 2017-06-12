@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  * $Id$
  *
  */
@@ -385,8 +385,8 @@ ORDER BY start_date desc
     $manageEvent['tab'] = self::tabs($enableCart);
     $this->assign('rows', $manageEvent);
 
-    $statusTypes = CRM_Event_PseudoConstant::participantStatus(NULL, 'is_counted = 1');
-    $statusTypesPending = CRM_Event_PseudoConstant::participantStatus(NULL, 'is_counted = 0');
+    $statusTypes = CRM_Event_PseudoConstant::participantStatus(NULL, 'is_counted = 1', 'label');
+    $statusTypesPending = CRM_Event_PseudoConstant::participantStatus(NULL, 'is_counted = 0', 'label');
     $findParticipants['statusCounted'] = implode(', ', array_values($statusTypes));
     $findParticipants['statusNotCounted'] = implode(', ', array_values($statusTypesPending));
     $this->assign('findParticipants', $findParticipants);
@@ -470,19 +470,19 @@ ORDER BY start_date desc
 
         $from = $this->get('start_date');
         if (!CRM_Utils_System::isNull($from)) {
-          $clauses[] = '( start_date >= %3 OR start_date IS NULL )';
+          $clauses[] = '( end_date >= %3 OR end_date IS NULL )';
           $params[3] = array($from, 'String');
         }
 
         $to = $this->get('end_date');
         if (!CRM_Utils_System::isNull($to)) {
-          $clauses[] = '( end_date <= %4 OR end_date IS NULL )';
+          $clauses[] = '( start_date <= %4 OR start_date IS NULL )';
           $params[4] = array($to, 'String');
         }
       }
       else {
         $curDate = date('YmdHis');
-        $clauses[5] = "(end_date >= {$curDate} OR end_date IS NULL)";
+        $clauses[] = "(end_date >= {$curDate} OR end_date IS NULL)";
       }
     }
     else {
@@ -554,7 +554,7 @@ SELECT count(id)
    SELECT DISTINCT UPPER(LEFT(title, 1)) as sort_name
      FROM civicrm_event
     WHERE $whereClause
- ORDER BY LEFT(title, 1)
+ ORDER BY UPPER(LEFT(title, 1))
 ";
     $dao = CRM_Core_DAO::executeQuery($query, $whereParams);
 

@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  * $Id$
  *
  */
@@ -105,7 +105,7 @@ class CRM_Member_Task {
           'result' => TRUE,
         ),
         7 => array(
-          'title' => ts('PDF letters - print for memberships'),
+          'title' => ts('Print/merge document for memberships'),
           'class' => 'CRM_Member_Form_Task_PDFLetter',
           'result' => FALSE,
         ),
@@ -119,9 +119,11 @@ class CRM_Member_Task {
       if (!CRM_Core_Permission::check('edit memberships')) {
         unset(self::$_tasks[5]);
       }
+
+      CRM_Utils_Hook::searchTasks('membership', self::$_tasks);
+      asort(self::$_tasks);
     }
-    CRM_Utils_Hook::searchTasks('membership', self::$_tasks);
-    asort(self::$_tasks);
+
     return self::$_tasks;
   }
 

@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7.alpha1                                         |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -129,6 +129,83 @@ class CRM_Upgrade_Incremental_Base {
         civicrm_api3('PaymentProcessorType', 'delete', array('id' => $result['id']));
       }
     }
+    return TRUE;
+  }
+
+  /**
+   * @param string $table_name
+   * @param string $constraint_name
+   * @return bool
+   */
+  public static function checkFKExists($table_name, $constraint_name) {
+    return CRM_Core_BAO_SchemaHandler::checkFKExists($table_name, $constraint_name);
+  }
+
+  /**
+   * Add a column to a table if it doesn't already exist
+   *
+   * @param CRM_Queue_TaskContext $ctx
+   * @param string $table
+   * @param string $column
+   * @param string $properties
+   * @return bool
+   */
+  public static function addColumn($ctx, $table, $column, $properties) {
+    if (!CRM_Core_BAO_SchemaHandler::checkIfFieldExists($table, $column)) {
+      CRM_Core_DAO::executeQuery("ALTER TABLE `$table` ADD COLUMN `$column` $properties",
+        array(), TRUE, NULL, FALSE, FALSE);
+    }
+    $domain = new CRM_Core_DAO_Domain();
+    $domain->find(TRUE);
+    if ($domain->locales) {
+      $locales = explode(CRM_Core_DAO::VALUE_SEPARATOR, $domain->locales);
+      CRM_Core_I18n_Schema::rebuildMultilingualSchema($locales, NULL);
+    }
+    return TRUE;
+  }
+
+  /**
+   * Drop a column from a table if it exist.
+   *
+   * @param CRM_Queue_TaskContext $ctx
+   * @param string $table
+   * @param string $column
+   * @return bool
+   */
+  public static function dropColumn($ctx, $table, $column) {
+    if (CRM_Core_BAO_SchemaHandler::checkIfFieldExists($table, $column)) {
+      CRM_Core_DAO::executeQuery("ALTER TABLE `$table` DROP COLUMN `$column`",
+        array(), TRUE, NULL, FALSE, FALSE);
+    }
+    return TRUE;
+  }
+
+  /**
+   * Add a index to a table column.
+   *
+   * @param CRM_Queue_TaskContext $ctx
+   * @param string $table
+   * @param string|array $column
+   * @return bool
+   */
+  public static function addIndex($ctx, $table, $column) {
+    $tables = array($table => (array) $column);
+    CRM_Core_BAO_SchemaHandler::createIndexes($tables);
+
+    return TRUE;
+  }
+
+  /**
+   * Drop a index from a table if it exist.
+   *
+   * @param CRM_Queue_TaskContext $ctx
+   * @param string $table
+   * @param string $indexName
+   * @return bool
+   */
+  public static function dropIndex($ctx, $table, $indexName) {
+    CRM_Core_BAO_SchemaHandler::dropIndexIfExists($table, $indexName);
+
     return TRUE;
   }
 

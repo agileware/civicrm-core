@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -66,6 +66,7 @@ function civicrm_api3_option_group_create($params) {
  */
 function _civicrm_api3_option_group_create_spec(&$params) {
   $params['name']['api.unique'] = 1;
+  $params['is_active']['api.default'] = TRUE;
 }
 
 /**

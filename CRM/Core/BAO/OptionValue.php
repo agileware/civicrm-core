@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 class CRM_Core_BAO_OptionValue extends CRM_Core_DAO_OptionValue {
 
@@ -169,7 +169,7 @@ class CRM_Core_BAO_OptionValue extends CRM_Core_DAO_OptionValue {
    *
    * @return CRM_Core_DAO_OptionValue
    */
-  public static function add(&$params, &$ids) {
+  public static function add(&$params, $ids = array()) {
     // CRM-10921: do not reset attributes to default if this is an update
     //@todo consider if defaults are being set in the right place. 'dumb' defaults like
     // these would be usefully set @ the api layer so they are visible to api users
@@ -240,9 +240,13 @@ class CRM_Core_BAO_OptionValue extends CRM_Core_DAO_OptionValue {
   public static function del($optionValueId) {
     $optionValue = new CRM_Core_DAO_OptionValue();
     $optionValue->id = $optionValueId;
+    if (!$optionValue->find()) {
+      return FALSE;
+    }
     if (self::updateRecords($optionValueId, CRM_Core_Action::DELETE)) {
       CRM_Core_PseudoConstant::flush();
-      return $optionValue->delete();
+      $optionValue->delete();
+      return TRUE;
     }
     return FALSE;
   }
@@ -517,6 +521,25 @@ class CRM_Core_BAO_OptionValue extends CRM_Core_DAO_OptionValue {
       $options[$value['value']] = $value['label'];
     }
     return $options;
+  }
+
+  /**
+   * Ensure an option value exists.
+   *
+   * This function is intended to be called from the upgrade script to ensure
+   * that an option value exists, without hitting an error if it already exists.
+   *
+   * This is sympathetic to sites who might pre-add it.
+   */
+  public static function ensureOptionValueExists($params) {
+    $existingValues = civicrm_api3('OptionValue', 'get', array(
+      'option_group_id' => $params['option_group_id'],
+      'name' => $params['name'],
+      'return' => 'id',
+    ));
+    if (!$existingValues['count']) {
+      civicrm_api3('OptionValue', 'create', $params);
+    }
   }
 
 }

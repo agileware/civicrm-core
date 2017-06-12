@@ -160,6 +160,24 @@
     </html>
   </field>
   <field>
+    <name>template_type</name>
+    <title>Template Type</title>
+    <type>varchar</type>
+    <length>64</length>
+    <default>'traditional'</default>
+    <required>true</required>
+    <comment>The language/processing system used for email templates.</comment>
+    <pseudoconstant>
+      <callback>CRM_Mailing_BAO_Mailing::getTemplateTypeNames</callback>
+    </pseudoconstant>
+  </field>
+  <field>
+    <name>template_options</name>
+    <title>Template Options (JSON)</title>
+    <type>longtext</type>
+    <comment>Advanced options used by the email templating system. (JSON encoded)</comment>
+  </field>
+  <field>
     <name>subject</name>
     <type>varchar</type>
     <length>128</length>
@@ -253,12 +271,15 @@
   </foreignKey>
   <field>
     <name>created_date</name>
-    <type>datetime</type>
+    <type>timestamp</type>
+    <default>CURRENT_TIMESTAMP</default>
+    <required>false</required>
     <title>Mailing Created Date</title>
     <comment>Date and time this mailing was created.</comment>
     <add>3.0</add>
     <html>
       <type>Select Date</type>
+      <formatType>activityDateTime</formatType>
     </html>
   </field>
   <field>
@@ -275,10 +296,16 @@
   </foreignKey>
   <field>
     <name>scheduled_date</name>
-    <type>datetime</type>
+    <type>timestamp</type>
+    <default>NULL</default>
+    <required>false</required>
     <title>Mailing Scheduled Date</title>
     <comment>Date and time this mailing was scheduled.</comment>
     <add>3.3</add>
+    <html>
+      <type>Select Date</type>
+      <formatType>activityDateTime</formatType>
+    </html>
   </field>
   <field>
     <name>approver_id</name>
@@ -294,10 +321,16 @@
   </foreignKey>
   <field>
     <name>approval_date</name>
-    <type>datetime</type>
+    <type>timestamp</type>
+    <default>NULL</default>
+    <required>false</required>
     <title>Mailing Approved Date</title>
     <comment>Date and time this mailing was approved.</comment>
     <add>3.3</add>
+    <html>
+      <type>Select Date</type>
+      <formatType>activityDateTime</formatType>
+    </html>
   </field>
   <field>
     <name>approval_status_id</name>
@@ -438,5 +471,20 @@
       <callback>CRM_Core_SelectValues::emailSelectMethods</callback>
     </pseudoconstant>
     <add>4.6</add>
+  </field>
+  <field>
+    <name>language</name>
+    <title>Mailing Language</title>
+    <type>varchar</type>
+    <length>5</length>
+    <comment>Language of the content of the mailing. Useful for tokens.</comment>
+    <add>4.6</add>
+    <pseudoconstant>
+      <optionGroupName>languages</optionGroupName>
+      <keyColumn>name</keyColumn>
+    </pseudoconstant>
+    <html>
+      <type>Select</type>
+    </html>
   </field>
 </table>

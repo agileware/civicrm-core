@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -219,7 +219,7 @@ class WebTest_Event_ParticipantCountTest extends CiviSeleniumTestCase {
     $this->click('link=Register Now');
     $this->waitForElementPresent('_qf_Register_upload-bottom');
 
-    $this->type("xpath=//input[@class='four crm-form-text required']", '1');
+    $this->type("xpath=//div[@id='priceset']/div[@class='crm-section full_conference-section']//div/input[@class='four crm-form-text required']", '1');
 
     $email = 'jane_' . substr(sha1(rand()), 0, 5) . '@example.org';
     $participants[1] = array(
@@ -253,8 +253,7 @@ class WebTest_Event_ParticipantCountTest extends CiviSeleniumTestCase {
     // register for event
     $this->click('link=Register Now');
     $this->waitForElementPresent('_qf_Register_upload-bottom');
-
-    $this->type("xpath=//input[@class='four crm-form-text required']", '2');
+    $this->type("xpath=//div[@id='priceset']/div[@class='crm-section full_conference-section']//div/input[@class='four crm-form-text required']", '2');
     $email = 'jane_' . substr(sha1(rand()), 0, 5) . '@example.org';
 
     $participants[2] = array(
@@ -286,6 +285,7 @@ class WebTest_Event_ParticipantCountTest extends CiviSeleniumTestCase {
 
     // Find Participant
     $this->openCiviPage('event/search', 'reset=1', 'participant_fee_amount_low');
+    $this->waitForElementPresent('event_id');
     $this->select2("event_id", $eventTitle);
     $this->click('_qf_Search_refresh');
     $this->waitForPageToLoad($this->getTimeoutMsec());
@@ -311,6 +311,7 @@ class WebTest_Event_ParticipantCountTest extends CiviSeleniumTestCase {
     $this->type('title', $setTitle);
     $this->check('extends[1]');
     $this->select("css=select.crm-form-select", "label={$financialType}");
+    $this->waitForElementPresent("help_pre");
     $this->type('help_pre', 'This is test priceset.');
 
     $this->assertChecked('is_active', 'Verify that Is Active checkbox is set.');
@@ -431,7 +432,7 @@ class WebTest_Event_ParticipantCountTest extends CiviSeleniumTestCase {
     $this->select('billing_state_province_id-5', 'value=1004');
     $this->type('billing_postal_code-5', '94129');
 
-    $this->clickLink('_qf_Register_upload-bottom', '_qf_Confirm_next-bottom');
+    $this->clickLink('_qf_Register_upload-bottom', '_qf_Confirm_next-bottom', FALSE);
     $confirmStrings = array('Event Fee(s)', 'Billing Name and Address', 'Credit Card Information');
     $this->assertStringsPresent($confirmStrings);
     $this->click('_qf_Confirm_next-bottom');

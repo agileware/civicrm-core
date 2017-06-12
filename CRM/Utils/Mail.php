@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 class CRM_Utils_Mail {
 
@@ -126,7 +126,7 @@ class CRM_Utils_Mail {
     else {
       $mailer = Mail::factory($driver, $params);
     }
-    CRM_Utils_Hook::alterMail($mailer, $driver, $params);
+    CRM_Utils_Hook::alterMailer($mailer, $driver, $params);
     return $mailer;
   }
 
@@ -155,17 +155,16 @@ class CRM_Utils_Mail {
    *   TRUE if a mail was sent, else FALSE.
    */
   public static function send(&$params) {
-    $returnPath = CRM_Core_BAO_MailSettings::defaultReturnPath();
+    $defaultReturnPath = CRM_Core_BAO_MailSettings::defaultReturnPath();
     $includeMessageId = CRM_Core_BAO_MailSettings::includeMessageId();
     $emailDomain = CRM_Core_BAO_MailSettings::defaultDomain();
     $from = CRM_Utils_Array::value('from', $params);
-    if (!$returnPath) {
-      $returnPath = self::pluckEmailFromHeader($from);
+    if (!$defaultReturnPath) {
+      $defaultReturnPath = self::pluckEmailFromHeader($from);
     }
-    $params['returnPath'] = $returnPath;
 
     // first call the mail alter hook
-    CRM_Utils_Hook::alterMailParams($params);
+    CRM_Utils_Hook::alterMailParams($params, 'singleEmail');
 
     // check if any module has aborted mail sending
     if (!empty($params['abortMailSend']) || empty($params['toEmail'])) {
@@ -198,7 +197,7 @@ class CRM_Utils_Mail {
     $headers['Content-Type'] = $htmlMessage ? 'multipart/mixed; charset=utf-8' : 'text/plain; charset=utf-8';
     $headers['Content-Disposition'] = 'inline';
     $headers['Content-Transfer-Encoding'] = '8bit';
-    $headers['Return-Path'] = CRM_Utils_Array::value('returnPath', $params);
+    $headers['Return-Path'] = CRM_Utils_Array::value('returnPath', $params, $defaultReturnPath);
 
     // CRM-11295: Omit reply-to headers if empty; this avoids issues with overzealous mailservers
     $replyTo = CRM_Utils_Array::value('replyTo', $params, CRM_Utils_Array::value('from', $params));
@@ -258,8 +257,12 @@ class CRM_Utils_Mail {
     $result = NULL;
     $mailer = \Civi::service('pear_mail');
 
-    // Mail_smtp and Mail_sendmail mailers require Bcc anc Cc emails
-    // be included in both $to and $headers['Cc', 'Bcc']
+    // CRM-3795, CRM-7355, CRM-7557, CRM-9058, CRM-9887, CRM-12883, CRM-19173 and others ...
+    // The PEAR library requires different parameters based on the mailer used:
+    // * Mail_mail requires the Cc/Bcc recipients listed ONLY in the $headers variable
+    // * All other mailers require that all be recipients be listed in the $to array AND that
+    //   the Bcc must not be present in $header as otherwise it will be shown to all recipients
+    // ref: https://pear.php.net/bugs/bug.php?id=8047, full thread and answer [2011-04-19 20:48 UTC]
     if (get_class($mailer) != "Mail_mail") {
       // get emails from headers, since these are
       // combination of name and email addresses.
@@ -268,8 +271,10 @@ class CRM_Utils_Mail {
       }
       if (!empty($headers['Bcc'])) {
         $to[] = CRM_Utils_Array::value('Bcc', $headers);
+        unset($headers['Bcc']);
       }
     }
+
     if (is_object($mailer)) {
       $errorScope = CRM_Core_TemporaryErrorScope::ignoreException();
       $result = $mailer->send($to, $headers, $message);

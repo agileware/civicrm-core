@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  *
  */
 
@@ -565,10 +565,10 @@ class CRM_Campaign_Page_AJAX {
   }
 
   /**
-   * Retrieve campaigns as for campaign dashboard.
-   *
+   * This function uses the deprecated v1 datatable api and needs updating. See CRM-16353.
+   * @deprecated
    */
-  public function campaignList() {
+  public static function campaignList() {
     //get the search criteria params.
     $searchCriteria = CRM_Utils_Request::retrieve('searchCriteria', 'String', CRM_Core_DAO::$_nullObject, FALSE, NULL, 'POST');
     $searchParams = explode(',', $searchCriteria);
@@ -668,8 +668,8 @@ class CRM_Campaign_Page_AJAX {
   }
 
   /**
-   * Retrieve survey for survey dashboard.
-   *
+   * This function uses the deprecated v1 datatable api and needs updating. See CRM-16353.
+   * @deprecated
    */
   public function surveyList() {
     //get the search criteria params.
@@ -773,8 +773,8 @@ class CRM_Campaign_Page_AJAX {
   }
 
   /**
-   * Retrieve petitions for petition dashboard.
-   *
+   * This function uses the deprecated v1 datatable api and needs updating. See CRM-16353.
+   * @deprecated
    */
   public function petitionList() {
     //get the search criteria params.

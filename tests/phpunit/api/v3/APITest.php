@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -25,13 +25,11 @@
  +--------------------------------------------------------------------+
  */
 
-
-require_once 'CiviTest/CiviUnitTestCase.php';
-
 /**
  * Test class for API functions.
  *
  * @package CiviCRM_APIv3
+ * @group headless
  */
 class api_v3_APITest extends CiviUnitTestCase {
   public $DBResetRequired = FALSE;
@@ -76,7 +74,7 @@ class api_v3_APITest extends CiviUnitTestCase {
       'RandomFile',
       'get',
       array(),
-      'API (RandomFile,get) does not exist (join the API team and  implement it!)'
+      'API (RandomFile, get) does not exist (join the API team and implement it!)'
     );
   }
 

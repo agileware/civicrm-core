@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -25,11 +25,9 @@
  +--------------------------------------------------------------------+
  */
 
-
-require_once 'CiviTest/CiviUnitTestCase.php';
-
 /**
  * Class CRM_Core_PaymentTest
+ * @group headless
  */
 class CRM_Core_PaymentTest extends CiviUnitTestCase {
 
@@ -46,6 +44,24 @@ class CRM_Core_PaymentTest extends CiviUnitTestCase {
     }
     $log = $this->callAPISuccess('SystemLog', 'get', array());
     $this->assertEquals('payment_notification processor_name=Paypal', $log['values'][$log['id']]['message']);
+  }
+
+  public function testSettingUrl() {
+    /** @var CRM_Core_Payment_Dummy $processor */
+    $processor = \Civi\Payment\System::singleton()->getById($this->processorCreate());
+    $success = 'http://success.com';
+    $cancel = 'http://cancel.com';
+    $processor->setCancelUrl($cancel);
+    $processor->setSuccessUrl($success);
+
+    // Using ReflectionUtils to access protected methods
+    $successGetter = new ReflectionMethod($processor, 'getReturnSuccessUrl');
+    $successGetter->setAccessible(TRUE);
+    $this->assertEquals($success, $successGetter->invoke($processor, NULL));
+
+    $cancelGetter = new ReflectionMethod($processor, 'getReturnFailUrl');
+    $cancelGetter->setAccessible(TRUE);
+    $this->assertEquals($cancel, $cancelGetter->invoke($processor, NULL));
   }
 
 }

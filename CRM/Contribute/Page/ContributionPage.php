@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -69,7 +69,7 @@ class CRM_Contribute_Page_ContributionPage extends CRM_Core_Page {
    *
    * @return array
    */
-  public function &actionLinks() {
+  public static function &actionLinks() {
     // check if variable _actionsLinks is populated
     if (!isset(self::$_actionLinks)) {
       // helper variable for nicer formatting
@@ -464,7 +464,7 @@ ORDER BY is_active desc, title asc
       CRM_Core_DAO::storeValues($dao, $contribution[$dao->id]);
 
       // form all action links
-      $action = array_sum(array_keys($this->actionLinks()));
+      $action = array_sum(array_keys(self::actionLinks()));
 
       //add configure actions links.
       $action += array_sum(array_keys($configureActionLinks));
@@ -675,7 +675,7 @@ WHERE $whereClause";
 SELECT DISTINCT UPPER(LEFT(title, 1)) as sort_name
 FROM civicrm_contribution_page
 WHERE $whereClause
-ORDER BY LEFT(title, 1)
+ORDER BY UPPER(LEFT(title, 1))
 ";
     $dao = CRM_Core_DAO::executeQuery($query, $whereParams);
 

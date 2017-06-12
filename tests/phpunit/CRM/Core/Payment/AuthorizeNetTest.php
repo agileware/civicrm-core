@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -25,11 +25,9 @@
  +--------------------------------------------------------------------+
  */
 
-
-require_once 'CiviTest/CiviUnitTestCase.php';
-
 /**
  * Class CRM_Core_Payment_AuthorizeNetTest
+ * @group headless
  */
 class CRM_Core_Payment_AuthorizeNetTest extends CiviUnitTestCase {
 
@@ -165,10 +163,10 @@ class CRM_Core_Payment_AuthorizeNetTest extends CiviUnitTestCase {
     );
 
     // turn verifySSL off
-    CRM_Core_BAO_Setting::setItem('0', CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME, 'verifySSL');
-    $this->processor->doPayment($params);
+    Civi::settings()->set('verifySSL', '0');
+    $this->doPayment($params);
     // turn verifySSL on
-    CRM_Core_BAO_Setting::setItem('0', CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME, 'verifySSL');
+    Civi::settings()->set('verifySSL', '0');
 
     // if subscription was successful, processor_id / subscription-id must not be null
     $this->assertDBNotNull('CRM_Contribute_DAO_ContributionRecur', $recur->id, 'processor_id',
@@ -306,10 +304,10 @@ class CRM_Core_Payment_AuthorizeNetTest extends CiviUnitTestCase {
     $smarty->assign('subscriptionType', 'create');
 
     // turn verifySSL off
-    CRM_Core_BAO_Setting::setItem('0', CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME, 'verifySSL');
-    $result = $this->processor->doPayment($params);
+    Civi::settings()->set('verifySSL', '0');
+    $this->doPayment($params);
     // turn verifySSL on
-    CRM_Core_BAO_Setting::setItem('0', CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME, 'verifySSL');
+    Civi::settings()->set('verifySSL', '0');
 
     // if subscription was successful, processor_id / subscription-id must not be null
     $this->assertDBNotNull('CRM_Contribute_DAO_ContributionRecur', $recur->id, 'processor_id',
@@ -321,6 +319,26 @@ class CRM_Core_Payment_AuthorizeNetTest extends CiviUnitTestCase {
     $message = '';
     $result = $this->processor->cancelSubscription($message, array('subscriptionId' => $subscriptionID));
     $this->assertTrue($result, 'Failed to cancel subscription with Authorize.');
+  }
+
+  /**
+   * Process payment against the Authorize.net test server.
+   *
+   * Skip the test if the server is unresponsive.
+   *
+   * @param array $params
+   *
+   * @throws PHPUnit_Framework_SkippedTestError
+   */
+  public function doPayment($params) {
+    try {
+      $this->processor->doPayment($params);
+    }
+    catch (Exception $e) {
+      $this->assertTrue((strpos($e->getMessage(), 'E00001: Internal Error Occurred.') !== FALSE),
+        'AuthorizeNet failed for unknown reason.' . $e->getMessage());
+      $this->markTestSkipped('AuthorizeNet test server is not in a good mood so we can\'t test this right now');
+    }
   }
 
 }

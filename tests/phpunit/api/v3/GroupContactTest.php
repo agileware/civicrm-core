@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -25,11 +25,9 @@
  +--------------------------------------------------------------------+
  */
 
-
-require_once 'CiviTest/CiviUnitTestCase.php';
-
 /**
  * Class api_v3_GroupContactTest
+ * @group headless
  */
 class api_v3_GroupContactTest extends CiviUnitTestCase {
 
@@ -196,6 +194,95 @@ class api_v3_GroupContactTest extends CiviUnitTestCase {
     $result = $this->callAPISuccess('group_contact', 'get', $params);
     $this->assertEquals(0, $result['count']);
     $this->assertArrayNotHasKey('id', $result);
+  }
+
+  /**
+   * CRM-19496 When id is used rather than contact_id and group_id ensure that remove function still works.
+   *
+   */
+  public function testDeleteWithId() {
+    $groupContactParams = array(
+      'contact_id' => $this->_contactId,
+      'group_id' => $this->_groupId1,
+    );
+    $groupContact = $this->callAPISuccess('group_contact', 'get', $groupContactParams);
+    $params = array(
+      'id' => $groupContact['id'],
+      'status' => 'Removed',
+    );
+    $result = $this->callAPISuccess('group_contact', 'delete', $params);
+    $this->assertEquals($result['removed'], 1);
+    $this->assertEquals($result['total_count'], 1);
+  }
+
+  /**
+   * CRM-19496 When id is used rather than contact_id and group_id ensure that remove function still works.
+   *
+   */
+  public function testDeleteAndReAddWithId() {
+    $groupContactParams = array(
+      'contact_id' => $this->_contactId,
+      'group_id' => $this->_groupId1,
+    );
+    $groupContact = $this->callAPISuccess('group_contact', 'get', $groupContactParams);
+    $params = array(
+      'id' => $groupContact['id'],
+      'status' => 'Removed',
+    );
+    $result = $this->callAPISuccess('group_contact', 'delete', $params);
+    $this->assertEquals($result['removed'], 1);
+    $this->assertEquals($result['total_count'], 1);
+    $params = array_merge($params, array('status' => 'Added'));
+    $result2 = $this->callAPISuccess('group_contact', 'delete', $params);
+    $this->assertEquals($result2['added'], 1);
+    $this->assertEquals($result2['total_count'], 1);
+  }
+
+  /**
+   * CRM-19979 test that group cotnact delete action works when contact is in status of pendin.
+   */
+  public function testDeleteWithPending() {
+    $groupId3 = $this->groupCreate(array(
+      'name' => 'Test Group 3',
+      'domain_id' => 1,
+      'title' => 'New Test Group3 Created',
+      'description' => 'New Test Group3 Created',
+      'is_active' => 1,
+      'visibility' => 'User and User Admin Only',
+    ));
+    $groupContactCreateParams = array(
+      'contact_id' => $this->_contactId,
+      'group_id' => $groupId3,
+      'status' => 'Pending',
+    );
+    $groupContact = $this->callAPISuccess('groupContact', 'create', $groupContactCreateParams);
+    $groupGetContact = $this->CallAPISuccess('groupContact', 'get', $groupContactCreateParams);
+    $this->callAPISuccess('groupContact', 'delete', array('id' => $groupGetContact['id'], 'status' => 'Removed'));
+    $this->callAPISuccess('groupContact', 'delete', array('id' => $groupGetContact['id'], 'skip_undelete' => TRUE));
+    $this->callAPISuccess('group', 'delete', array('id' => $groupId3));
+  }
+
+  /**
+   * CRM-19979 test that group cotnact delete action works when contact is in status of pendin and is a permanent delete.
+   */
+  public function testPermanentDeleteWithPending() {
+    $groupId3 = $this->groupCreate(array(
+      'name' => 'Test Group 3',
+      'domain_id' => 1,
+      'title' => 'New Test Group3 Created',
+      'description' => 'New Test Group3 Created',
+      'is_active' => 1,
+      'visibility' => 'User and User Admin Only',
+    ));
+    $groupContactCreateParams = array(
+      'contact_id' => $this->_contactId,
+      'group_id' => $groupId3,
+      'status' => 'Pending',
+    );
+    $groupContact = $this->callAPISuccess('groupContact', 'create', $groupContactCreateParams);
+    $groupGetContact = $this->CallAPISuccess('groupContact', 'get', $groupContactCreateParams);
+    $this->callAPISuccess('groupContact', 'delete', array('id' => $groupGetContact['id'], 'skip_undelete' => TRUE));
+    $this->callAPISuccess('group', 'delete', array('id' => $groupId3));
   }
 
   /**

@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -405,7 +405,7 @@ class CRM_SMS_Form_Upload extends CRM_Core_Form {
       if (!empty($dataErrors)) {
         $errors['textFile'] = ts('The following errors were detected in %1:', array(
           1 => $name,
-          )) . ' <ul>' . implode('', $dataErrors) . '</ul>';
+        )) . ' <ul>' . implode('', $dataErrors) . '</ul>';
       }
     }
 

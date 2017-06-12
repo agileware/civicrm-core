@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -468,7 +468,7 @@ class WebTest_Mailing_MailingTest extends CiviSeleniumTestCase {
         ),
       ),
       'Click-throughs' => array(
-        'report' => array('report_name' => 'Mail Clickthroughs', 'Mailing' => "Mailing $mailingName Webtest"),
+        'report' => array('report_name' => 'Mail Click-Throughs', 'Mailing' => "Mailing $mailingName Webtest"),
         'search' => array(
           'Mailing Name IN' => "\"Mailing {$mailingName} Webtest",
           'Mailing: Trackable URL Clicks -' => "Clicked",

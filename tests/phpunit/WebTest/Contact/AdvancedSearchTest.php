@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -125,7 +125,7 @@ class WebTest_Contact_AdvancedSearchTest extends CiviSeleniumTestCase {
     $searchBlockValues = array(
       'basic' => array('', 'addBasicSearchDetail'),
       'location' => array('state_province', 'addAddressSearchDetail'),
-      'demographics' => array('civicrm_gender_Transgender_3', 'addDemographicSearchDetail'),
+      'demographics' => array('civicrm_gender_Other_3', 'addDemographicSearchDetail'),
       'notes' => array('note', ''),
       'activity' => array('activity_type_id', 'addActivitySearchDetail'),
       'CiviContribute' => array('contribution_currency_type', 'addContributionSearchDetail'),
@@ -197,7 +197,7 @@ class WebTest_Contact_AdvancedSearchTest extends CiviSeleniumTestCase {
 
         //pagination and row count assertion
         $pagerCount = "Contact {$j} - {$subTotal} of {$count}";
-        $this->verifyText("xpath=//div[@class='crm-search-results']/div[@class='crm-pager']/span[@class='crm-pager-nav']", preg_quote($pagerCount));
+        $this->assertElementContainsText("xpath=//div[@class='crm-search-results']/div[@class='crm-pager']/span[@class='crm-pager-nav']", $pagerCount);
         $this->assertEquals($perPageRow, $this->getXpathCount("//div[@class='crm-search-results']/table/tbody/tr"));
 
         //go to next page
@@ -209,7 +209,7 @@ class WebTest_Contact_AdvancedSearchTest extends CiviSeleniumTestCase {
       //pagination and row count assertion for the remaining last page
       if ($mod) {
         $pagerCount = "Contact {$lastPageSub} - {$count} of {$count}";
-        $this->verifyText("xpath=//div[@class='crm-search-results']/div[@class='crm-pager']/span[@class='crm-pager-nav']", preg_quote($pagerCount));
+        $this->assertElementContainsText("xpath=//div[@class='crm-search-results']/div[@class='crm-pager']/span[@class='crm-pager-nav']", $pagerCount);
         $this->assertEquals($mod, $this->getXpathCount("//div[@class='crm-search-results']/table/tbody/tr"));
       }
     }
@@ -254,9 +254,9 @@ class WebTest_Contact_AdvancedSearchTest extends CiviSeleniumTestCase {
       ));
     $this->clickLink("_qf_Advanced_refresh", "xpath=//div[@class='crm-search-results']//table/tbody/tr[1]/td[6]");
 
-    $stateBeforeSort = $this->getText("xpath=//div[@class='crm-search-results']//table/tbody/tr[1]/td[6]");
     $this->clickAjaxLink("xpath=//div[@class='crm-search-results']//table/thead/tr//th/a[contains(text(),'State')]");
     $this->waitForElementPresent("xpath=//div[@class='crm-search-results']//table/thead/tr//th/a[contains(text(),'State')]");
+    $stateBeforeSort = $this->getText("xpath=//div[@class='crm-search-results']//table/tbody/tr[1]/td[6]");
     $this->clickAjaxLink("xpath=//div[@class='crm-search-results']//table/thead/tr//th/a[contains(text(), 'State')]");
     $this->waitForElementPresent("xpath=//div[@class='crm-search-results']//table/thead/tr//th/a[contains(text(), 'State')]");
     $this->assertElementNotContainsText("xpath=//div[@class='crm-search-results']//table/tbody/tr[1]/td[6]", $stateBeforeSort);
@@ -475,6 +475,7 @@ class WebTest_Contact_AdvancedSearchTest extends CiviSeleniumTestCase {
     $this->type("address_1_street_address", "street 1 $firstName");
     $this->type("address_1_supplemental_address_1", "street supplement 1 $firstName");
     $this->type("address_1_supplemental_address_2", "street supplement 2 $firstName");
+    $this->type("address_1_supplemental_address_3", "street supplement 2 $firstName");
     $this->type("address_1_city", "city$firstName");
     $this->type("address_1_postal_code", "100100");
     $this->select("address_1_country_id", "UNITED STATES");

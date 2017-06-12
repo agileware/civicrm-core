@@ -3,7 +3,7 @@
    +--------------------------------------------------------------------+
    | CiviCRM version 4.7                                                |
    +--------------------------------------------------------------------+
-   | Copyright CiviCRM LLC (c) 2004-2015                                |
+   | Copyright CiviCRM LLC (c) 2004-2017                                |
    +--------------------------------------------------------------------+
    | This file is a part of CiviCRM.                                    |
    |                                                                    |
@@ -92,7 +92,7 @@ class WebTest_Contact_AdvancedSearchedRelatedContactTest extends CiviSeleniumTes
     $this->openCiviPage('contact/search', 'reset=1', '_qf_Basic_refresh');
     $this->type("sort_name", $sortName);
     $this->select("contact_type", "value=Individual");
-    $this->clickLink("_qf_Basic_refresh", "//div[@class='crm-search-results']/table[@class='selector row-highlight']/tbody/tr/", FALSE);
+    $this->clickLink("_qf_Basic_refresh", "//table[@class='selector row-highlight']/tbody//tr/td[11]/span/a[text()='View']", FALSE);
 
     // click through to the Relationship view screen
     $this->click("xpath=//table[@class='selector row-highlight']/tbody//tr/td[11]/span/a[text()='View']");
@@ -109,6 +109,7 @@ class WebTest_Contact_AdvancedSearchedRelatedContactTest extends CiviSeleniumTes
 
     $this->openCiviPage('contact/search/advanced', 'reset=1');
 
+    $this->waitForElementPresent("sort_name");
     $this->type("sort_name", $sortName);
     $this->click('_qf_Advanced_refresh');
     $this->waitForPageToLoad(2 * $this->getTimeoutMsec());
@@ -117,7 +118,9 @@ class WebTest_Contact_AdvancedSearchedRelatedContactTest extends CiviSeleniumTes
     $this->assertElementContainsText('search-status', '1 Contact');
 
     $this->click('css=div.crm-advanced_search_form-accordion div.crm-accordion-header');
+    $this->waitForElementPresent("component_mode");
     $this->select("component_mode", "label=Related Contacts");
+    $this->waitForElementPresent("display_relationship_type");
     $this->select("display_relationship_type", $relType);
     $this->click('_qf_Advanced_refresh');
     $this->waitForPageToLoad(2 * $this->getTimeoutMsec());
@@ -150,6 +153,7 @@ class WebTest_Contact_AdvancedSearchedRelatedContactTest extends CiviSeleniumTes
     $this->waitForElementPresent("_qf_EventInfo_upload-bottom");
 
     $this->select("event_type_id", "value=1");
+    $this->waitForAjaxContent();
 
     // Attendee role s/b selected now.
     $this->select("default_role_id", "value=1");
@@ -185,6 +189,7 @@ class WebTest_Contact_AdvancedSearchedRelatedContactTest extends CiviSeleniumTes
     $this->type("address_1_city", "San Francisco");
     $this->type("address_1_postal_code", "94117");
     $this->select('address_1_country_id', 'UNITED STATES');
+    $this->waitForAjaxContent();
     $this->select("address_1_state_province_id", "value=1004");
     $this->type("email_1_email", "info@civicrm.org");
 
@@ -243,7 +248,7 @@ class WebTest_Contact_AdvancedSearchedRelatedContactTest extends CiviSeleniumTes
     $this->clickLink("_qf_Basic_refresh", "//div[@class='crm-search-results']/table[@class='selector row-highlight']/tbody/tr/", FALSE);
 
     // click through to the Contribution view screen
-    $this->click("xpath=//div[@class='crm-search-results']/table[@class='selector row-highlight']/tbody/tr/td[11]//span/a[text()='View']");
+    $this->click("xpath=//table[@class='selector row-highlight']/tbody/tr/td[11]//span/a[text()='View']");
     $this->waitForPageToLoad($this->getTimeoutMsec());
 
     $this->click("css=li#tab_rel a");
@@ -274,8 +279,8 @@ class WebTest_Contact_AdvancedSearchedRelatedContactTest extends CiviSeleniumTes
 
     //check the status message
     $this->waitForText('crm-notification-container', "Relationship created.");
-    $this->waitForElementPresent("xpath=//div[@class='dataTables_wrapper no-footer']//table/tbody//tr/td[9]/span/a[text()='View']");
-    $this->click("xpath=//div[@class='dataTables_wrapper no-footer']//table/tbody//tr/td[9]/span/a[text()='View']");
+    $this->waitForElementPresent("xpath=//div[@class='crm-contact-relationship-current']//div[@class='dataTables_wrapper no-footer']//table/tbody//tr/td[9]/span/a[text()='View']");
+    $this->click("xpath=//div[@class='crm-contact-relationship-current']//div[@class='dataTables_wrapper no-footer']//table/tbody//tr/td[9]/span/a[text()='View']");
 
     $this->waitForElementPresent("xpath=//table[@class='crm-info-panel']");
     $this->webtestVerifyTabularData(
@@ -300,8 +305,8 @@ class WebTest_Contact_AdvancedSearchedRelatedContactTest extends CiviSeleniumTes
     $this->waitForElementPresent("event_type_id");
     $this->select2("event_type_id", "Conference");
     $this->click("_qf_Advanced_refresh");
-    $this->waitForElementPresent("xpath=id('search-status')");
-    $this->assertElementContainsText('search-status', '2 Contacts');
+    $this->waitForElementPresent("xpath=//div[@class='crm-content-block']//div[@id='search-status']");
+    $this->assertElementContainsText("xpath=//div[@id='search-status']/table/tbody/tr[1]/td[1]", "2 Contacts");
   }
 
   public function testAdvanceSearchForLog() {

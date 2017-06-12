@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -27,7 +27,7 @@
 
 /**
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -99,9 +99,7 @@ class CRM_Event_Form_Registration_Confirm extends CRM_Event_Form_Registration {
           $params['discountAmount'] = $this->_params[0]['discountAmount'];
           $params['discountMessage'] = $this->_params[0]['discountMessage'];
         }
-        if (!empty($this->_params[0]['amount_priceset_level_radio'])) {
-          $params['amount_priceset_level_radio'] = $this->_params[0]['amount_priceset_level_radio'];
-        }
+
         $params['amount_level'] = $this->_params[0]['amount_level'];
         $params['currencyID'] = $this->_params[0]['currencyID'];
 
@@ -304,44 +302,20 @@ class CRM_Event_Form_Registration_Confirm extends CRM_Event_Form_Registration {
     //consider total amount.
     $this->assign('isAmountzero', ($this->_totalAmount <= 0) ? TRUE : FALSE);
 
-    // @todo this needs to GO! We are getting rid of references to processor types in the code base in favour of
-    // over-ride-able functions on them.
-    // The processor effectively has a 'buildForm' hook it can use if it needs to.
-    // The tricky thing is that we have no way of testing this code out - perhaps it hasn't worked for years!
-    if ($this->_paymentProcessor['payment_processor_type'] == 'Google_Checkout' && empty($this->_params[0]['is_pay_later']) && !($this->_params[0]['amount'] == 0) &&
-      !$this->_allowWaitlist && !$this->_requireApproval
-    ) {
-      $this->_checkoutButtonName = $this->getButtonName('next', 'checkout');
-      $this->add('image',
-        $this->_checkoutButtonName,
-        $this->_paymentProcessor['url_button'],
-        array('class' => 'crm-form-submit')
-      );
-
-      $this->addButtons(array(
-          array(
-            'type' => 'back',
-            'name' => ts('Go Back'),
-          ),
-        )
-      );
-    }
-    else {
-      $contribButton = ts('Continue');
-      $this->addButtons(array(
-          array(
-            'type' => 'back',
-            'name' => ts('Go Back'),
-          ),
-          array(
-            'type' => 'next',
-            'name' => $contribButton,
-            'isDefault' => TRUE,
-            'js' => array('onclick' => "return submitOnce(this,'" . $this->_name . "','" . ts('Processing') . "');"),
-          ),
-        )
-      );
-    }
+    $contribButton = ts('Continue');
+    $this->addButtons(array(
+        array(
+          'type' => 'back',
+          'name' => ts('Go Back'),
+        ),
+        array(
+          'type' => 'next',
+          'name' => $contribButton,
+          'isDefault' => TRUE,
+          'js' => array('onclick' => "return submitOnce(this,'" . $this->_name . "','" . ts('Processing') . "');"),
+        ),
+      )
+    );
 
     $defaults = array();
     $fields = array();
@@ -456,6 +430,7 @@ class CRM_Event_Form_Registration_Confirm extends CRM_Event_Form_Registration {
       $this->set('finalAmount', $this->_amount);
     }
     $participantCount = array();
+    $taxAmount = $totalTaxAmount = 0;
 
     //unset the skip participant from params.
     //build the $participantCount array.
@@ -468,7 +443,10 @@ class CRM_Event_Form_Registration_Confirm extends CRM_Event_Form_Registration {
       elseif ($participantNum) {
         $participantCount[$participantNum] = 'participant';
       }
-
+      $totalTaxAmount += CRM_Utils_Array::value('tax_amount', $record, 0);
+      if (CRM_Utils_Array::value('is_primary', $record)) {
+        $taxAmount = &$params[$participantNum]['tax_amount'];
+      }
       //lets get additional participant id to cancel.
       if ($this->_allowConfirmation && is_array($cancelledIds)) {
         $additonalId = CRM_Utils_Array::value('participant_id', $record);
@@ -477,7 +455,7 @@ class CRM_Event_Form_Registration_Confirm extends CRM_Event_Form_Registration {
         }
       }
     }
-
+    $taxAmount = $totalTaxAmount;
     $payment = $registerByID = $primaryCurrencyID = $contribution = NULL;
     $paymentObjError = ts('The system did not record payment details for this payment and so could not process the transaction. Please report this error to the site administrator.');
 
@@ -595,14 +573,10 @@ class CRM_Event_Form_Registration_Confirm extends CRM_Event_Form_Registration {
           }
 
           if (is_object($payment)) {
-            try {
-              $result = $payment->doPayment($value);
-              $value = array_merge($value, $result);
-            }
-            catch (\Civi\Payment\Exception\PaymentProcessorException $e) {
-              CRM_Core_Session::singleton()->setStatus($e->getMessage());
-              CRM_Utils_System::redirect(CRM_Utils_System::url('civicrm/event/register', "id={$this->_eventId}"));
-            }
+            // Not quite sure why we don't just user $value since it contains the data
+            // from result
+            // @todo ditch $result & retest.
+            list($result, $value) = $this->processPayment($payment, $value);
           }
           else {
             CRM_Core_Error::fatal($paymentObjError);
@@ -634,7 +608,7 @@ class CRM_Event_Form_Registration_Confirm extends CRM_Event_Form_Registration {
           }
 
           //passing contribution id is already registered.
-          $contribution = self::processContribution($this, $value, $result, $contactID, $pending, $isAdditionalAmount);
+          $contribution = self::processContribution($this, $value, $result, $contactID, $pending, $isAdditionalAmount, $this->_paymentProcessor);
           $value['contributionID'] = $contribution->id;
           $value['contributionTypeID'] = $contribution->financial_type_id;
           $value['receive_date'] = $contribution->receive_date;
@@ -665,9 +639,9 @@ class CRM_Event_Form_Registration_Confirm extends CRM_Event_Form_Registration {
           !$this->_allowWaitlist && !$this->_requireApproval
         ) {
           // transactionID & receive date required while building email template
-          $this->assign('trxn_id', $value['trxn_id']);
-          $this->assign('receive_date', CRM_Utils_Date::mysqlToIso($value['receive_date']));
-          $this->set('receiveDate', CRM_Utils_Date::mysqlToIso($value['receive_date']));
+          $this->assign('trxn_id', CRM_Utils_Array::value('trxn_id', $value));
+          $this->assign('receive_date', CRM_Utils_Date::mysqlToIso(CRM_Utils_Array::value('receive_date', $value)));
+          $this->set('receiveDate', CRM_Utils_Date::mysqlToIso(CRM_Utils_Array::value('receive_date', $value)));
           $this->set('trxnId', CRM_Utils_Array::value('trxn_id', $value));
         }
       }
@@ -840,13 +814,14 @@ class CRM_Event_Form_Registration_Confirm extends CRM_Event_Form_Registration {
           }
 
           //get event custom field information
-          $groupTree = CRM_Core_BAO_CustomGroup::getTree('Event', $this, $this->_eventId, 0, $this->_values['event']['event_type_id']);
+          $groupTree = CRM_Core_BAO_CustomGroup::getTree('Event', NULL, $this->_eventId, 0, $this->_values['event']['event_type_id']);
           $primaryParticipant['eventCustomFields'] = $groupTree;
 
           // call postprocess hook before leaving
           $this->postProcessHook();
           // this does not return
-          $payment->doPayment($primaryParticipant, 'event');
+
+          $this->processPayment($payment, $primaryParticipant);
         }
         else {
           CRM_Core_Error::fatal($paymentObjError);
@@ -969,7 +944,8 @@ class CRM_Event_Form_Registration_Confirm extends CRM_Event_Form_Registration {
    */
   public static function processContribution(
     &$form, $params, $result, $contactID,
-    $pending = FALSE, $isAdditionalAmount = FALSE
+    $pending = FALSE, $isAdditionalAmount = FALSE,
+    $paymentProcessor = NULL
   ) {
     $transaction = new CRM_Core_Transaction();
 
@@ -984,6 +960,9 @@ class CRM_Event_Form_Registration_Confirm extends CRM_Event_Form_Registration {
       $params['amount_level'] = $params['amount_level'] . ts(' (multiple participants)') . CRM_Core_DAO::VALUE_SEPARATOR;
     }
 
+    // CRM-20264: fetch CC type ID and number (last 4 digit) and assign it back to $params
+    CRM_Contribute_Form_AbstractEditPayment::formatCreditCardDetails($params);
+
     $contribParams = array(
       'contact_id' => $contactID,
       'financial_type_id' => !empty($form->_values['event']['financial_type_id']) ? $form->_values['event']['financial_type_id'] : $params['financial_type_id'],
@@ -996,10 +975,13 @@ class CRM_Event_Form_Registration_Confirm extends CRM_Event_Form_Registration {
       'source' => !empty($params['participant_source']) ? $params['participant_source'] : $params['description'],
       'is_pay_later' => CRM_Utils_Array::value('is_pay_later', $params, 0),
       'campaign_id' => CRM_Utils_Array::value('campaign_id', $params),
+      'card_type_id' => CRM_Utils_Array::value('card_type_id', $params),
+      'pan_truncation' => CRM_Utils_Array::value('pan_truncation', $params),
     );
 
-    if (empty($params['is_pay_later'])) {
-      $contribParams['payment_instrument_id'] = 1;
+    if ($paymentProcessor) {
+      $contribParams['payment_instrument_id'] = $paymentProcessor['payment_instrument_id'];
+      $contribParams['payment_processor'] = $paymentProcessor['id'];
     }
 
     if (!$pending && $result) {
@@ -1037,6 +1019,18 @@ class CRM_Event_Form_Registration_Confirm extends CRM_Event_Form_Registration {
       $contribParams['id'] = $contribID;
     }
 
+    if (CRM_Contribute_BAO_Contribution::checkContributeSettings('deferred_revenue_enabled')) {
+      $eventStartDate = CRM_Utils_Array::value(
+        'start_date',
+        CRM_Utils_Array::value(
+          'event',
+          $form->_values
+        )
+      );
+      if (strtotime($eventStartDate) > strtotime(date('Ymt'))) {
+        $contribParams['revenue_recognition_date'] = date('Ymd', strtotime($eventStartDate));
+      }
+    }
     //create an contribution address
     // The concept of contributeMode is deprecated. Elsewhere we use the function processBillingAddress() - although
     // currently that is only inherited by back-office forms.
@@ -1044,12 +1038,11 @@ class CRM_Event_Form_Registration_Confirm extends CRM_Event_Form_Registration {
       $contribParams['address_id'] = CRM_Contribute_BAO_Contribution::createAddress($params, $form->_bltID);
     }
 
-    $contribParams['payment_processor'] = CRM_Utils_Array::value('payment_processor', $params);
     $contribParams['skipLineItem'] = 1;
     // create contribution record
     $contribution = CRM_Contribute_BAO_Contribution::add($contribParams, $ids);
     // CRM-11124
-    CRM_Event_BAO_Participant::createDiscountTrxn($form->_eventId, $contribParams, CRM_Utils_Array::value('amount_priceset_level_radio', $params, NULL));
+    CRM_Event_BAO_Participant::createDiscountTrxn($form->_eventId, $contribParams, NULL, CRM_Price_BAO_PriceSet::parseFirstPriceSetValueIDFromParams($params));
 
     // process soft credit / pcp pages
     if (!empty($params['pcp_made_through_id'])) {
@@ -1065,6 +1058,11 @@ class CRM_Event_Form_Registration_Confirm extends CRM_Event_Form_Registration {
   /**
    * Fix the Location Fields.
    *
+   * @todo Reconcile with the contribution method formatParamsForPaymentProcessor
+   * rather than adding different logic to check when to keep the billing
+   * fields. There might be a difference in handling guest/multiple
+   * participants though.
+   *
    * @param array $params
    * @param array $fields
    * @param CRM_Core_Form $form
@@ -1076,6 +1074,8 @@ class CRM_Event_Form_Registration_Confirm extends CRM_Event_Form_Registration {
       }
     }
 
+    // If there's no 'first_name' in the profile then overwrite the names from
+    // the billing fields (if they are set)
     if (is_array($fields)) {
       if (!array_key_exists('first_name', $fields)) {
         $nameFields = array('first_name', 'middle_name', 'last_name');
@@ -1089,11 +1089,12 @@ class CRM_Event_Form_Registration_Confirm extends CRM_Event_Form_Registration {
       }
     }
 
-    // also add location name to the array
-    if ($form->_values['event']['is_monetary']) {
+    // Add the billing names to the billing address, if a billing name is set
+    if (!empty($params['billing_first_name'])) {
       $params["address_name-{$form->_bltID}"] = CRM_Utils_Array::value('billing_first_name', $params) . ' ' . CRM_Utils_Array::value('billing_middle_name', $params) . ' ' . CRM_Utils_Array::value('billing_last_name', $params);
       $fields["address_name-{$form->_bltID}"] = 1;
     }
+
     $fields["email-{$form->_bltID}"] = 1;
     $fields['email-Primary'] = 1;
 
@@ -1281,6 +1282,54 @@ class CRM_Event_Form_Registration_Confirm extends CRM_Event_Form_Registration {
         $form->set('addParticipantProfile', $formattedValues);
       }
     }
+  }
+
+  /**
+   * Submit in test mode.
+   *
+   * @param $params
+   */
+  public static function testSubmit($params) {
+    $form = new CRM_Event_Form_Registration_Confirm();
+    // This way the mocked up controller ignores the session stuff.
+    $_SERVER['REQUEST_METHOD'] = 'GET';
+    $_REQUEST['id'] = $form->_eventId = $params['id'];
+    $form->controller = new CRM_Event_Controller_Registration();
+    $form->_params = $params['params'];
+    $form->_amount = $form->_totalAmount = CRM_Utils_Array::value('totalAmount', $params);
+    $form->set('params', $params['params']);
+    $form->_values['custom_pre_id'] = array();
+    $form->_values['custom_post_id'] = array();
+    $form->_values['event'] = CRM_Utils_Array::value('event', $params);
+    $form->_contributeMode = $params['contributeMode'];
+    $eventParams = array('id' => $params['id']);
+    CRM_Event_BAO_Event::retrieve($eventParams, $form->_values['event']);
+    $form->set('registerByID', $params['registerByID']);
+    if (!empty($params['paymentProcessorObj'])) {
+      $form->_paymentProcessor = $params['paymentProcessorObj'];
+    }
+    $form->postProcess();
+  }
+
+  /**
+   * Process the payment, redirecting back to the page on error.
+   *
+   * @param $payment
+   * @param $value
+   *
+   * @return array
+   */
+  private function processPayment($payment, $value) {
+    try {
+      $result = $payment->doPayment($value, 'event');
+      return array($result, $value);
+    }
+    catch (\Civi\Payment\Exception\PaymentProcessorException $e) {
+      Civi::log()->error('Payment processor exception: ' . $e->getMessage());
+      CRM_Core_Session::singleton()->setStatus($e->getMessage());
+      CRM_Utils_System::redirect(CRM_Utils_System::url('civicrm/event/register', "id={$this->_eventId}"));
+    }
+    return array();
   }
 
 }

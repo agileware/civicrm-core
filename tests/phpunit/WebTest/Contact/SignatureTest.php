@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -117,7 +117,7 @@ class WebTest_Contact_SignatureTest extends CiviSeleniumTestCase {
       $this->selectFrame("xpath=//iframe[@id='{$fieldName}_ifr']");
     }
 
-    $this->verifyText('//html/body', preg_quote("{$signature}"));
+    $this->assertElementContainsText("//html/body", "$signature");
     $this->selectFrame('relative=top');
   }
 

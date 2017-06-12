@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -115,7 +115,7 @@ class CRM_Activity_Form_Task extends CRM_Core_Form {
       $components = CRM_Core_Component::getNames();
       $componentClause = array();
       foreach ($components as $componentID => $componentName) {
-        if (!CRM_Core_Permission::check("access $componentName")) {
+        if ($componentName != 'CiviCase' && !CRM_Core_Permission::check("access $componentName")) {
           $componentClause[] = " (activity_type.component_id IS NULL OR activity_type.component_id <> {$componentID}) ";
         }
       }
@@ -192,17 +192,16 @@ WHERE  activity_id IN ( $IDs ) AND
    */
   public function addDefaultButtons($title, $nextType = 'next', $backType = 'back', $submitOnce = FALSE) {
     $this->addButtons(array(
-        array(
-          'type' => $nextType,
-          'name' => $title,
-          'isDefault' => TRUE,
-        ),
-        array(
-          'type' => $backType,
-          'name' => ts('Cancel'),
-        ),
-      )
-    );
+      array(
+        'type' => $nextType,
+        'name' => $title,
+        'isDefault' => TRUE,
+      ),
+      array(
+        'type' => $backType,
+        'name' => ts('Cancel'),
+      ),
+    ));
   }
 
 }

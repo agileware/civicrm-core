@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -407,11 +407,10 @@ class CRM_Contribute_Import_Parser_Contribution extends CRM_Contribute_Import_Pa
             if (isset($existingSoftCredit['soft_credit']) && !empty($existingSoftCredit['soft_credit'])) {
               foreach ($existingSoftCredit['soft_credit'] as $key => $existingSoftCreditValues) {
                 if (!empty($existingSoftCreditValues['soft_credit_id'])) {
-                  $deleteParams = array(
+                  civicrm_api3('ContributionSoft', 'delete', array(
                     'id' => $existingSoftCreditValues['soft_credit_id'],
                     'pcp_id' => NULL,
-                  );
-                  CRM_Contribute_BAO_ContributionSoft::del($deleteParams);
+                  ));
                 }
               }
             }

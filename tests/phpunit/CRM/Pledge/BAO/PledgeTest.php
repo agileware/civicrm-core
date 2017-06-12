@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -25,14 +25,11 @@
  +--------------------------------------------------------------------+
  */
 
-
-require_once 'CiviTest/CiviUnitTestCase.php';
-require_once 'CiviTest/Contact.php';
-
 /**
  * Test class for CRM_Pledge_BAO_Pledge BAO
  *
  * @package   CiviCRM
+ * @group headless
  */
 class CRM_Pledge_BAO_PledgeTest extends CiviUnitTestCase {
 
@@ -42,21 +39,8 @@ class CRM_Pledge_BAO_PledgeTest extends CiviUnitTestCase {
    */
   protected function setUp() {
     parent::setUp();
-    $this->_contactId = Contact::createIndividual();
-  }
-
-  /**
-   * Tears down the fixture, for example, closes a network connection.
-   * This method is called after a test is executed.
-   */
-  protected function tearDown() {
-  }
-
-  /**
-   *  Test for Add/Update Pledge.
-   */
-  public function testAdd() {
-    $params = array(
+    $this->_contactId = $this->individualCreate();
+    $this->_params = array(
       'contact_id' => $this->_contactId,
       'frequency_unit' => 'month',
       'original_installment_amount' => 25.00,
@@ -71,13 +55,44 @@ class CRM_Pledge_BAO_PledgeTest extends CiviUnitTestCase {
       'currency' => 'USD',
       'amount' => 300,
     );
+  }
 
+  /**
+   * Tears down the fixture, for example, closes a network connection.
+   * This method is called after a test is executed.
+   */
+  protected function tearDown() {
+  }
+
+  /**
+   *  Test for Add/Update Pledge.
+   */
+  public function testAdd() {
     //do test for normal add.
-    $pledge = CRM_Pledge_BAO_Pledge::add($params);
+    $pledge = CRM_Pledge_BAO_Pledge::add($this->_params);
 
-    foreach ($params as $param => $value) {
+    foreach ($this->_params as $param => $value) {
       $this->assertEquals($value, $pledge->$param);
     }
+  }
+
+  /**
+   * Test Pledge Payment Status with 1 installment
+   * and not passing status id.
+   */
+  public function testPledgePaymentStatus() {
+    $scheduledDate = date('Ymd', mktime(0, 0, 0, date("m"), date("d") + 2, date("y")));
+    $this->_params['installments'] = 1;
+    $this->_params['scheduled_date'] = $scheduledDate;
+
+    unset($this->_params['status_id']);
+    $pledge = CRM_Pledge_BAO_Pledge::create($this->_params);
+    $pledgePayment = CRM_Pledge_BAO_PledgePayment::getPledgePayments($pledge->id);
+
+    $this->assertEquals(count($pledgePayment), 1);
+    $payment = array_pop($pledgePayment);
+    $this->assertEquals($payment['status'], 'Pending');
+    $this->assertEquals($payment['scheduled_date'], date('Y-m-d 00:00:00', strtotime($scheduledDate)));
   }
 
   /**
@@ -130,6 +145,35 @@ class CRM_Pledge_BAO_PledgeTest extends CiviUnitTestCase {
     $pledgeId = CRM_Pledge_BAO_Pledge::retrieve($pledgeParams, $defaults);
 
     $this->assertEquals(count($pledgeId), 1, "Pledge was retrieved");
+  }
+
+  /**
+   *  Test build recur params.
+   */
+  public function testGetPledgeStartDate() {
+    $startDate = json_encode(array('calendar_month' => 6));
+
+    $params = array(
+      'pledge_start_date' => $startDate,
+      'is_pledge_start_date_editable' => TRUE,
+      'is_pledge_start_date_visible' => TRUE,
+    );
+
+    // Try with relative date
+    $date = CRM_Pledge_BAO_Pledge::getPledgeStartDate(6, $params);
+    $paymentDate = CRM_Pledge_BAO_Pledge::getPaymentDate(6);
+
+    $this->assertEquals(date('m/d/Y', strtotime($date)), $paymentDate, "The two dates do not match");
+
+    // Try with fixed date
+    $date = NULL;
+    $params = array(
+      'pledge_start_date' => json_encode(array('calendar_date' => '06/10/2016')),
+      'is_pledge_start_date_visible' => FALSE,
+    );
+
+    $date = CRM_Pledge_BAO_Pledge::getPledgeStartDate($date, $params);
+    $this->assertEquals(date('m/d/Y', strtotime($date)), '06/10/2016', "The two dates do not match");
   }
 
 }

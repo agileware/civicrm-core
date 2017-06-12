@@ -1,9 +1,8 @@
 <?php
 
-require_once 'CiviTest/CiviUnitTestCase.php';
-
 /**
  * Class CRM_Utils_versionCheckTest
+ * @group headless
  */
 class CRM_Utils_versionCheckTest extends CiviUnitTestCase {
 
@@ -108,11 +107,11 @@ class CRM_Utils_versionCheckTest extends CiviUnitTestCase {
    * @param mixed $expectedResult
    */
   public function testNewerVersion($localVersion, $versionInfo, $expectedResult) {
-    $vc = CRM_Utils_VersionCheck::singleton();
+    $vc = new CRM_Utils_VersionCheck();
     // These values are set by the constructor but for testing we override them
     $vc->localVersion = $localVersion;
     $vc->localMajorVersion = $vc->getMajorVersion($localVersion);
-    $vc->versionInfo = $versionInfo;
+    $vc->setVersionInfo($versionInfo);
     $available = $vc->isNewerVersionAvailable();
     $this->assertEquals($available['version'], $expectedResult);
   }
@@ -154,11 +153,11 @@ class CRM_Utils_versionCheckTest extends CiviUnitTestCase {
    * @param bool $expectedResult
    */
   public function testSecurityUpdate($localVersion, $versionInfo, $expectedResult) {
-    $vc = CRM_Utils_VersionCheck::singleton();
+    $vc = new CRM_Utils_VersionCheck();
     // These values are set by the constructor but for testing we override them
     $vc->localVersion = $localVersion;
     $vc->localMajorVersion = $vc->getMajorVersion($localVersion);
-    $vc->versionInfo = $versionInfo;
+    $vc->setVersionInfo($versionInfo);
     $available = $vc->isNewerVersionAvailable();
     $this->assertEquals($available['upgrade'], $expectedResult);
   }
@@ -195,6 +194,140 @@ class CRM_Utils_versionCheckTest extends CiviUnitTestCase {
     $data[] = array('4.2.19', $this->sampleVersionInfo, 'security');
 
     return $data;
+  }
+
+  public function testCronFallback() {
+    // Fake "remote" source data
+    $tmpSrc = '/tmp/versionCheckTestFile.json';
+    file_put_contents($tmpSrc, json_encode($this->sampleVersionInfo));
+
+    $vc = new CRM_Utils_VersionCheck();
+    $vc->pingbackUrl = $tmpSrc;
+
+    // If the cachefile doesn't exist, fallback should kick in
+    if (file_exists($vc->cacheFile)) {
+      unlink($vc->cacheFile);
+    }
+    $vc->initialize();
+    $this->assertEquals($this->sampleVersionInfo, $vc->versionInfo);
+    unset($vc);
+
+    // Update "remote" source data
+    $remoteData = array('4.3' => $this->sampleVersionInfo['4.3']);
+    file_put_contents($tmpSrc, json_encode($remoteData));
+
+    // Cache was just updated, so fallback should not happen - assert we are still using cached data
+    $vc = new CRM_Utils_VersionCheck();
+    $vc->pingbackUrl = $tmpSrc;
+    $vc->initialize();
+    $this->assertEquals($this->sampleVersionInfo, $vc->versionInfo);
+    unset($vc);
+
+    // Ensure fallback happens if file is too old
+    $vc = new CRM_Utils_VersionCheck();
+    $vc->pingbackUrl = $tmpSrc;
+    // Set cachefile to be 1 minute older than expire time
+    touch($vc->cacheFile, time() - 60 - $vc::CACHEFILE_EXPIRE);
+    clearstatcache();
+    $vc->initialize();
+    $this->assertEquals($remoteData, $vc->versionInfo);
+  }
+
+  public function testGetSiteStats() {
+    // Create domain address so the domain country will come up in the stats.
+    $country_params = array(
+      'sequential' => 1,
+      'options' => array(
+        'limit' => 1,
+      ),
+    );
+    $country_result = civicrm_api3('country', 'get', $country_params);
+    $country = $country_result['values'][0];
+
+    $domain_params = array(
+      'id' => CRM_Core_Config::domainID(),
+    );
+    CRM_Core_BAO_Domain::retrieve($domain_params, $domain_defaults);
+    $location_type = CRM_Core_BAO_LocationType::getDefault();
+    $address_params = array(
+      'contact_id' => $domain_defaults['contact_id'],
+      'location_type_id' => $location_type->id,
+      'is_primary' => '1',
+      'is_billing' => '0',
+      'street_address' => '1 Main St.',
+      'city' => 'Anywhere',
+      'postal_code' => '99999',
+      'country_id' => $country['id'],
+    );
+    $address_result = civicrm_api3('address', 'create', $address_params);
+
+    // Build stats and test them.
+    $vc = new ReflectionClass('CRM_Utils_VersionCheck');
+    $vc_instance = $vc->newInstance();
+
+    $statsBuilder = $vc->getMethod('getSiteStats');
+    $statsBuilder->setAccessible(TRUE);
+    $statsBuilder->invoke($vc_instance, NULL);
+
+    $statsProperty = $vc->getProperty('stats');
+    $statsProperty->setAccessible(TRUE);
+    $stats = $statsProperty->getValue($vc_instance);
+
+    // Stats array should have correct elements.
+    $this->assertArrayHasKey('version', $stats);
+    $this->assertArrayHasKey('hash', $stats);
+    $this->assertArrayHasKey('uf', $stats);
+    $this->assertArrayHasKey('lang', $stats);
+    $this->assertArrayHasKey('co', $stats);
+    $this->assertArrayHasKey('ufv', $stats);
+    $this->assertArrayHasKey('PHP', $stats);
+    $this->assertArrayHasKey('MySQL', $stats);
+    $this->assertArrayHasKey('communityMessagesUrl', $stats);
+    $this->assertArrayHasKey('domain_isoCode', $stats);
+    $this->assertArrayHasKey('PPTypes', $stats);
+    $this->assertArrayHasKey('entities', $stats);
+    $this->assertArrayHasKey('extensions', $stats);
+    $this->assertType('array', $stats['entities']);
+    $this->assertType('array', $stats['extensions']);
+
+    // Assert $stats['domain_isoCode'] is correct.
+    $this->assertEquals($country['iso_code'], $stats['domain_isoCode']);
+
+    $entity_names = array();
+    foreach ($stats['entities'] as $entity) {
+      $entity_names[] = $entity['name'];
+      $this->assertType('int', $entity['size'], "Stats entity {$entity['name']} has integer size?");
+    }
+
+    $expected_entity_names = array(
+      'Activity',
+      'Case',
+      'Contact',
+      'Relationship',
+      'Campaign',
+      'Contribution',
+      'ContributionPage',
+      'ContributionProduct',
+      'Widget',
+      'Discount',
+      'PriceSetEntity',
+      'UFGroup',
+      'Event',
+      'Participant',
+      'Friend',
+      'Grant',
+      'Mailing',
+      'Membership',
+      'MembershipBlock',
+      'Pledge',
+      'PledgeBlock',
+      'Delivered',
+    );
+    sort($entity_names);
+    sort($expected_entity_names);
+    $this->assertEquals($expected_entity_names, $entity_names);
+
+    // TODO: Also test for enabled extensions.
   }
 
 }

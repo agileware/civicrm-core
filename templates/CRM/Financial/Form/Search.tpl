@@ -2,7 +2,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -149,8 +149,7 @@ CRM.$(function($) {
         return nRow;
       },
       "fnDrawCallback": function(oSettings) {
-        // FIXME: trigger crmLoad and crmEditable would happen automatically
-        $('.crm-editable', '#crm-batch-selector-{/literal}{$batchStatus}{literal}').crmEditable();
+        $(this).trigger('crmLoad');
         $("#toggleSelect").prop('checked', false);
         if (checkedRows.length) {
           $(checkedRows.join(',')).prop('checked', true).change();
@@ -240,8 +239,9 @@ CRM.$(function($) {
       function(response) {
         //this is custom status set when record update success.
         if (response.status == 'record-updated-success') {
+	  //Redirect CRM-18169
+          window.location.href = CRM.url('civicrm/financial/financialbatches', 'reset=1&batchStatus=' + response.status_id);
           CRM.alert(listRecords(records), op == 'delete' ? {/literal}'{ts escape="js"}Deleted{/ts}' : '{ts escape="js"}Updated{/ts}'{literal}, 'success');
-          batchSelector.fnDraw();
         }
         else {
           CRM.alert({/literal}'{ts escape="js"}An error occurred while processing your request.{/ts}', $("#batch_update option[value=" + op + "]").text() + ' {ts escape="js"}Error{/ts}'{literal}, 'error');

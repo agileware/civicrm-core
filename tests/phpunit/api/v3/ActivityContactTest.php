@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -26,14 +26,12 @@
  */
 
 
-require_once 'CiviTest/CiviUnitTestCase.php';
-
-
 /**
  *  Test APIv3 civicrm_activity_contact* functions
  *
  * @package CiviCRM_APIv3
  * @subpackage API_Activity
+ * @group headless
  */
 class api_v3_ActivityContactTest extends CiviUnitTestCase {
   protected $_apiversion;
@@ -86,7 +84,7 @@ class api_v3_ActivityContactTest extends CiviUnitTestCase {
     $this->callAPISuccess('ActivityContact', 'Get', array('contact_id' => $this->_contactID));
   }
 
-  public function testGetParticipantsByActivity() {
+  public function testGetActivitiesByActivity() {
     $this->callAPISuccess('ActivityContact', 'Get', array('activity_id' => $this->_activityID));
   }
 
@@ -94,7 +92,7 @@ class api_v3_ActivityContactTest extends CiviUnitTestCase {
    * Test civicrm_activity_contact_get with empty params.
    */
   public function testGetEmptyParams() {
-    $result = $this->callAPISuccess('ActivityContact', 'Get', array());
+    $this->callAPISuccess('ActivityContact', 'Get', array());
   }
 
   /**

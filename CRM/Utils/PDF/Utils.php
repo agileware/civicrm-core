@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -25,22 +25,26 @@
  +--------------------------------------------------------------------+
  */
 
-// CRM-12165 - Remote file support required for image handling.
-define("DOMPDF_ENABLE_REMOTE", TRUE);
-define('DOMPDF_ENABLE_AUTOLOAD', FALSE);
 
+use Dompdf\Dompdf;
+use Dompdf\Options;
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 class CRM_Utils_PDF_Utils {
 
   /**
-   * @param $text
+   * @param array $text
+   *   List of HTML snippets.
    * @param string $fileName
+   *   The logical filename to display.
+   *   Ex: "HelloWorld.pdf".
    * @param bool $output
+   *   FALSE to display PDF. TRUE to return as string.
    * @param null $pdfFormat
+   *   Unclear. Possibly PdfFormat or formValues.
    *
    * @return string|void
    */
@@ -84,12 +88,18 @@ class CRM_Utils_PDF_Utils {
     $margins = array($metric, $t, $r, $b, $l);
 
     $config = CRM_Core_Config::singleton();
+
+    // Add a special region for the HTML header of PDF files:
+    $pdfHeaderRegion = CRM_Core_Region::instance('export-document-header', FALSE);
+    $htmlHeader = ($pdfHeaderRegion) ? $pdfHeaderRegion->render('', FALSE) : '';
+
     $html = "
 <html>
   <head>
     <meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\"/>
     <style>@page { margin: {$t}{$metric} {$r}{$metric} {$b}{$metric} {$l}{$metric}; }</style>
     <style type=\"text/css\">@import url({$config->userFrameworkResourceURL}css/print.css);</style>
+    {$htmlHeader}
   </head>
   <body>
     <div id=\"crm-container\">\n";
@@ -192,9 +202,11 @@ class CRM_Utils_PDF_Utils {
    * @return string
    */
   public static function _html2pdf_dompdf($paper_size, $orientation, $html, $output, $fileName) {
-    require_once 'vendor/dompdf/dompdf/dompdf_config.inc.php';
+    // CRM-12165 - Remote file support required for image handling.
+    $options = new Options();
+    $options->set('isRemoteEnabled', TRUE);
 
-    $dompdf = new DOMPDF();
+    $dompdf = new DOMPDF($options);
     $dompdf->set_paper($paper_size, $orientation);
     $dompdf->load_html($html);
     $dompdf->render();
@@ -203,6 +215,8 @@ class CRM_Utils_PDF_Utils {
       return $dompdf->output();
     }
     else {
+      // CRM-19183 remove .pdf extension from filename
+      $fileName = basename($fileName, ".pdf");
       $dompdf->stream($fileName);
     }
   }

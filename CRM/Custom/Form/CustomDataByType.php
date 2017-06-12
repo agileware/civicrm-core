@@ -3,7 +3,7 @@
   +--------------------------------------------------------------------+
   | CiviCRM version 4.7                                                |
   +--------------------------------------------------------------------+
-  | Copyright CiviCRM LLC (c) 2004-2015                                |
+  | Copyright CiviCRM LLC (c) 2004-2017                                |
   +--------------------------------------------------------------------+
   | This file is a part of CiviCRM.                                    |
   |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -50,10 +50,14 @@ class CRM_Custom_Form_CustomDataByType extends CRM_Core_Form {
     $this->assign('cdType', FALSE);
     $this->assign('cgCount', $this->_groupCount);
 
+    $contactTypes = CRM_Contact_BAO_ContactType::contactTypeInfo();
+    if (array_key_exists($this->_type, $contactTypes)) {
+      $this->assign('contactId', $this->_entityId);
+    }
     if (!is_array($this->_subType) && strstr($this->_subType, CRM_Core_DAO::VALUE_SEPARATOR)) {
       $this->_subType = str_replace(CRM_Core_DAO::VALUE_SEPARATOR, ',', trim($this->_subType, CRM_Core_DAO::VALUE_SEPARATOR));
     }
-    CRM_Custom_Form_CustomData::setGroupTree($this, $this->_subType, NULL, $this->_groupID);
+    CRM_Custom_Form_CustomData::setGroupTree($this, $this->_subType, $this->_groupID);
 
     $this->assign('suppressForm', TRUE);
     $this->controller->_generateQFKey = FALSE;

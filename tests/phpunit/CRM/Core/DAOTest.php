@@ -1,9 +1,8 @@
 <?php
 
-require_once 'CiviTest/CiviUnitTestCase.php';
-
 /**
  * Class CRM_Core_DAOTest
+ * @group headless
  */
 class CRM_Core_DAOTest extends CiviUnitTestCase {
 
@@ -142,13 +141,15 @@ class CRM_Core_DAOTest extends CiviUnitTestCase {
     $this->assertEquals($expectSql, $actualSql);
   }
 
-  // CASE: Two params where the %2 is already present in the query
-  // NOTE: This case should rightly FAIL, as using strstr in the replace mechanism will turn
-  // the query into: SELECT * FROM whatever WHERE name = 'Alice' AND title = 'Bob' AND year LIKE ''Bob'012'
-  // So, to avoid such ERROR, the query should be framed like:
-  // 'SELECT * FROM whatever WHERE name = %1 AND title = %3 AND year LIKE '%2012'
-  // $params[3] = array('Bob', 'String');
-  // i.e. the place holder should be unique and should not contain in any other operational use in query
+  /**
+   * CASE: Two params where the %2 is already present in the query
+   * NOTE: This case should rightly FAIL, as using strstr in the replace mechanism will turn
+   * the query into: SELECT * FROM whatever WHERE name = 'Alice' AND title = 'Bob' AND year LIKE ''Bob'012'
+   * So, to avoid such ERROR, the query should be framed like:
+   * 'SELECT * FROM whatever WHERE name = %1 AND title = %3 AND year LIKE '%2012'
+   * $params[3] = array('Bob', 'String');
+   * i.e. the place holder should be unique and should not contain in any other operational use in query
+   */
   public function testComposeQueryFailure() {
     $cases[] = array(
       'SELECT * FROM whatever WHERE name = %1 AND title = %2 AND year LIKE \'%2012\' ',
@@ -173,25 +174,25 @@ class CRM_Core_DAOTest extends CiviUnitTestCase {
         'this is an even longer string which is exactly 60 character',
         60,
         FALSE,
-        'this is an even longer string which is exactly 60 character'
+        'this is an even longer string which is exactly 60 character',
       ),
       array(
         'this is an even longer string which is exactly 60 character',
         60,
         TRUE,
-        'this is an even longer string which is exactly 60 character'
+        'this is an even longer string which is exactly 60 character',
       ),
       array(
         'this is an even longer string which is a bit more than 60 character',
         60,
         FALSE,
-        'this is an even longer string which is a bit more than 60 ch'
+        'this is an even longer string which is a bit more than 60 ch',
       ),
       array(
         'this is an even longer string which is a bit more than 60 character',
         60,
         TRUE,
-        'this is an even longer string which is a bit more th_c1cbd519'
+        'this is an even longer string which is a bit more th_c1cbd519',
       ),
     );
   }
@@ -223,4 +224,88 @@ class CRM_Core_DAOTest extends CiviUnitTestCase {
     }
     $this->assertTrue($exception_thrown);
   }
+
+  /**
+   * requireSafeDBName() method (to check valid database name)
+   */
+  public function testRequireSafeDBName() {
+    $databases = array(
+      'testdb' => TRUE,
+      'test_db' => TRUE,
+      'TEST_db' => TRUE,
+      '123testdb' => TRUE,
+      'test12db34' => TRUE,
+      'test_12_db34' => TRUE,
+      'test-db' => TRUE,
+      'test;db' => FALSE,
+      'test*&db' => FALSE,
+      'testdb;Delete test' => FALSE,
+      '123456' => FALSE,
+      'test#$%^&*' => FALSE,
+    );
+    $testDetails = array();
+    foreach ($databases as $database => $val) {
+      $this->assertEquals(CRM_Core_DAO::requireSafeDBName($database), $val);
+    }
+  }
+
+  /**
+   * Test the function designed to find myIsam tables.
+   */
+  public function testMyISAMCheck() {
+    // Cleanup previous, failed tests.
+    CRM_Core_DAO::executeQuery('DROP TABLE IF EXISTS civicrm_my_isam');
+
+    // A manually created MyISAM table should raise a redflag.
+    $this->assertEquals(0, CRM_Core_DAO::isDBMyISAM());
+    CRM_Core_DAO::executeQuery('CREATE TABLE civicrm_my_isam (`id` int(10) unsigned NOT NULL) ENGINE = MyISAM');
+    $this->assertEquals(1, CRM_Core_DAO::isDBMyISAM());
+    CRM_Core_DAO::executeQuery('DROP TABLE civicrm_my_isam');
+
+    // A temp table should not raise flag (static naming).
+    $tempName = CRM_Core_DAO::createTempTableName('civicrm', FALSE);
+    $this->assertEquals(0, CRM_Core_DAO::isDBMyISAM());
+    CRM_Core_DAO::executeQuery("CREATE TABLE $tempName (`id` int(10) unsigned NOT NULL) ENGINE = MyISAM");
+    $this->assertEquals(0, CRM_Core_DAO::isDBMyISAM()); // Ignore temp tables
+    CRM_Core_DAO::executeQuery("DROP TABLE $tempName");
+
+    // A temp table should not raise flag (randomized naming).
+    $tempName = CRM_Core_DAO::createTempTableName('civicrm', TRUE);
+    $this->assertEquals(0, CRM_Core_DAO::isDBMyISAM());
+    CRM_Core_DAO::executeQuery("CREATE TABLE $tempName (`id` int(10) unsigned NOT NULL) ENGINE = MyISAM");
+    $this->assertEquals(0, CRM_Core_DAO::isDBMyISAM()); // Ignore temp tables
+    CRM_Core_DAO::executeQuery("DROP TABLE $tempName");
+  }
+
+  /**
+   * CRM-19930: Test toArray() function with $format param
+   */
+  public function testDAOtoArray() {
+    $format = 'user[%s]';
+    $params = array(
+      'first_name' => 'Testy',
+      'last_name' => 'McScallion',
+      'contact_type' => 'Individual',
+    );
+
+    $dao = CRM_Contact_BAO_Contact::add($params);
+    $query = "SELECT contact_type, display_name FROM civicrm_contact WHERE id={$dao->id}";
+    $toArray = array(
+      'contact_type' => 'Individual',
+      'display_name' => 'Testy McScallion',
+    );
+    $modifiedKeyArray = array();
+    foreach ($toArray as $k => $v) {
+      $modifiedKeyArray[sprintf($format, $k)] = $v;
+    }
+
+    $dao = CRM_Core_DAO::executeQuery($query);
+    while ($dao->fetch()) {
+      $daoToArray = $dao->toArray();
+      $this->checkArrayEquals($toArray, $daoToArray);
+      $daoToArray = $dao->toArray($format);
+      $this->checkArrayEquals($modifiedKeyArray, $daoToArray);
+    }
+  }
+
 }

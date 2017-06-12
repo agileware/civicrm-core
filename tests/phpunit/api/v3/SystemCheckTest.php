@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -25,10 +25,6 @@
  +--------------------------------------------------------------------+
  */
 
-
-require_once 'CiviTest/CiviUnitTestCase.php';
-
-
 /**
  * System.check API has many special test cases, so they have their own class.
  *
@@ -37,6 +33,7 @@ require_once 'CiviTest/CiviUnitTestCase.php';
  * an error.
  *
  * @package CiviCRM_APIv3
+ * @group headless
  */
 class api_v3_SystemCheckTest extends CiviUnitTestCase {
   protected $_apiversion;

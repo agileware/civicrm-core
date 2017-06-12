@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -229,9 +229,6 @@ class WebTest_Event_AddParticipationTest extends CiviSeleniumTestCase {
     //clicking save
     $this->clickAjaxLink('_qf_Field_done-bottom');
 
-    // Visit home page for a sec to give caches time to be cleared
-    $this->openCiviPage('');
-
     $this->openCiviPage("participant/add", "reset=1&action=add&context=standalone", "_qf_Participant_upload-bottom");
 
     // Type contact last name in contact auto-complete, wait for dropdown and click first result
@@ -264,11 +261,12 @@ class WebTest_Event_AddParticipationTest extends CiviSeleniumTestCase {
     $this->assertTrue($this->isTextPresent('Source for this registration (if applicable).'));
 
     // Select an event fee
-    $this->waitForElementPresent('priceset');
+    $this->waitForElementPresent("xpath=//div[@class='crm-event-form-fee-block']");
 
     $this->click("xpath=//input[@class='crm-form-radio']");
 
     // Enter amount to be paid (note: this should default to selected fee level amount, s/b fixed during 3.2 cycle)
+    $this->waitForElementPresent('total_amount');
     $this->type('total_amount', '800');
 
     // Select payment method = Check and enter chk number
@@ -282,9 +280,9 @@ class WebTest_Event_AddParticipationTest extends CiviSeleniumTestCase {
     // Is status message correct?
     $this->checkCRMAlert("Event registration for $displayName has been added");
 
-    $this->waitForElementPresent("xpath=//*[@id='Search']//table//tbody/tr[1]/td[8]/span/a[text()='View']");
+    $this->waitForElementPresent("xpath=//form[@class='CRM_Event_Form_Search crm-search-form']/table/tbody/tr[1]/td[8]/span/a[text()='View']");
     //click through to the participant view screen
-    $this->clickAjaxLink("xpath=//*[@id='Search']/table/tbody/tr[1]/td[8]/span/a[text()='View']", '_qf_ParticipantView_cancel-bottom');
+    $this->clickAjaxLink("xpath=//form[@class='CRM_Event_Form_Search crm-search-form']/table/tbody/tr[1]/td[8]/span/a[text()='View']", '_qf_ParticipantView_cancel-bottom');
 
     $this->webtestVerifyTabularData(
       array(

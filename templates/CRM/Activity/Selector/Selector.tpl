@@ -2,7 +2,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -39,7 +39,7 @@
       </div>
     </div><!-- /.crm-accordion-body -->
   </div><!-- /.crm-accordion-wrapper -->
-  <table class="contact-activity-selector-{$context} crm-ajax-table" data-order='[[5,"desc"]]'>
+  <table class="contact-activity-selector-{$context} crm-ajax-table">
     <thead>
     <tr>
       <th data-data="activity_type" class="crm-contact-activity-activity_type">{ts}Type{/ts}</th>
@@ -62,18 +62,28 @@
           "ajax": {
             "url": {/literal}'{crmURL p="civicrm/ajax/contactactivity" h=0 q="snippet=4&context=$context&cid=$contactId"}'{literal},
             "data": function (d) {
-              d.activity_type_id = $('.crm-activity-selector-activity select#activity_type_filter_id').val(),
-              d.activity_type_exclude_id = $('.crm-activity-selector-activity select#activity_type_exclude_filter_id').val()
+              d.activity_type_id = $('.crm-activity-selector-' + context + ' select#activity_type_filter_id').val(),
+              d.activity_type_exclude_id = $('.crm-activity-selector-' + context + ' select#activity_type_exclude_filter_id').val()
             }
           }
         });
         $(function($) {
           $('.activity-search-options :input').change(function(){
-            CRM.$('.contact-activity-selector-activity').DataTable().draw();
+            CRM.$('table.contact-activity-selector-' + context).DataTable().draw();
           });
         });
       })(CRM.$);
     </script>
   {/literal}
+  <style type="text/css">
+    {crmAPI var='statuses' entity='OptionValue' action='get' return="color,value" option_limit=0 option_group_id="activity_status"}
+    {foreach from=$statuses.values item=status}
+      {if !empty($status.color)}
+        table.contact-activity-selector-{$context} tr.status-id-{$status.value} {ldelim}
+          border-left: 3px solid {$status.color};
+        {rdelim}
+      {/if}
+    {/foreach}
+  </style>
 </div>
 {include file="CRM/Case/Form/ActivityToCase.tpl" contactID=$contactId}

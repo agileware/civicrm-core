@@ -3,7 +3,7 @@
    +--------------------------------------------------------------------+
    | CiviCRM version 4.7                                                |
    +--------------------------------------------------------------------+
-   | Copyright CiviCRM LLC (c) 2004-2015                                |
+   | Copyright CiviCRM LLC (c) 2004-2017                                |
    +--------------------------------------------------------------------+
    | This file is a part of CiviCRM.                                    |
    |                                                                    |
@@ -127,7 +127,7 @@ class WebTest_Member_OnlineMembershipCreateTest extends CiviSeleniumTestCase {
     $this->click("xpath=//tr/td[1]/p/label[contains(text(),'Membership is a Test?')]/../label[contains(text(),'Yes')]/preceding-sibling::input[1]");
     $this->type("sort_name", "$lastName $firstName");
     $this->clickLink("_qf_Search_refresh", "xpath=//div[@id='memberSearch']/table/tbody/tr");
-    $this->click("xpath=//div[@id='memberSearch']/table/tbody/tr/td[11]/span/a[text()='View']");
+    $this->click("xpath=//table[@class='selector row-highlight']/tbody/tr/td[11]/span/a[text()='View']");
     $this->waitForElementPresent("_qf_MembershipView_cancel-bottom");
 
     //View Membership Record
@@ -135,14 +135,8 @@ class WebTest_Member_OnlineMembershipCreateTest extends CiviSeleniumTestCase {
       'Member' => $firstName . ' ' . $lastName,
       'Membership Type' => $memTypeTitle1,
       'Source' => 'Online Contribution:' . ' ' . $contributionTitle,
+      'Status' => 'Pending',
     );
-    if ($payLater) {
-      $verifyData['Status'] = 'Pending';
-    }
-    else {
-
-      $verifyData['Status'] = 'New';
-    }
     $this->webtestVerifyTabularData($verifyData);
 
     // Click View action link on associated contribution record
@@ -153,31 +147,24 @@ class WebTest_Member_OnlineMembershipCreateTest extends CiviSeleniumTestCase {
     $verifyData = array(
       'From' => $firstName . ' ' . $lastName,
       'Total Amount' => '$ 100.00',
+      'Contribution Status' => 'Pending : Pay Later',
     );
-    if ($payLater) {
-      $verifyData['Contribution Status'] = 'Pending : Pay Later';
-    }
-    else {
-      $verifyData['Contribution Status'] = 'Completed';
-    }
     $this->webtestVerifyTabularData($verifyData);
 
     //CRM-15735 - verify membership dates gets changed w.r.t receive_date of contribution.
-    if ($payLater) {
-      $receiveDate = date('F jS, Y', strtotime("-1 month"));
-      $endDate = date('F jS, Y', strtotime("+1 year -1 month -1 day"));
-      $this->clickAjaxLink("xpath=//button//span[contains(text(),'Edit')]", 'receive_date');
-      $this->select('contribution_status_id', 'Completed');
-      $this->webtestFillDate('receive_date', '-1 month');
-      $this->clickAjaxLink("xpath=//button//span[contains(text(),'Save')]", "xpath=//div[@class='ui-dialog-buttonset']/button[3]/span[2]");
-      $updatedData = array(
-        'Status' => 'New',
-        'Member Since' => $receiveDate,
-        'Start date' => $receiveDate,
-        'End date' => $endDate,
-      );
-      $this->webtestVerifyTabularData($updatedData);
-    }
+    $receiveDate = date('F jS, Y', strtotime("-1 month"));
+    $endDate = date('F jS, Y', strtotime("+1 year -1 month -1 day"));
+    $this->clickAjaxLink("xpath=//button//span[contains(text(),'Edit')]", 'receive_date');
+    $this->select('contribution_status_id', 'Completed');
+    $this->webtestFillDate('receive_date', '-1 month');
+    $this->clickAjaxLink("xpath=//button//span[contains(text(),'Save')]", "xpath=//div[@class='ui-dialog-buttonset']/button[3]/span[2]");
+    $updatedData = array(
+      'Status' => 'New',
+      'Member Since' => $receiveDate,
+      'Start date' => $receiveDate,
+      'End date' => $endDate,
+    );
+    $this->webtestVerifyTabularData($updatedData);
 
     // CRM-8141 signup for membership 2 with same anonymous user info (should create 2 separate membership records because membership orgs are different)
     //logout
@@ -212,7 +199,7 @@ class WebTest_Member_OnlineMembershipCreateTest extends CiviSeleniumTestCase {
    * @param bool $amountSection
    * @param bool $freeMembership
    */
-  public function _testOnlineMembershipSignup($pageId, $memTypeId, $firstName, $lastName, $payLater, $hash, $otherAmount = FALSE, $amountSection = TRUE, $freeMembership = FALSE) {
+  public function _testOnlineMembershipSignup($pageId, $memTypeId, $firstName, $lastName, $payLater, $hash, $otherAmount = FALSE, $amountSection = TRUE, $freeMembership = FALSE, $onBehalf = FALSE, $onBehalfParams = array()) {
     //Open Live Contribution Page
     $this->openCiviPage("contribute/transact", "reset=1&id=$pageId&action=preview", "_qf_Main_upload-bottom");
     // Select membership type 1
@@ -220,19 +207,34 @@ class WebTest_Member_OnlineMembershipCreateTest extends CiviSeleniumTestCase {
     if ($memTypeId != 'No thank you') {
       $this->click("xpath=//div[@class='crm-section membership_amount-section']/div[2]//div/span/label/span[1][contains(text(),'$memTypeId')]");
     }
-
     else {
       $this->click("xpath=//div[@class='crm-section membership_amount-section']/div[2]//span/label[contains(text(),'$memTypeId')]");
-
     }
     if (!$otherAmount && $amountSection) {
       $this->click("xpath=//div[@class='crm-section contribution_amount-section']/div[2]//span/label[text()='No thank you']");
     }
     elseif ($amountSection) {
+      $this->clickAt("xpath=//div[@class='content other_amount-content']/input");
+      $this->keyDown("xpath=//div[@class='content other_amount-content']/input", " ");
       $this->type("xpath=//div[@class='content other_amount-content']/input", $otherAmount);
+      $this->typeKeys("xpath=//div[@class='content other_amount-content']/input", $otherAmount);
     }
     if ($payLater) {
-      $this->click("xpath=//div[@class='crm-section payment_processor-section']/div[2]//label[text()='Pay later label {$hash}']");
+      $this->waitForAjaxContent();
+      $this->click("xpath=//label[text()='Pay later label {$hash}']");
+    }
+    if ($onBehalf && $onBehalfParams) {
+      if ($onBehalfParams['mode'] == 'optional') {
+        $this->click("is_for_organization");
+      }
+      $this->type("onbehalf[organization_name]", $onBehalfParams['org_name']);
+      $this->type("onbehalf[phone-3-1]", $onBehalfParams['org_phone']);
+      $this->type("onbehalf[email-3]", $onBehalfParams['org_email']);
+      $this->type("onbehalf[street_address-3]", "100 Main Street");
+      $this->type("onbehalf[city-3]", "San Francisco");
+      $this->type("onbehalf[postal_code-3]", $onBehalfParams['org_postal_code']);
+      $this->select("onbehalf[country-3]", "value=1228");
+      $this->select("onbehalf[state_province-3]", "value=1001");
     }
     $this->type("email-5", $firstName . "@example.com");
     $this->waitForElementPresent("first_name");
@@ -253,6 +255,8 @@ class WebTest_Member_OnlineMembershipCreateTest extends CiviSeleniumTestCase {
     }
     else {
       if (!$payLater && $amountSection) {
+        $this->click("xpath=//label[text()='Test Processor']");
+        $this->waitForAjaxContent();
         //Credit Card Info
         $this->select("credit_card_type", "value=Visa");
         $this->type("credit_card_number", "4111111111111111");
@@ -349,8 +353,21 @@ class WebTest_Member_OnlineMembershipCreateTest extends CiviSeleniumTestCase {
 
     $this->type("sort_name", "$lastName $firstName");
     $this->click("xpath=//tr/td[1]/label[contains(text(), 'Contribution is a Test?')]/../../td[2]/label[contains(text(), 'Yes')]/preceding-sibling::input[1]");
-    $this->clickLink("_qf_Search_refresh", "xpath=//div[@id='contributionSearch']//table//tbody/tr[1]/td[11]/span/a[text()='View']");
-    $this->clickLink("xpath=//div[@id='contributionSearch']//table//tbody/tr[1]/td[11]/span/a[text()='View']", "_qf_ContributionView_cancel-bottom", FALSE);
+    $this->clickLink("_qf_Search_refresh", "xpath=//div[@id='contributionSearch']//table//tbody/tr[1]/td[10]/span/a[text()='View']");
+
+    // assert financial data - CRM-17863
+    $this->waitForElementPresent("xpath=//tr/td[@class='crm-contribution-amount']/a[@title='view payments']");
+    $this->click("xpath=//tr/td[@class='crm-contribution-amount']/a[@title='view payments']");
+    $this->waitForAjaxContent();
+    $verifyFinancialData = array(
+      1 => '50.00',
+      2 => 'Donation',
+      6 => 'Completed',
+    );
+    foreach ($verifyFinancialData as $col => $data) {
+      $this->verifyText("xpath=//tr[@class='crm-child-row']/td/div/table/tbody/tr[2]/td[{$col}]", $data);
+    }
+    $this->clickLink("xpath=//div[@id='contributionSearch']//table//tbody/tr[1]/td[10]/span/a[text()='View']", "_qf_ContributionView_cancel-bottom", FALSE);
 
     //View Contribution Record and verify data
     $expected = array(
@@ -376,10 +393,11 @@ class WebTest_Member_OnlineMembershipCreateTest extends CiviSeleniumTestCase {
 
     $hash = substr(sha1(rand()), 0, 7);
     $rand = 2 * rand(2, 50);
-    $amountSection = $payLater = $allowOtherAmount = $onBehalf = $pledges = $recurring = FALSE;
+    $amountSection = $payLater = $allowOtherAmount = $pledges = $recurring = FALSE;
     $premiums = $widget = $pcp = $isSeparatePayment = $membershipsRequired = $fixedAmount = $friend = FALSE;
     $memberships = TRUE;
     $memPriceSetId = NULL;
+    $onBehalf = TRUE;
     $profilePreId = 1;
     $profilePostId = NULL;
     $contributionTitle = "Title $hash";
@@ -457,8 +475,22 @@ class WebTest_Member_OnlineMembershipCreateTest extends CiviSeleniumTestCase {
       $this->openCiviPage("contribute/search", "reset=1", "contribution_date_low");
       $this->type("sort_name", "$lastName $firstName");
       $this->click("xpath=//tr/td[1]/label[contains(text(), 'Contribution is a Test?')]/../../td[2]/label[contains(text(), 'Yes')]/preceding-sibling::input[1]");
-      $this->clickLink("_qf_Search_refresh", "xpath=//div[@id='contributionSearch']//table//tbody/tr[1]/td[11]/span/a[text()='View']");
-      $this->clickLink("xpath=//div[@id='contributionSearch']//table//tbody/tr[1]/td[11]/span/a[text()='View']", "_qf_ContributionView_cancel-bottom", FALSE);
+      $this->clickLink("_qf_Search_refresh", "xpath=//div[@id='contributionSearch']//table//tbody/tr[1]/td[10]/span/a[text()='View']");
+
+      // assert financial data - CRM-17863
+      $this->waitForElementPresent("xpath=//tr/td[@class='crm-contribution-amount']/a[@title='view payments']");
+      $this->click("xpath=//tr/td[@class='crm-contribution-amount']/a[@title='view payments']");
+      $this->waitForAjaxContent();
+      $verifyFinancialData = array(
+        1 => '0.00',
+        2 => 'Member Dues',
+        3 => 'Credit Card',
+        6 => 'Completed',
+      );
+      foreach ($verifyFinancialData as $col => $data) {
+        $this->verifyText("xpath=//tr[@class='crm-child-row']/td/div/table/tbody/tr[2]/td[{$col}]", $data);
+      }
+      $this->clickLink("xpath=//div[@id='contributionSearch']//table//tbody/tr[1]/td[10]/span/a[text()='View']", "_qf_ContributionView_cancel-bottom", FALSE);
 
       //View Contribution Record and verify data
       $expected = array(
@@ -477,7 +509,7 @@ class WebTest_Member_OnlineMembershipCreateTest extends CiviSeleniumTestCase {
 
       $this->type("sort_name", "$lastName $firstName");
       $this->clickLink("_qf_Search_refresh", "xpath=//div[@id='memberSearch']/table/tbody/tr");
-      $this->click("xpath=//div[@id='memberSearch']/table/tbody/tr/td[11]/span/a[text()='View']");
+      $this->click("xpath=//table[@class='selector row-highlight']/tbody/tr/td[11]/span/a[text()='View']");
       $this->waitForElementPresent("_qf_MembershipView_cancel-bottom");
 
       //View Membership Record
@@ -490,6 +522,108 @@ class WebTest_Member_OnlineMembershipCreateTest extends CiviSeleniumTestCase {
 
       $this->webtestVerifyTabularData($verifyData);
     }
+  }
+
+  /**
+   * CRM-18163 - To check whether multiple organizations with same name
+   * are created based on dedupe rule other than org name.
+   */
+  public function testOnlineMembershipCreateOnBehalfWithOrgDedupe() {
+    // Add unsupervised dedupe rule.
+    $this->webtestLogin();
+    $this->openCiviPage("contact/deduperules", "reset=1");
+    $this->waitForElementPresent("xpath=//div[@id='option13_wrapper']/table/tbody/tr[2]/td[3]/span/a[2][text()='Edit Rule']");
+    $this->click("xpath=//div[@id='option13_wrapper']/table/tbody/tr[2]/td[3]/span/a[2][text()='Edit Rule']");
+    $this->waitForElementPresent('_qf_DedupeRules_next');
+
+    $this->type('title', "Postal Code unsupervised dedupe rule");
+    $this->click('CIVICRM_QFID_Unsupervised_used');
+    $this->select('where_0', "Organization Name");
+    $this->type('weight_0', 10);
+    $this->select('where_1', "Postal Code");
+    $this->type('length_1', 3);
+    $this->type('weight_1', 10);
+    $this->type('threshold', 20);
+    $this->click('_qf_DedupeRules_next');
+    $this->webtestLogout();
+
+    //login with admin credentials & make sure we do have required permissions.
+    $permissions = array("edit-1-make-online-contributions", "edit-1-profile-listings-and-forms");
+    $this->changePermissions($permissions);
+
+    $hash = substr(sha1(rand()), 0, 7);
+    $rand = 2 * rand(2, 50);
+    $amountSection = $payLater = $allowOtherAmount = $pledges = $recurring = $membershipsRequired = FALSE;
+    $premiums = $widget = $pcp = $isSeparatePayment = $fixedAmount = $friend = FALSE;
+    $memberships = FALSE;
+    $memPriceSetId = NULL;
+    $profilePreId = 1;
+    $profilePostId = NULL;
+    $onBehalf = 'optional';
+    $contributionTitle = "Title $hash";
+    $pageId = $this->webtestAddContributionPage(
+      $hash,
+      $rand,
+      $contributionTitle,
+      NULL,
+      $amountSection,
+      $payLater,
+      $onBehalf,
+      $pledges,
+      $recurring,
+      $memberships,
+      $memPriceSetId,
+      $friend,
+      $profilePreId,
+      $profilePostId,
+      $premiums,
+      $widget,
+      $pcp,
+      FALSE,
+      FALSE,
+      $isSeparatePayment,
+      FALSE,
+      $allowOtherAmount,
+      TRUE,
+      'Member Dues',
+      $fixedAmount,
+      $membershipsRequired
+    );
+    $memTypeParams = $this->webtestAddMembershipType('rolling', 1, 'year', 'no', 0);
+    $memTypeTitle = $memTypeParams['membership_type'];
+    $memTypeId = explode('&id=', $this->getAttribute("xpath=//div[@id='membership_type']/table/tbody//tr/td[1]/div[text()='{$memTypeTitle}']/../../td[12]/span/a[3]@href"));
+    $memTypeId = $memTypeId[1];
+
+    $this->openCiviPage("admin/contribute/membership", "reset=1&action=update&id={$pageId}", '_qf_MembershipBlock_submit_savenext');
+    $this->click('member_is_active');
+    $this->waitForElementPresent('displayFee');
+    $this->type('new_title', "Title - New Membership $hash");
+    $this->type('renewal_title', "Title - Renewals $hash");
+    $this->click("membership_type_$memTypeId");
+    $this->clickLink('_qf_MembershipBlock_submit_savenext');
+
+    $firstName = 'Ma' . substr(sha1(rand()), 0, 4);
+    $lastName = 'An' . substr(sha1(rand()), 0, 7);
+
+    $onBehalfParams = array(
+      'org_name' => 'Test Org Dedupe', // Same Org Name.
+      'org_phone' => '123-456-789',
+      'org_email' => 'testorgdedupe@test.com', // Same Email address.
+      'org_postal_code' => 'ABC 123',
+      'mode' => 'optional',
+    );
+
+    $this->_testOnlineMembershipSignup($pageId, $memTypeTitle, $firstName, $lastName, $payLater, $hash, $allowOtherAmount, $amountSection, TRUE, TRUE, $onBehalfParams);
+    $onBehalfParams['org_postal_code'] = 'XYZ 123';
+    $this->_testOnlineMembershipSignup($pageId, $memTypeTitle, $firstName, $lastName, $payLater, $hash, $allowOtherAmount, $amountSection, TRUE, TRUE, $onBehalfParams);
+
+    $this->webtestLogin();
+    $this->openCiviPage("contact/search", "reset=1");
+    $this->waitForElementPresent("_qf_Basic_refresh");
+    $this->type('sort_name', $onBehalfParams['org_email']);
+    $this->click("_qf_Basic_refresh");
+    $this->waitForElementPresent("xpath=//div[@class='crm-search-results']");
+    $this->assertElementContainsText("xpath=//div[@id='search-status']/table/tbody/tr[2]/td[2]/label[1]", "All 2 records");
   }
 
 }

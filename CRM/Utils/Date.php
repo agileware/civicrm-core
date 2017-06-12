@@ -3,7 +3,7 @@
   +--------------------------------------------------------------------+
   | CiviCRM version 4.7                                                |
   +--------------------------------------------------------------------+
-  | Copyright CiviCRM LLC (c) 2004-2015                                |
+  | Copyright CiviCRM LLC (c) 2004-2017                                |
   +--------------------------------------------------------------------+
   | This file is a part of CiviCRM.                                    |
   |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -184,7 +184,7 @@ class CRM_Utils_Date {
       // set LC_TIME and build the arrays from locale-provided names
       // June 1st, 1970 was a Monday
       CRM_Core_I18n::setLcTime();
-      for ($i = $firstDay; count($days) < 7; $i = $i > 6 ? 0 : $i + 1) {
+      for ($i = $firstDay; count($days) < 7; $i = $i > 5 ? 0 : $i + 1) {
         $days[$i] = strftime('%a', mktime(0, 0, 0, 6, $i, 1970));
       }
     }
@@ -213,7 +213,7 @@ class CRM_Utils_Date {
       // set LC_TIME and build the arrays from locale-provided names
       // June 1st, 1970 was a Monday
       CRM_Core_I18n::setLcTime();
-      for ($i = $firstDay; count($days) < 7; $i = $i > 6 ? 0 : $i + 1) {
+      for ($i = $firstDay; count($days) < 7; $i = $i > 5 ? 0 : $i + 1) {
         $days[$i] = strftime('%A', mktime(0, 0, 0, 6, $i, 1970));
       }
     }
@@ -939,21 +939,21 @@ class CRM_Utils_Date {
   }
 
   /**
-   * Check given format is valid for bith date.
-   * and retrun supportable birth date format w/ qf mapping.
+   * Get the smarty view presentation mapping for the given format.
+   *
+   * Historically it was decided that where the view format is 'dd/mm/yy' or 'mm/dd/yy'
+   * they should be rendered using a longer date format. This is likely as much to
+   * do with the earlier date widget being unable to handle some formats as usablity.
+   * However, we continue to respect this.
    *
    * @param $format
    *   Given format ( eg 'M Y', 'Y M' ).
-   *   return array of qfMapping and date parts for date format.
    *
-   * @return array|null|string
+   * @return string|null
+   *   Smarty translation of the date format. Null is also valid and is translated
+   *   according to the available parts at the smarty layer.
    */
-  public static function &checkBirthDateFormat($format = NULL) {
-    $birthDateFormat = NULL;
-    if (!$format) {
-      $birthDateFormat = self::getDateFormat('birth');
-    }
-
+  public static function getDateFieldViewFormat($format) {
     $supportableFormats = array(
       'mm/dd' => '%B %E%f',
       'dd-mm' => '%E%f %B',
@@ -963,11 +963,57 @@ class CRM_Utils_Date {
       'dd/mm/yy' => '%E%f %B %Y',
     );
 
-    if (array_key_exists($birthDateFormat, $supportableFormats)) {
-      $birthDateFormat = array('qfMapping' => $supportableFormats[$birthDateFormat]);
-    }
+    return array_key_exists($format, $supportableFormats) ? $supportableFormats[$format] : self::pickBestSmartyFormat($format);
+  }
 
-    return $birthDateFormat;
+  /**
+   * Pick the smarty format from settings that best matches the time string we have.
+   *
+   * For view purposes we historically use the setting that most closely matches the data
+   * in the format from our settings, as opposed to the setting configured for the field.
+   *
+   * @param $format
+   * @return mixed
+   */
+  public static function pickBestSmartyFormat($format) {
+    if (stristr($format, 'h')) {
+      return Civi::settings()->get('dateformatDatetime');
+    }
+    if (stristr($format, 'd') || stristr($format, 'j')) {
+      return Civi::settings()->get('dateformatFull');
+    }
+    if (stristr($format, 'm')) {
+      return Civi::settings()->get('dateformatPartial');
+    }
+    return Civi::settings()->get('dateformatYear');
+  }
+
+  /**
+   * Map date plugin and actual format that is used by PHP.
+   *
+   * @return array
+   */
+  public static function datePluginToPHPFormats() {
+    $dateInputFormats = array(
+      "mm/dd/yy" => 'm/d/Y',
+      "dd/mm/yy" => 'd/m/Y',
+      "yy-mm-dd" => 'Y-m-d',
+      "dd-mm-yy" => 'd-m-Y',
+      "dd.mm.yy" => 'd.m.Y',
+      "M d" => 'M j',
+      "M d, yy" => 'M j, Y',
+      "d M yy" => 'j M Y',
+      "MM d, yy" => 'F j, Y',
+      "d MM yy" => 'j F Y',
+      "DD, d MM yy" => 'l, j F Y',
+      "mm/dd" => 'm/d',
+      "dd-mm" => 'd-m',
+      "yy-mm" => 'Y-m',
+      "M yy" => 'M Y',
+      "M Y" => 'M Y',
+      "yy" => 'Y',
+    );
+    return $dateInputFormats;
   }
 
   /**
@@ -1742,6 +1788,84 @@ class CRM_Utils_Date {
   }
 
   /**
+   * Add the metadata about a date field to the field.
+   *
+   * This metadata will work with the call $form->add('datepicker', ...
+   *
+   * @param array $fieldMetaData
+   * @param array $field
+   *
+   * @return array
+   */
+  public static function addDateMetadataToField($fieldMetaData, $field) {
+    if (isset($fieldMetaData['html'])) {
+      $field['html_type'] = $fieldMetaData['html']['type'];
+      if ($field['html_type'] === 'Select Date') {
+        if (!isset($field['date_format'])) {
+          $dateAttributes = CRM_Core_SelectValues::date($fieldMetaData['html']['formatType'], NULL, NULL, NULL, 'Input');
+          $field['start_date_years'] = $dateAttributes['minYear'];
+          $field['end_date_years'] = $dateAttributes['maxYear'];
+          $field['date_format'] = $dateAttributes['format'];
+          $field['is_datetime_field'] = TRUE;
+          $field['time_format'] = $dateAttributes['time'];
+          $field['smarty_view_format'] = $dateAttributes['smarty_view_format'];
+        }
+        $field['datepicker']['extra'] = self::getDatePickerExtra($field);
+        $field['datepicker']['attributes'] = self::getDatePickerAttributes($field);
+      }
+    }
+    return $field;
+  }
+
+
+  /**
+   * Get the fields required for the 'extra' parameter when adding a datepicker.
+   *
+   * @param array $field
+   *
+   * @return array
+   */
+  public static function getDatePickerExtra($field) {
+    $extra = array();
+    if (isset($field['date_format'])) {
+      $extra['date'] = $field['date_format'];
+      $extra['time'] = $field['time_format'];
+    }
+    $thisYear = date('Y');
+    if (isset($field['start_date_years'])) {
+      $extra['minDate'] = date('Y-m-d', strtotime('-' . ($thisYear - $field['start_date_years']) . ' years'));
+    }
+    if (isset($field['end_date_years'])) {
+      $extra['maxDate'] = date('Y-m-d', strtotime('-' . ($thisYear - $field['end_date_years']) . ' years'));
+    }
+    return $extra;
+  }
+
+  /**
+   * Get the attributes parameters required for datepicker.
+   *
+   * @param array $field
+   *   Field metadata
+   *
+   * @return array
+   *   Array ready to pass to $this->addForm('datepicker' as attributes.
+   */
+  public static function getDatePickerAttributes(&$field) {
+    $attributes = array();
+    $dateAttributes = array(
+      'start_date_years' => 'minYear',
+      'end_date_years' => 'maxYear',
+      'date_format' => 'format',
+    );
+    foreach ($dateAttributes as $dateAttribute => $mapTo) {
+      if (isset($field[$dateAttribute])) {
+        $attributes[$mapTo] = $field[$dateAttribute];
+      }
+    }
+    return $attributes;
+  }
+
+  /**
    * Function to convert mysql to date plugin format.
    *
    * @param string $mysqlDate
@@ -1837,25 +1961,6 @@ class CRM_Utils_Date {
   }
 
   /**
-   * Get the time in UTC for the current time. You can optionally send an offset from the current time if needed
-   *
-   * @param int $offset
-   *   the offset from the current time in seconds.
-   *
-   * @return string
-   *   the time in UTC
-   */
-  public static function getUTCTime($offset = 0) {
-    $originalTimezone = date_default_timezone_get();
-    date_default_timezone_set('UTC');
-    $time = time() + $offset;
-    $now = date('YmdHis', $time);
-    date_default_timezone_set($originalTimezone);
-    return $now;
-  }
-
-
-  /**
    * @param $date
    * @param $dateType
    *
@@ -1903,6 +2008,22 @@ class CRM_Utils_Date {
     }
 
     return $formattedDate;
+  }
+
+  /**
+   * Function to return days of the month.
+   *
+   * @return array
+   */
+  public static function getCalendarDayOfMonth() {
+    $month = array();
+    for ($i = 1; $i <= 31; $i++) {
+      $month[$i] = $i;
+      if ($i == 31) {
+        $month[$i] = $i . ' / Last day of month';
+      }
+    }
+    return $month;
   }
 
 }

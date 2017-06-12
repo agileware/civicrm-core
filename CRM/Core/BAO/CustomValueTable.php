@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  * $Id$
  *
  */
@@ -142,7 +142,7 @@ class CRM_Core_BAO_CustomValueTable {
                       CRM_Core_PseudoConstant::countryIsoCode(), TRUE
                     );
                   }
-                  $validCountries[] = CRM_Utils_Array::value('country_id', $states);
+                  $validCountries[] = CRM_Utils_Array::value('country_id', $countries);
                 }
                 $value = implode(CRM_Core_DAO::VALUE_SEPARATOR,
                   $validCountries
@@ -241,7 +241,7 @@ class CRM_Core_BAO_CustomValueTable {
             $params[$count] = array($entityID, 'Integer');
             $count++;
 
-            $fieldNames = implode(',', array_keys($set));
+            $fieldNames = implode(',', CRM_Utils_Type::escapeAll(array_keys($set), 'MysqlColumnNameOrAlias'));
             $fieldValues = implode(',', array_values($set));
             $query = "$sqlOP ( $fieldNames ) VALUES ( $fieldValues )";
             // for multiple values we dont do on duplicate key update
@@ -400,13 +400,14 @@ class CRM_Core_BAO_CustomValueTable {
    *                                   is set the entityType is ignored
    *
    * @param bool $formatMultiRecordField
+   * @param array $DTparams - CRM-17810 dataTable params for the multiValued custom fields.
    *
    * @return array
    *   Array of custom values for the entity with key=>value
    *                                   pairs specified as civicrm_custom_field.id => custom value.
    *                                   Empty array if no custom values found.
    */
-  public static function &getEntityValues($entityID, $entityType = NULL, $fieldIDs = NULL, $formatMultiRecordField = FALSE) {
+  public static function &getEntityValues($entityID, $entityType = NULL, $fieldIDs = NULL, $formatMultiRecordField = FALSE, $DTparams = NULL) {
     if (!$entityID) {
       // adding this here since an empty contact id could have serious repurcussions
       // like looping forever
@@ -428,6 +429,14 @@ class CRM_Core_BAO_CustomValueTable {
       $cond[] = "cg.extends IN ( 'Contact', 'Individual', 'Household', 'Organization' )";
     }
     $cond = implode(' AND ', $cond);
+
+    $limit = $orderBy = '';
+    if (!empty($DTparams['rowCount']) && $DTparams['rowCount'] > 0) {
+      $limit = " LIMIT " . CRM_Utils_Type::escape($DTparams['offset'], 'Integer') . ", " . CRM_Utils_Type::escape($DTparams['rowCount'], 'Integer');
+    }
+    if (!empty($DTparams['sort'])) {
+      $orderBy = ' ORDER BY ' . CRM_Utils_Type::escape($DTparams['sort'], 'String');
+    }
 
     // First find all the fields that extend this type of entity.
     $query = "
@@ -459,10 +468,22 @@ AND    $cond
       $file[$dao->table_name][$dao->fieldID] = $dao->fieldDataType;
     }
 
-    $result = array();
+    $result = $sortedResult = array();
     foreach ($select as $tableName => $clauses) {
-      $query = "SELECT id, " . implode(', ', $clauses) . " FROM $tableName WHERE entity_id = $entityID";
+      if (!empty($DTparams['sort'])) {
+        $query = CRM_Core_DAO::executeQuery("SELECT id FROM {$tableName} WHERE entity_id = {$entityID}");
+        $count = 1;
+        while ($query->fetch()) {
+          $sortedResult["{$query->id}"] = $count;
+          $count++;
+        }
+      }
+
+      $query = "SELECT SQL_CALC_FOUND_ROWS id, " . implode(', ', $clauses) . " FROM $tableName WHERE entity_id = $entityID {$orderBy} {$limit}";
       $dao = CRM_Core_DAO::executeQuery($query);
+      if (!empty($DTparams)) {
+        $result['count'] = CRM_Core_DAO::singleValueQuery('SELECT FOUND_ROWS()');
+      }
       while ($dao->fetch()) {
         foreach ($fields[$tableName] as $fieldID) {
           $fieldName = "custom_{$fieldID}";
@@ -479,6 +500,9 @@ AND    $cond
           }
         }
       }
+    }
+    if (!empty($sortedResult)) {
+      $result['sortedResult'] = $sortedResult;
     }
     return $result;
   }

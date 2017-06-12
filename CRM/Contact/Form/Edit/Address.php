@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -67,8 +67,7 @@ class CRM_Contact_Form_Edit_Address {
     }
 
     //make location type required for inline edit
-    $form->addField("address[$blockId][location_type_id]", array('entity' => 'address', 'class' => 'eight') + $js, $inlineEdit);
-
+    $form->addField("address[$blockId][location_type_id]", array('entity' => 'address', 'class' => 'eight', 'option_url' => NULL) + $js, $inlineEdit);
     if (!$inlineEdit) {
       $js = array('id' => 'Address_' . $blockId . '_IsPrimary', 'onClick' => 'singleSelect( this.id );');
     }
@@ -86,8 +85,8 @@ class CRM_Contact_Form_Edit_Address {
     $form->addField(
       "address[$blockId][is_billing]", array(
         'entity' => 'address',
-        'label' => ts('Primary location for this contact'),
-        'text' => ts('Primary location for this contact')) + $js);
+        'label' => ts('Billing location for this contact'),
+        'text' => ts('Billing location for this contact')) + $js);
 
     // hidden element to store master address id
     $form->addField("address[$blockId][master_id]", array('entity' => 'address', 'type' => 'hidden'));
@@ -101,6 +100,7 @@ class CRM_Contact_Form_Edit_Address {
       'street_address',
       'supplemental_address_1',
       'supplemental_address_2',
+      'supplemental_address_3',
       'city',
       'postal_code',
       'postal_code_suffix',
@@ -163,10 +163,7 @@ class CRM_Contact_Form_Edit_Address {
     $form->assign('geoCode', $geoCode);
 
     // Process any address custom data -
-    $groupTree = CRM_Core_BAO_CustomGroup::getTree('Address',
-      $form,
-      $entityId
-    );
+    $groupTree = CRM_Core_BAO_CustomGroup::getTree('Address', NULL, $entityId);
 
     if (isset($groupTree) && is_array($groupTree)) {
       // use simplified formatted groupTree
@@ -205,9 +202,7 @@ class CRM_Contact_Form_Edit_Address {
       // during contact editing : if no address is filled
       // required custom data must not produce 'required' form rule error
       // more handling done in formRule func
-      if (!$inlineEdit) {
-        CRM_Contact_Form_Edit_Address::storeRequiredCustomDataInfo($form, $groupTree);
-      }
+      CRM_Contact_Form_Edit_Address::storeRequiredCustomDataInfo($form, $groupTree);
 
       $template = CRM_Core_Smarty::singleton();
       $tplGroupTree = $template->get_template_vars('address_groupTree');
@@ -243,7 +238,7 @@ class CRM_Contact_Form_Edit_Address {
    * @return array|bool
    *   if no errors
    */
-  public static function formRule($fields, $files, $self) {
+  public static function formRule($fields, $files = array(), $self = NULL) {
     $errors = array();
 
     $customDataRequiredFields = array();
@@ -270,8 +265,9 @@ class CRM_Contact_Form_Edit_Address {
         }
 
         // DETACH 'required' form rule error to
-        // custom data only if address data not exists upon submission
-        if (!empty($customDataRequiredFields) && !CRM_Core_BAO_Address::dataExists($addressValues)) {
+        // custom data if address data not exists upon submission
+        // or if master address is selected
+        if (!empty($customDataRequiredFields) && (!CRM_Core_BAO_Address::dataExists($addressValues) || !empty($addressValues['master_id']))) {
           foreach ($customDataRequiredFields as $customElementName) {
             $elementName = "address[$instance][$customElementName]";
             if ($self->getElementError($elementName)) {
@@ -355,6 +351,13 @@ class CRM_Contact_Form_Edit_Address {
             ))) {
               $streetAddress .= ' ';
             }
+            // CRM-17619 - if the street number suffix begins with a number, add a space
+            $numsuffix = CRM_Utils_Array::value($fld, $address);
+            if ($fld === 'street_number_suffix' && !empty($numsuffix)) {
+              if (ctype_digit(substr($numsuffix, 0, 1))) {
+                $streetAddress .= ' ';
+              }
+            }
             $streetAddress .= CRM_Utils_Array::value($fld, $address);
           }
           $streetAddress = trim($streetAddress);
@@ -362,9 +365,15 @@ class CRM_Contact_Form_Edit_Address {
             $address['street_address'] = $streetAddress;
           }
           if (isset($address['street_number'])) {
-            $address['street_number'] .= CRM_Utils_Array::value('street_number_suffix', $address);
+            // CRM-17619 - if the street number suffix begins with a number, add a space
+            $thesuffix = CRM_Utils_Array::value('street_number_suffix', $address);
+            if ($thesuffix) {
+              if (ctype_digit(substr($thesuffix, 0, 1))) {
+                $address['street_number'] .= " ";
+              }
+            }
+            $address['street_number'] .= $thesuffix;
           }
-
           // build array for set default.
           foreach ($parseFields as $field) {
             $addressValues["{$field}_{$cnt}"] = CRM_Utils_Array::value($field, $address);
@@ -407,7 +416,7 @@ class CRM_Contact_Form_Edit_Address {
    * @param array $groupTree
    */
   public static function storeRequiredCustomDataInfo(&$form, $groupTree) {
-    if (CRM_Utils_System::getClassName($form) == 'CRM_Contact_Form_Contact') {
+    if (in_array(CRM_Utils_System::getClassName($form), array('CRM_Contact_Form_Contact', 'CRM_Contact_Form_Inline_Address'))) {
       $requireOmission = NULL;
       foreach ($groupTree as $csId => $csVal) {
         // only process Address entity fields

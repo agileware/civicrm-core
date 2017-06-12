@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -25,10 +25,9 @@
  +--------------------------------------------------------------------+
  */
 
-require_once 'CiviTest/CiviUnitTestCase.php';
-
 /**
  * Class CRM_Core_Payment_PayPalProIPNTest
+ * @group headless
  */
 class CRM_Core_Payment_PayPalProIPNTest extends CiviUnitTestCase {
   protected $_contributionID;
@@ -38,7 +37,16 @@ class CRM_Core_Payment_PayPalProIPNTest extends CiviUnitTestCase {
   protected $_contributionRecurID;
   protected $_contributionPageID;
   protected $_paymentProcessorID;
+  /**
+   * IDs of entities created to support the tests.
+   *
+   * @var array
+   */
+  protected $ids = array();
 
+  /**
+   * Set up function.
+   */
   public function setUp() {
     parent::setUp();
     $this->_paymentProcessorID = $this->paymentProcessorCreate(array('is_test' => 0));
@@ -53,6 +61,9 @@ class CRM_Core_Payment_PayPalProIPNTest extends CiviUnitTestCase {
     $this->_contributionPageID = $contributionPage['id'];
   }
 
+  /**
+   * Tear down function.
+   */
   public function tearDown() {
     $this->quickCleanUpFinancialEntities();
   }
@@ -85,7 +96,7 @@ class CRM_Core_Payment_PayPalProIPNTest extends CiviUnitTestCase {
   }
 
   /**
-   * Test IPN response updates contribution_recur & contribution for first & second contribution
+   * Test IPN response updates contribution_recur & contribution for first & second contribution.
    */
   public function testIPNPaymentMembershipRecurSuccess() {
     $this->setupMembershipRecurringPaymentProcessorTransaction();
@@ -122,7 +133,8 @@ class CRM_Core_Payment_PayPalProIPNTest extends CiviUnitTestCase {
   }
 
   /**
-   * CRM-13743 test IPN edge case where the first transaction fails and the second succeeds
+   * CRM-13743 test IPN edge case where the first transaction fails and the second succeeds.
+   *
    * We are checking that the created contribution has the same date as IPN says it should
    * Note that only one contribution will be created (no evidence of the failed contribution is left)
    * It seems likely that may change in future & this test will start failing (I point this out in the hope it
@@ -152,7 +164,8 @@ class CRM_Core_Payment_PayPalProIPNTest extends CiviUnitTestCase {
   }
 
   /**
-   * Check a payment express IPN call does not throw any errors
+   * Check a payment express IPN call does not throw any errors.
+   *
    * At this stage nothing it supposed to happen so it's a pretty blunt test
    * but at least it should be e-notice free
    * The browser interaction will update Paypal express payments
@@ -294,6 +307,7 @@ class CRM_Core_Payment_PayPalProIPNTest extends CiviUnitTestCase {
   }
 
   /**
+   * Get IPN style details for an incoming recurring transaction.
    */
   public function getPaypalProRecurTransaction() {
     return array(
@@ -343,6 +357,8 @@ class CRM_Core_Payment_PayPalProIPNTest extends CiviUnitTestCase {
   }
 
   /**
+   * Get IPN-style details for a second incoming transaction.
+   *
    * @return array
    */
   public function getPaypalProRecurSubsequentTransaction() {

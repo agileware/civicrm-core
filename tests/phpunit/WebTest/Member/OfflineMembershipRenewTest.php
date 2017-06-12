@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -162,6 +162,7 @@ class WebTest_Member_OfflineMembershipRenewTest extends CiviSeleniumTestCase {
 
     // select the financial type for the selected membership type
     $this->select('financial_type_id', 'value=2');
+    $this->waitForAjaxContent();
 
     // the amount for the selected membership type
     $this->type('total_amount', '100.00');
@@ -201,7 +202,7 @@ class WebTest_Member_OfflineMembershipRenewTest extends CiviSeleniumTestCase {
 
     // click through to the membership view screen
     $this->waitForAjaxContent();
-    $this->click("xpath=//table[@class='display dataTable no-footer']/tbody/tr/td[9]/span/a[contains(text(), 'View')]");
+    $this->click("xpath=//div[@id='memberships']/div/table[@class='display dataTable no-footer']/tbody/tr/td[9]/span/a[contains(text(), 'View')]");
     $this->waitForElementPresent("_qf_MembershipView_cancel-bottom");
 
     $joinDate = date('F jS, Y');
@@ -294,10 +295,10 @@ class WebTest_Member_OfflineMembershipRenewTest extends CiviSeleniumTestCase {
     // page was loaded
     $this->waitForTextPresent($sourceText);
 
-    $this->waitForElementPresent("xpath=//div[@id='memberships']//table/tbody/tr/td[9]/span/a[text()='View']");
+    $this->waitForElementPresent("xpath=//div[@id='memberships']//table/tbody/tr/td[9]/span//a[text()='View']");
 
     // click through to the membership view screen
-    $this->click("xpath=//div[@id='memberships']//table/tbody/tr/td[9]/span/a[text()='View']");
+    $this->click("xpath=//div[@id='memberships']//table/tbody/tr/td[9]/span//a[text()='View']");
 
     $this->waitForElementPresent('_qf_MembershipView_cancel-bottom');
 
@@ -401,10 +402,10 @@ class WebTest_Member_OfflineMembershipRenewTest extends CiviSeleniumTestCase {
     // page was loaded
     $this->waitForTextPresent($sourceText);
 
-    $this->waitForElementPresent("xpath=//div[@id='memberships']//table/tbody/tr/td[9]/span/a[text()='View']");
+    $this->waitForElementPresent("xpath=//div[@id='memberships']//table/tbody/tr/td[9]/span//a[text()='View']");
 
     // click through to the membership view screen
-    $this->click("xpath=//div[@id='memberships']//table/tbody/tr/td[9]/span/a[text()='View']");
+    $this->click("xpath=//div[@id='memberships']//table/tbody/tr/td[9]/span//a[text()='View']");
 
     $this->waitForElementPresent("xpath=//button//span[contains(text(),'Done')]");
 

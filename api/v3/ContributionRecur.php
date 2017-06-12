@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -59,6 +59,7 @@ function _civicrm_api3_contribution_recur_create_spec(&$params) {
   $params['create_date']['api.default'] = 'now';
   $params['frequency_interval']['api.required'] = 1;
   $params['start_date']['api.default'] = 'now';
+  $params['modified_date']['api.default'] = 'now';
 }
 
 /**

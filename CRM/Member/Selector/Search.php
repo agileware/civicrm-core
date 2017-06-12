@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -255,7 +255,7 @@ class CRM_Member_Selector_Search extends CRM_Core_Selector_Base implements CRM_C
         'name' => ts('Cancel Auto-renewal'),
         'url' => 'civicrm/contribute/unsubscribe',
         'qs' => 'reset=1&mid=%%id%%&context=%%cxt%%' . $extraParams,
-        'title' => 'Cancel Auto Renew Subscription',
+        'title' => ts('Cancel Auto Renew Subscription'),
       );
     }
     elseif (isset(self::$_links['all'][CRM_Core_Action::DISABLE])) {
@@ -390,18 +390,14 @@ class CRM_Member_Selector_Search extends CRM_Core_Selector_Base implements CRM_C
         }
 
         $isCancelSupported = CRM_Member_BAO_Membership::isCancelSubscriptionSupported($row['membership_id']);
-        if (!isset($result->owner_membership_id)) {
-          $links = self::links('all',
-            $this->_isPaymentProcessor,
-            $this->_accessContribution,
-            $this->_key,
-            $this->_context,
-            $isCancelSupported
-          );
-        }
-        else {
-          $links = self::links('view');
-        }
+        $links = self::links('all',
+          $this->_isPaymentProcessor,
+          $this->_accessContribution,
+          $this->_key,
+          $this->_context,
+          $isCancelSupported
+        );
+
         // check permissions
         $finTypeId = CRM_Core_DAO::getFieldValue('CRM_Member_DAO_MembershipType', $result->membership_type_id, 'financial_type_id');
         $finType = CRM_Contribute_PseudoConstant::financialType($finTypeId);
@@ -430,6 +426,7 @@ class CRM_Member_Selector_Search extends CRM_Core_Selector_Base implements CRM_C
         );
       }
       else {
+        $links = self::links('view');
         $row['action'] = CRM_Core_Action::formLink($links, $mask,
           array(
             'id' => $result->membership_id,

@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -51,25 +51,23 @@ class CRM_Batch_BAO_Batch extends CRM_Batch_DAO_Batch {
    * Create a new batch.
    *
    * @param array $params
-   * @param array $ids
-   *   Associated array of ids.
-   * @param string $context
-   *   String.
    *
    * @return object
    *   $batch batch object
    */
-  public static function create(&$params, $ids = NULL, $context = NULL) {
-    if (empty($params['id'])) {
+  public static function create(&$params) {
+    $op = 'edit';
+    $batchId = CRM_Utils_Array::value('id', $params);
+    if (!$batchId) {
+      $op = 'create';
       $params['name'] = CRM_Utils_String::titleToVar($params['title']);
     }
-
+    CRM_Utils_Hook::pre($op, 'Batch', $batchId, $params);
     $batch = new CRM_Batch_DAO_Batch();
     $batch->copyValues($params);
-    if ($context == 'financialBatch' && !empty($ids['batchID'])) {
-      $batch->id = $ids['batchID'];
-    }
     $batch->save();
+
+    CRM_Utils_Hook::post($op, 'Batch', $batch->id, $batch);
 
     return $batch;
   }
@@ -136,31 +134,6 @@ class CRM_Batch_BAO_Batch extends CRM_Batch_DAO_Batch {
   }
 
   /**
-   * Create entity batch entry.
-   *
-   * @param array $params
-   * @return array
-   */
-  public static function addBatchEntity(&$params) {
-    $entityBatch = new CRM_Batch_DAO_EntityBatch();
-    $entityBatch->copyValues($params);
-    $entityBatch->save();
-    return $entityBatch;
-  }
-
-  /**
-   * Remove entries from entity batch.
-   * @param array $params
-   * @return CRM_Batch_DAO_EntityBatch
-   */
-  public static function removeBatchEntity($params) {
-    $entityBatch = new CRM_Batch_DAO_EntityBatch();
-    $entityBatch->copyValues($params);
-    $entityBatch->delete();
-    return $entityBatch;
-  }
-
-  /**
    * Delete batch entry.
    *
    * @param int $batchId
@@ -170,9 +143,11 @@ class CRM_Batch_BAO_Batch extends CRM_Batch_DAO_Batch {
    */
   public static function deleteBatch($batchId) {
     // delete entry from batch table
+    CRM_Utils_Hook::pre('delete', 'Batch', $batchId, CRM_Core_DAO::$_nullArray);
     $batch = new CRM_Batch_DAO_Batch();
     $batch->id = $batchId;
     $batch->delete();
+    CRM_Utils_Hook::post('delete', 'Batch', $batch->id, $batch);
     return TRUE;
   }
 
@@ -185,7 +160,7 @@ class CRM_Batch_BAO_Batch extends CRM_Batch_DAO_Batch {
    * @return array
    *   associated array of batch list
    */
-  public function getBatchListSelector(&$params) {
+  public static function getBatchListSelector(&$params) {
     // format the params
     $params['offset'] = ($params['page'] - 1) * $params['rp'];
     $params['rowCount'] = $params['rp'];
@@ -225,7 +200,7 @@ class CRM_Batch_BAO_Batch extends CRM_Batch_DAO_Batch {
       $batch['total'] = '';
       $batch['payment_instrument'] = $value['payment_instrument'];
       $batch['item_count'] = CRM_Utils_Array::value('item_count', $value);
-      $batch['type'] = $value['batch_type'];
+      $batch['type'] = CRM_Utils_Array::value('batch_type', $value);
       if (!empty($value['total'])) {
         $batch['total'] = CRM_Utils_Money::format($value['total']);
       }
@@ -274,11 +249,12 @@ class CRM_Batch_BAO_Batch extends CRM_Batch_DAO_Batch {
     {$limit}";
 
     $object = CRM_Core_DAO::executeQuery($query, $params, TRUE, 'CRM_Batch_DAO_Batch');
+    $obj = new CRM_Batch_BAO_Batch();
     if (!empty($params['context'])) {
-      $links = self::links($params['context']);
+      $links = $obj->links($params['context']);
     }
     else {
-      $links = self::links();
+      $links = $obj->links();
     }
 
     $batchTypes = CRM_Core_PseudoConstant::get('CRM_Batch_DAO_Batch', 'type_id');
@@ -502,12 +478,12 @@ class CRM_Batch_BAO_Batch extends CRM_Batch_DAO_Batch {
    *   all batches excluding batches with data entry in progress
    */
   public static function getBatches() {
-    $dataEntryStatusId = CRM_Core_OptionGroup::getValue('batch_status', 'Data Entry', 'name');
+    $dataEntryStatusId = CRM_Core_PseudoConstant::getKey('CRM_Batch_BAO_Batch', 'status_id', 'Data Entry');
     $query = "SELECT id, title
       FROM civicrm_batch
       WHERE item_count >= 1
       AND status_id != {$dataEntryStatusId}
-      ORDER BY id DESC";
+      ORDER BY title";
 
     $batches = array();
     $dao = CRM_Core_DAO::executeQuery($query);
@@ -593,21 +569,10 @@ class CRM_Batch_BAO_Batch extends CRM_Batch_DAO_Batch {
     else {
       CRM_Core_Error::fatal("Could not locate exporter: $exporterClass");
     }
-    switch (self::$_exportFormat) {
-      case 'CSV':
-        foreach ($batchIds as $batchId) {
-          $export[$batchId] = $exporter->generateExportQuery($batchId);
-        }
-        $exporter->makeCSV($export);
-        break;
-
-      case 'IIF':
-        foreach ($batchIds as $batchId) {
-          $export[$batchId] = $exporter->generateExportQuery($batchId);
-        }
-        $exporter->makeIIF($export);
-        break;
+    foreach ($batchIds as $batchId) {
+      $export[$batchId] = $exporter->generateExportQuery($batchId);
     }
+    $exporter->makeExport($export);
   }
 
   /**
@@ -659,10 +624,11 @@ class CRM_Batch_BAO_Batch extends CRM_Batch_DAO_Batch {
     }
 
     $from = "civicrm_financial_trxn
-LEFT JOIN civicrm_entity_financial_trxn ON civicrm_entity_financial_trxn.financial_trxn_id = civicrm_financial_trxn.id
+INNER JOIN civicrm_entity_financial_trxn ON civicrm_entity_financial_trxn.financial_trxn_id = civicrm_financial_trxn.id
+INNER JOIN civicrm_contribution ON (civicrm_contribution.id = civicrm_entity_financial_trxn.entity_id
+  AND civicrm_entity_financial_trxn.entity_table='civicrm_contribution')
 LEFT JOIN civicrm_entity_batch ON civicrm_entity_batch.entity_table = 'civicrm_financial_trxn'
 AND civicrm_entity_batch.entity_id = civicrm_financial_trxn.id
-LEFT JOIN civicrm_contribution ON civicrm_contribution.id = civicrm_entity_financial_trxn.entity_id
 LEFT JOIN civicrm_financial_type ON civicrm_financial_type.id = civicrm_contribution.financial_type_id
 LEFT JOIN civicrm_contact contact_a ON contact_a.id = civicrm_contribution.contact_id
 LEFT JOIN civicrm_contribution_soft ON civicrm_contribution_soft.contribution_id = civicrm_contribution.id
@@ -719,6 +685,8 @@ LEFT JOIN civicrm_contribution_soft ON civicrm_contribution_soft.contribution_id
           $values['contribution_date_high'] = $date['to'];
         }
         $searchParams = CRM_Contact_BAO_Query::convertFormValues($values);
+        // @todo the use of defaultReturnProperties means the search will be inefficient
+        // as slow-unneeded properties are included.
         $query = new CRM_Contact_BAO_Query($searchParams,
           CRM_Contribute_BAO_Query::defaultReturnProperties(CRM_Contact_BAO_Query::MODE_CONTRIBUTE,
             FALSE
@@ -731,24 +699,15 @@ LEFT JOIN civicrm_contribution_soft ON civicrm_contribution_soft.contribution_id
     }
     if (!empty($query->_where[0])) {
       $where = implode(' AND ', $query->_where[0]) .
-        " AND civicrm_entity_batch.batch_id IS NULL
-         AND civicrm_entity_financial_trxn.entity_table = 'civicrm_contribution'";
+        " AND civicrm_entity_batch.batch_id IS NULL ";
       $where = str_replace('civicrm_contribution.payment_instrument_id', 'civicrm_financial_trxn.payment_instrument_id', $where);
-      $searchValue = TRUE;
     }
     else {
-      $searchValue = FALSE;
-    }
-
-    if (!$searchValue) {
       if (!$notPresent) {
-        $where = " ( civicrm_entity_batch.batch_id = {$entityID}
-        AND civicrm_entity_batch.entity_table = 'civicrm_financial_trxn'
-        AND civicrm_entity_financial_trxn.entity_table = 'civicrm_contribution') ";
+        $where = " civicrm_entity_batch.batch_id = {$entityID} ";
       }
       else {
-        $where = " ( civicrm_entity_batch.batch_id IS NULL
-        AND civicrm_entity_financial_trxn.entity_table = 'civicrm_contribution')";
+        $where = " civicrm_entity_batch.batch_id IS NULL ";
       }
     }
 

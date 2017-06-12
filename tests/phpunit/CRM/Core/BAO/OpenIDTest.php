@@ -1,9 +1,8 @@
 <?php
-require_once 'CiviTest/CiviUnitTestCase.php';
-require_once 'CiviTest/Contact.php';
 
 /**
  * Class CRM_Core_BAO_OpenIDTest
+ * @group headless
  */
 class CRM_Core_BAO_OpenIDTest extends CiviUnitTestCase {
   public function tearDown() {
@@ -22,7 +21,7 @@ class CRM_Core_BAO_OpenIDTest extends CiviUnitTestCase {
    * Add() method (create and update modes)
    */
   public function testAdd() {
-    $contactId = Contact::createIndividual();
+    $contactId = $this->individualCreate();
     $this->assertDBRowExist('CRM_Contact_DAO_Contact', $contactId);
 
     $openIdURL = "http://test-username.civicrm.org/";
@@ -66,7 +65,7 @@ class CRM_Core_BAO_OpenIDTest extends CiviUnitTestCase {
    * IfAllowedToLogin() method (set and reset allowed_to_login)
    */
   public function testIfAllowedToLogin() {
-    $contactId = Contact::createIndividual();
+    $contactId = $this->individualCreate();
     $this->assertDBRowExist('CRM_Contact_DAO_Contact', $contactId);
     $openIdURL = "http://test-username.civicrm.org/";
 
@@ -111,7 +110,7 @@ class CRM_Core_BAO_OpenIDTest extends CiviUnitTestCase {
    * AllOpenIDs() method - get all OpenIDs for the given contact
    */
   public function testAllOpenIDs() {
-    $contactId = Contact::createIndividual();
+    $contactId = $this->individualCreate();
     $this->assertDBRowExist('CRM_Contact_DAO_Contact', $contactId);
 
     // create first openid
@@ -166,7 +165,6 @@ class CRM_Core_BAO_OpenIDTest extends CiviUnitTestCase {
     $this->assertEquals(0, $openIds[$openIdTwo]['is_primary'], 'Confirm is_primary field value for second openid.');
     $this->assertEquals(0, $openIds[$openIdTwo]['allowed_to_login'], 'Confirm allowed_to_login field value for second openid.');
 
-    //Contact::delete($contactId);
     $this->contactDelete($contactId);
     $this->assertDBRowNotExist('CRM_Contact_DAO_Contact', $contactId);
   }

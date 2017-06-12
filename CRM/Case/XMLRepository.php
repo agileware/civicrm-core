@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  *
  * The XMLRepository is responsible for loading XML for case-types.
  * It includes any bulk operations that apply across the list of all XML
@@ -136,7 +136,9 @@ class CRM_Case_XMLRepository {
     if ($fileName && file_exists($fileName)) {
       // read xml file
       $dom = new DomDocument();
-      $dom->load($fileName);
+      $xmlString = file_get_contents($fileName);
+      $dom->loadXML($xmlString);
+      $dom->documentURI = $fileName;
       $dom->xinclude();
       $fileXml = simplexml_import_dom($dom);
     }

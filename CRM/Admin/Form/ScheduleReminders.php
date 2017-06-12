@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -106,7 +106,7 @@ class CRM_Admin_Form_ScheduleReminders extends CRM_Admin_Form {
       'text',
       'title',
       ts('Title'),
-      array('size' => 45, 'maxlength' => 128),
+      CRM_Core_DAO::getAttribute('CRM_Core_DAO_ActionSchedule', 'title'),
       TRUE
     );
 
@@ -161,10 +161,10 @@ class CRM_Admin_Form_ScheduleReminders extends CRM_Admin_Form {
     //get the frequency units.
     $this->_freqUnits = CRM_Core_SelectValues::getRecurringFrequencyUnits();
 
-    $numericOptions = CRM_Core_SelectValues::getNumericOptions(0, 30);
-
     //reminder_interval
-    $this->add('select', 'start_action_offset', ts('When'), $numericOptions);
+    $this->add('number', 'start_action_offset', ts('When'), array('class' => 'six', 'min' => 0));
+    $this->addRule('start_action_offset', ts('Value should be a positive number'), 'positiveInteger');
+
     $isActive = ts('Send email');
     $recordActivity = ts('Record activity for automated email');
     if ($providersCount) {
@@ -208,9 +208,13 @@ class CRM_Admin_Form_ScheduleReminders extends CRM_Admin_Form {
     );
 
     $this->add('select', 'repetition_frequency_unit', ts('every'), $freqUnitsDisplay);
-    $this->add('select', 'repetition_frequency_interval', ts('every'), $numericOptions);
+    $this->add('number', 'repetition_frequency_interval', ts('every'), array('class' => 'six', 'min' => 0));
+    $this->addRule('repetition_frequency_interval', ts('Value should be a positive number'), 'positiveInteger');
+
     $this->add('select', 'end_frequency_unit', ts('until'), $freqUnitsDisplay);
-    $this->add('select', 'end_frequency_interval', ts('until'), $numericOptions);
+    $this->add('number', 'end_frequency_interval', ts('until'), array('class' => 'six', 'min' => 0));
+    $this->addRule('end_frequency_interval', ts('Value should be a positive number'), 'positiveInteger');
+
     $this->add('select', 'end_action', ts('Repetition Condition'), $condition, TRUE);
     $this->add('select', 'end_date', ts('Date Field'), $selectedMapping->getDateFields(), TRUE);
 
@@ -309,10 +313,14 @@ class CRM_Admin_Form_ScheduleReminders extends CRM_Admin_Form {
     }
 
     if (!empty($fields['is_active']) &&
-      CRM_Utils_Array::value('mode', $fields) == 'SMS' &&
       CRM_Utils_System::isNull($fields['subject'])
     ) {
       $errors['subject'] = ts('Subject is a required field.');
+    }
+    if (!empty($fields['is_active']) &&
+      CRM_Utils_System::isNull(trim(strip_tags($fields['html_message'])))
+    ) {
+      $errors['html_message'] = ts('The HTML message is a required field.');
     }
 
     if (empty($self->_context) && CRM_Utils_System::isNull(CRM_Utils_Array::value(1, $fields['entity']))) {
@@ -488,16 +496,16 @@ class CRM_Admin_Form_ScheduleReminders extends CRM_Admin_Form {
 
     if ($absoluteDate = CRM_Utils_Array::value('absolute_date', $params)) {
       $params['absolute_date'] = CRM_Utils_Date::processDate($absoluteDate);
-      $params['is_repeat'] = 0;
-      foreach ($moreKeys as $mkey) {
-        $params[$mkey] = 'null';
-      }
     }
     else {
       $params['absolute_date'] = 'null';
-      foreach ($moreKeys as $mkey) {
-        $params[$mkey] = CRM_Utils_Array::value($mkey, $values);
+    }
+    foreach ($moreKeys as $mkey) {
+      if ($params['absolute_date'] != 'null' && CRM_Utils_String::startsWith($mkey, 'start_action')) {
+        $params[$mkey] = 'null';
+        continue;
       }
+      $params[$mkey] = CRM_Utils_Array::value($mkey, $values);
     }
 
     $params['body_text'] = CRM_Utils_Array::value('text_message', $values);
@@ -667,6 +675,7 @@ class CRM_Admin_Form_ScheduleReminders extends CRM_Admin_Form {
     $tokens = array_merge(CRM_Core_SelectValues::activityTokens(), $tokens);
     $tokens = array_merge(CRM_Core_SelectValues::eventTokens(), $tokens);
     $tokens = array_merge(CRM_Core_SelectValues::membershipTokens(), $tokens);
+    $tokens = array_merge(CRM_Core_SelectValues::contributionTokens(), $tokens);
     return $tokens;
   }
 

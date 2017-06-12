@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -145,7 +145,7 @@ class WebTest_ACL_AssignUsersToRolesTest extends CiviSeleniumTestCase {
     $smartGroupTitle = "SmartGroup" . substr(sha1(rand()), 0, 4);
     $this->type("title", $smartGroupTitle);
     $this->clickLink("_qf_SaveSearch_next-bottom");
-    $this->waitForText('crm-notification-container', "Your smart group has been saved as \'$smartGroupTitle\'");
+    $this->waitForText('crm-notification-container', "Your smart group has been saved as '$smartGroupTitle'");
 
     //Create ACL role
     $this->openCiviPage("admin/options/acl_role", "reset=1", "xpath=//a[@class='button new-option']");
@@ -153,7 +153,6 @@ class WebTest_ACL_AssignUsersToRolesTest extends CiviSeleniumTestCase {
     $label = "TestAclRole" . substr(sha1(rand()), 0, 4);
     $this->waitForElementPresent("label");
     $this->type("label", $label);
-    $this->type("value", "Acl value" . $label);
     $this->click("_qf_Options_next-bottom");
     $this->waitForText('crm-notification-container', "The ACL Role '{$label}' has been saved.");
 

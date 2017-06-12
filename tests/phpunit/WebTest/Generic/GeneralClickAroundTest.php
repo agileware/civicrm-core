@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -313,7 +313,7 @@ class WebTest_Generic_GeneralClickAroundTest extends CiviSeleniumTestCase {
 
     // Verify activity types
     $this->assertTextPresent("Meeting");
-    $this->assertTextPresent("Print PDF Letter");
+    $this->assertTextPresent("Print/Merge Document");
     $this->assertTextPresent("Event Registration");
     $this->assertTextPresent("Contribution");
     $this->assertTextPresent("Membership Signup");

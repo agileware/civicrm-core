@@ -2,7 +2,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -43,11 +43,3 @@
       </div>
     </fieldset>
   </div>
-{literal}
-  <script type="text/javascript">
-    CRM.$(function($) {
-      var $form = $('#billing-payment-block').closest('form');
-      $('.crm-submit-buttons', $form).hide();
-    });
-  </script>
-{/literal}

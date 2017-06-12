@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -59,6 +59,9 @@ class CRM_Mailing_Page_Event extends CRM_Core_Page {
     );
 
     $mailing_id = CRM_Utils_Request::retrieve('mid', 'Positive', $this);
+
+    // check that the user has permission to access mailing id
+    CRM_Mailing_BAO_Mailing::checkPermission($mailing_id);
 
     $context = CRM_Utils_Request::retrieve('context', 'String', $this);
 

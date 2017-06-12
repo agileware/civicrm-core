@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -25,14 +25,9 @@
  +--------------------------------------------------------------------+
  */
 
-
-require_once 'CiviTest/CiviUnitTestCase.php';
-require_once 'CiviTest/Contact.php';
-require_once 'CiviTest/Custom.php';
-require_once 'CiviTest/Event.php';
-
 /**
  * Class CRM_Core_BAO_PhoneTest
+ * @group headless
  */
 class CRM_Core_BAO_PhoneTest extends CiviUnitTestCase {
 
@@ -44,7 +39,7 @@ class CRM_Core_BAO_PhoneTest extends CiviUnitTestCase {
    * Add() method (create and update modes)
    */
   public function testAdd() {
-    $contactId = Contact::createIndividual();
+    $contactId = $this->individualCreate();
 
     $params = array();
     $params = array(
@@ -80,21 +75,21 @@ class CRM_Core_BAO_PhoneTest extends CiviUnitTestCase {
       "Check if phone field has expected value in updated record ( civicrm_phone.id={$phoneId} )."
     );
 
-    Contact::delete($contactId);
+    $this->contactDelete($contactId);
   }
 
   /**
-   * AllPhones() method - get all Phones for our contact, with primary Phone first
+   * AllPhones() method - get all Phones for our contact, with primary Phone first.
    */
   public function testAllPhones() {
     $contactParams = array(
       'first_name' => 'Alan',
       'last_name' => 'Smith',
-      'phone-1' => '(415) 222-1011 x 221',
-      'phone-2' => '(415) 222-5432',
+      'api.phone.create' => array('phone' => '(415) 222-1011 x 221', 'location_type_id' => 'Home'),
+      'api.phone.create.1' => array('phone' => '(415) 222-5432', 'location_type_id' => 'Work'),
     );
 
-    $contactId = Contact::createIndividual($contactParams);
+    $contactId = $this->individualCreate($contactParams);
 
     $Phones = CRM_Core_BAO_Phone::allPhones($contactId);
 
@@ -107,7 +102,7 @@ class CRM_Core_BAO_PhoneTest extends CiviUnitTestCase {
     $this->assertEquals('(415) 222-1011 x 221', $firstPhoneValue[0]['phone'], "Confirm primary Phone value ( {$firstPhoneValue[0]['phone']} ).");
     $this->assertEquals(1, $firstPhoneValue[0]['is_primary'], 'Confirm first Phone is primary.');
 
-    Contact::delete($contactId);
+    $this->contactDelete($contactId);
   }
 
   /**

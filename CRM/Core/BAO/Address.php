@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -135,8 +135,9 @@ class CRM_Core_BAO_Address extends CRM_Core_DAO_Address {
    * @return CRM_Core_BAO_Address|null
    */
   public static function add(&$params, $fixAddress) {
-    static $customFields = NULL;
+
     $address = new CRM_Core_DAO_Address();
+    $checkPermissions = isset($params['check_permissions']) ? $params['check_permissions'] : TRUE;
 
     // fixAddress mode to be done
     if ($fixAddress) {
@@ -150,20 +151,20 @@ class CRM_Core_BAO_Address extends CRM_Core_DAO_Address {
     if (is_numeric(CRM_Utils_Array::value('is_primary', $params)) || empty($params['id'])) {
       CRM_Core_BAO_Block::handlePrimary($params, get_class());
     }
-    $config = CRM_Core_Config::singleton();
+
     $address->copyValues($params);
 
     $address->save();
 
     if ($address->id) {
-      if (!$customFields) {
-        $customFields = CRM_Core_BAO_CustomField::getFields('Address', FALSE, TRUE);
-      }
+      $customFields = CRM_Core_BAO_CustomField::getFields('Address', FALSE, TRUE, NULL, NULL, FALSE, FALSE, $checkPermissions);
+
       if (!empty($customFields)) {
         $addressCustom = CRM_Core_BAO_CustomField::postProcess($params,
           $address->id,
           'Address',
-          TRUE
+          FALSE,
+          $checkPermissions
         );
       }
       if (!empty($addressCustom)) {
@@ -377,8 +378,11 @@ class CRM_Core_BAO_Address extends CRM_Core_DAO_Address {
       }
     }
 
+    // check if geocode should be skipped (can be forced with an optional parameter through the api)
+    $skip_geocode = (isset($params['skip_geocode']) && $params['skip_geocode']) ? TRUE : FALSE;
+
     // add latitude and longitude and format address if needed
-    if (!empty($config->geocodeMethod) && ($config->geocodeMethod != 'CRM_Utils_Geocode_OpenStreetMaps') && empty($params['manual_geo_code'])) {
+    if (!$skip_geocode && !empty($config->geocodeMethod) && ($config->geocodeMethod != 'CRM_Utils_Geocode_OpenStreetMaps') && empty($params['manual_geo_code'])) {
       $class = $config->geocodeMethod;
       $class::format($params);
     }
@@ -479,8 +483,13 @@ class CRM_Core_BAO_Address extends CRM_Core_DAO_Address {
         return $addresses;
       }
     }
-    //get primary address as a first block.
-    $address->orderBy('is_primary desc, id');
+    if (isset($entityBlock['is_billing']) && $entityBlock['is_billing'] == 1) {
+      $address->orderBy('is_billing desc, id');
+    }
+    else {
+      //get primary address as a first block.
+      $address->orderBy('is_primary desc, id');
+    }
 
     $address->find();
 
@@ -560,6 +569,7 @@ class CRM_Core_BAO_Address extends CRM_Core_DAO_Address {
       'street_address' => $this->street_address,
       'supplemental_address_1' => $this->supplemental_address_1,
       'supplemental_address_2' => $this->supplemental_address_2,
+      'supplemental_address_3' => $this->supplemental_address_3,
       'city' => $this->city,
       'state_province_name' => isset($this->state_name) ? $this->state_name : "",
       'state_province' => isset($this->state) ? $this->state : "",
@@ -962,6 +972,7 @@ SELECT is_primary,
       'postal_code_suffix',
       'supplemental_address_1',
       'supplemental_address_2',
+      'supplemental_address_3',
     );
 
     foreach ($fields as $name => & $values) {

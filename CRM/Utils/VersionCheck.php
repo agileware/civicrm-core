@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,27 +28,13 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 class CRM_Utils_VersionCheck {
   const
-    PINGBACK_URL = 'http://latest.civicrm.org/stable.php?format=json',
-    // timeout for when the connection or the server is slow
-    CHECK_TIMEOUT = 5,
-    // relative to $civicrm_root
-    LOCALFILE_NAME = 'civicrm-version.php',
-    // relative to $config->uploadDir
     CACHEFILE_NAME = 'version-info-cache.json',
-    // cachefile expiry time (in seconds) - one day
-    CACHEFILE_EXPIRE = 86400;
-
-  /**
-   * We only need one instance of this object, so we use the
-   * singleton pattern and cache the instance in this variable
-   *
-   * @var object
-   */
-  static private $_singleton = NULL;
+    // after this length of time we fall back on poor-man's cron (7+ days)
+    CACHEFILE_EXPIRE = 605000;
 
   /**
    * The version of the current (local) installation
@@ -72,6 +58,21 @@ class CRM_Utils_VersionCheck {
   public $versionInfo = array();
 
   /**
+   * @var bool
+   */
+  public $isInfoAvailable;
+
+  /**
+   * @var array
+   */
+  public $cronJob = array();
+
+  /**
+   * @var string
+   */
+  public $pingbackUrl = 'https://latest.civicrm.org/stable.php?format=json';
+
+  /**
    * Pingback params
    *
    * @var array
@@ -83,55 +84,52 @@ class CRM_Utils_VersionCheck {
    *
    * @var string
    */
-  protected $cacheFile;
+  public $cacheFile;
 
   /**
    * Class constructor.
    */
   public function __construct() {
-    global $civicrm_root;
-    $config = CRM_Core_Config::singleton();
+    $this->localVersion = CRM_Utils_System::version();
+    $this->localMajorVersion = $this->getMajorVersion($this->localVersion);
+    $this->cacheFile = CRM_Core_Config::singleton()->uploadDir . self::CACHEFILE_NAME;
+  }
 
-    $localFile = $civicrm_root . DIRECTORY_SEPARATOR . self::LOCALFILE_NAME;
-    $this->cacheFile = $config->uploadDir . self::CACHEFILE_NAME;
+  /**
+   * Self-populates version info
+   *
+   * @throws \Exception
+   */
+  public function initialize() {
+    $this->getJob();
 
-    if (file_exists($localFile)) {
-      require_once $localFile;
-    }
-    if (function_exists('civicrmVersion')) {
-      $info = civicrmVersion();
-      $this->localVersion = trim($info['version']);
-      $this->localMajorVersion = $this->getMajorVersion($this->localVersion);
-    }
-    // Populate $versionInfo
-    if (Civi::settings()->get('versionCheck')) {
-      // Use cached data if available and not stale
-      if (!$this->readCacheFile()) {
-        // Collect stats for pingback
-        $this->getSiteStats();
+    // Populate remote $versionInfo from cache file
+    $this->isInfoAvailable = $this->readCacheFile();
 
-        // Get the latest version and send site info
-        $this->pingBack();
+    // Poor-man's cron fallback if scheduled job is enabled but has failed to run
+    $expiryTime = time() - self::CACHEFILE_EXPIRE;
+    if (!empty($this->cronJob['is_active']) &&
+      (!$this->isInfoAvailable || filemtime($this->cacheFile) < $expiryTime)
+    ) {
+      // First try updating the files modification time, for 2 reasons:
+      //  - if the file is not writeable, this saves the trouble of pinging back
+      //  - if the remote server is down, this will prevent an immediate retry
+      if (touch($this->cacheFile) === FALSE) {
+        throw new Exception('File not writable');
       }
-
-      // Sort version info in ascending order for easier comparisons
-      ksort($this->versionInfo, SORT_NUMERIC);
+      $this->fetch();
     }
   }
 
   /**
-   * Static instance provider.
+   * Sets $versionInfo
    *
-   * Method providing static instance of CRM_Utils_VersionCheck,
-   * as in Singleton pattern
-   *
-   * @return CRM_Utils_VersionCheck
+   * @param $info
    */
-  public static function &singleton() {
-    if (!isset(self::$_singleton)) {
-      self::$_singleton = new CRM_Utils_VersionCheck();
-    }
-    return self::$_singleton;
+  public function setVersionInfo($info) {
+    $this->versionInfo = (array) $info;
+    // Sort version info in ascending order for easier comparisons
+    ksort($this->versionInfo, SORT_NUMERIC);
   }
 
   /**
@@ -238,6 +236,14 @@ class CRM_Utils_VersionCheck {
   }
 
   /**
+   * Called by version_check cron job
+   */
+  public function fetch() {
+    $this->getSiteStats();
+    $this->pingBack();
+  }
+
+  /**
    * @param $majorVersion
    * @return null|string
    */
@@ -281,6 +287,7 @@ class CRM_Utils_VersionCheck {
         'MySQL' => CRM_CORE_DAO::singleValueQuery('SELECT VERSION()'),
         'communityMessagesUrl' => Civi::settings()->get('communityMessagesUrl'),
       );
+      $this->getDomainStats();
       $this->getPayProcStats();
       $this->getEntityStats();
       $this->getExtensionStats();
@@ -333,6 +340,7 @@ class CRM_Utils_VersionCheck {
       'CRM_Member_DAO_MembershipBlock' => 'is_active = 1',
       'CRM_Pledge_DAO_Pledge' => 'is_test = 0',
       'CRM_Pledge_DAO_PledgeBlock' => NULL,
+      'CRM_Mailing_Event_DAO_Delivered' => NULL,
     );
     foreach ($tables as $daoName => $where) {
       $dao = new $daoName();
@@ -376,12 +384,40 @@ class CRM_Utils_VersionCheck {
   }
 
   /**
+   * Fetch stats about domain and add to 'stats' array.
+   */
+  private function getDomainStats() {
+    // Start with default value NULL, then check to see if there's a better
+    // value to be had.
+    $this->stats['domain_isoCode'] = NULL;
+    $params = array(
+      'id' => CRM_Core_Config::domainID(),
+    );
+    $domain_result = civicrm_api3('domain', 'getsingle', $params);
+    if (!empty($domain_result['contact_id'])) {
+      $address_params = array(
+        'contact_id' => $domain_result['contact_id'],
+        'is_primary' => 1,
+        'sequential' => 1,
+      );
+      $address_result = civicrm_api3('address', 'get', $address_params);
+      if ($address_result['count'] == 1 && !empty($address_result['values'][0]['country_id'])) {
+        $country_params = array(
+          'id' => $address_result['values'][0]['country_id'],
+        );
+        $country_result = civicrm_api3('country', 'getsingle', $country_params);
+        if (!empty($country_result['iso_code'])) {
+          $this->stats['domain_isoCode'] = $country_result['iso_code'];
+        }
+      }
+    }
+  }
+
+  /**
    * Send the request to civicrm.org
-   * Set timeout and suppress errors
    * Store results in the cache file
    */
   private function pingBack() {
-    ini_set('default_socket_timeout', self::CHECK_TIMEOUT);
     $params = array(
       'http' => array(
         'method' => 'POST',
@@ -390,27 +426,24 @@ class CRM_Utils_VersionCheck {
       ),
     );
     $ctx = stream_context_create($params);
-    $rawJson = @file_get_contents(self::PINGBACK_URL, FALSE, $ctx);
+    $rawJson = file_get_contents($this->pingbackUrl, FALSE, $ctx);
     $versionInfo = $rawJson ? json_decode($rawJson, TRUE) : NULL;
     // If we couldn't fetch or parse the data $versionInfo will be NULL
     // Otherwise it will be an array and we'll cache it.
     // Note the array may be empty e.g. in the case of a pre-alpha with no releases
-    if ($versionInfo !== NULL) {
+    $this->isInfoAvailable = $versionInfo !== NULL;
+    if ($this->isInfoAvailable) {
       $this->writeCacheFile($rawJson);
-      $this->versionInfo = $versionInfo;
+      $this->setVersionInfo($versionInfo);
     }
-    ini_restore('default_socket_timeout');
   }
 
   /**
    * @return bool
    */
   private function readCacheFile() {
-    $expiryTime = time() - self::CACHEFILE_EXPIRE;
-
-    // if there's a cachefile and it's not stale, use it
-    if (file_exists($this->cacheFile) && (filemtime($this->cacheFile) > $expiryTime)) {
-      $this->versionInfo = (array) json_decode(file_get_contents($this->cacheFile), TRUE);
+    if (file_exists($this->cacheFile)) {
+      $this->setVersionInfo(json_decode(file_get_contents($this->cacheFile), TRUE));
       return TRUE;
     }
     return FALSE;
@@ -419,19 +452,24 @@ class CRM_Utils_VersionCheck {
   /**
    * Save version info to file.
    * @param string $contents
+   * @throws \Exception
    */
   private function writeCacheFile($contents) {
-    $fp = @fopen($this->cacheFile, 'w');
-    if (!$fp) {
-      if (CRM_Core_Permission::check('administer CiviCRM')) {
-        CRM_Core_Session::setStatus(
-          ts('Unable to write file') . ": $this->cacheFile<br />" . ts('Please check your system file permissions.'),
-          ts('File Error'), 'error');
-      }
-      return;
+    if (file_put_contents($this->cacheFile, $contents) === FALSE) {
+      throw new Exception('File not writable');
     }
-    fwrite($fp, $contents);
-    fclose($fp);
+  }
+
+  /**
+   * Lookup version_check scheduled job
+   */
+  private function getJob() {
+    $jobs = civicrm_api3('Job', 'get', array(
+      'sequential' => 1,
+      'api_action' => "version_check",
+      'api_entity' => "job",
+    ));
+    $this->cronJob = CRM_Utils_Array::value(0, $jobs['values'], array());
   }
 
 }

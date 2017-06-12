@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 class CRM_Report_Form_Activity extends CRM_Report_Form {
   protected $_selectAliasesTotal = array();
@@ -40,12 +40,27 @@ class CRM_Report_Form_Activity extends CRM_Report_Form {
   protected $_nonDisplayFields = array();
 
   /**
+   * This report has not been optimised for group filtering.
+   *
+   * The functionality for group filtering has been improved but not
+   * all reports have been adjusted to take care of it. This report has not
+   * and will run an inefficient query until fixed.
+   *
+   * CRM-19170
+   *
+   * @var bool
+   */
+  protected $groupFilterNotOptimised = TRUE;
+
+  /**
    * Class constructor.
    */
   public function __construct() {
     // There could be multiple contacts. We not clear on which contact id to display.
     // Lets hide it for now.
     $this->_exposeContactID = FALSE;
+    // if navigated from count link of activity summary reports.
+    $this->_resetDateFilter = CRM_Utils_Request::retrieve('resetDateFilter', 'Boolean');
 
     $config = CRM_Core_Config::singleton();
     $campaignEnabled = in_array("CiviCampaign", $config->enableComponents);
@@ -59,7 +74,12 @@ class CRM_Report_Form_Activity extends CRM_Report_Form {
 
     $components = CRM_Core_Component::getEnabledComponents();
     foreach ($components as $componentName => $componentInfo) {
-      if (CRM_Core_Permission::check("access $componentName")) {
+      // CRM-19201: Add support for reporting CiviCampaign activities
+      // For CiviCase, "access all cases and activities" is required here
+      // rather than "access my cases and activities" to prevent those with
+      // only the later permission from seeing a list of all cases which might
+      // present a privacy issue.
+      if (CRM_Core_Permission::access($componentName, TRUE, TRUE)) {
         $accessAllowed[] = $componentInfo->componentID;
       }
     }
@@ -236,6 +256,11 @@ class CRM_Report_Form_Activity extends CRM_Report_Form {
           'details' => array(
             'title' => ts('Activity Details'),
           ),
+          'priority_id' => array(
+            'title' => ts('Priority'),
+            'default' => TRUE,
+            'type' => CRM_Utils_Type::T_STRING,
+          ),
         ),
         'filters' => array(
           'activity_date_time' => array(
@@ -250,12 +275,19 @@ class CRM_Report_Form_Activity extends CRM_Report_Form {
           ),
           'status_id' => array(
             'title' => ts('Activity Status'),
+            'type' => CRM_Utils_Type::T_STRING,
             'operatorType' => CRM_Report_Form::OP_MULTISELECT,
             'options' => CRM_Core_PseudoConstant::activityStatus(),
           ),
           'details' => array(
             'title' => ts('Activity Details'),
             'type' => CRM_Utils_Type::T_TEXT,
+          ),
+          'priority_id' => array(
+            'title' => ts('Activity Priority'),
+            'type' => CRM_Utils_Type::T_STRING,
+            'operatorType' => CRM_Report_Form::OP_MULTISELECT,
+            'options' => CRM_Core_PseudoConstant::get('CRM_Activity_DAO_Activity', 'priority_id'),
           ),
         ),
         'order_bys' => array(
@@ -281,8 +313,6 @@ class CRM_Report_Form_Activity extends CRM_Report_Form {
     ) + $this->addressFields(TRUE);
 
     if ($caseEnabled && CRM_Core_Permission::check('access all cases and activities')) {
-      $this->activityTypes = CRM_Core_PseudoConstant::activityType(TRUE, TRUE, FALSE, 'label', TRUE);
-      $this->_columns['civicrm_activity']['filters']['activity_type_id']['options'] = $this->activityTypes;
       $this->_columns['civicrm_activity']['filters']['include_case_activities'] = array(
         'name' => 'include_case_activities',
         'title' => ts('Include Case Activities'),
@@ -296,7 +326,7 @@ class CRM_Report_Form_Activity extends CRM_Report_Form {
       // Add display column and filter for Survey Results, Campaign and Engagement Index if CiviCampaign is enabled
 
       $this->_columns['civicrm_activity']['fields']['result'] = array(
-        'title' => 'Survey Result',
+        'title' => ts('Survey Result'),
         'default' => 'false',
       );
       $this->_columns['civicrm_activity']['filters']['result'] = array(
@@ -306,22 +336,24 @@ class CRM_Report_Form_Activity extends CRM_Report_Form {
       );
       if (!empty($this->activeCampaigns)) {
         $this->_columns['civicrm_activity']['fields']['campaign_id'] = array(
-          'title' => 'Campaign',
+          'title' => ts('Campaign'),
           'default' => 'false',
         );
         $this->_columns['civicrm_activity']['filters']['campaign_id'] = array(
           'title' => ts('Campaign'),
+          'type' => CRM_Utils_Type::T_INT,
           'operatorType' => CRM_Report_Form::OP_MULTISELECT,
           'options' => $this->activeCampaigns,
         );
       }
       if (!empty($this->engagementLevels)) {
         $this->_columns['civicrm_activity']['fields']['engagement_level'] = array(
-          'title' => 'Engagement Index',
+          'title' => ts('Engagement Index'),
           'default' => 'false',
         );
         $this->_columns['civicrm_activity']['filters']['engagement_level'] = array(
           'title' => ts('Engagement Index'),
+          'type' => CRM_Utils_Type::T_INT,
           'operatorType' => CRM_Report_Form::OP_MULTISELECT,
           'options' => $this->engagementLevels,
         );
@@ -430,7 +462,7 @@ class CRM_Report_Form_Activity extends CRM_Report_Form {
           strstr($clause, 'civicrm_email_contact_target_email') ||
           strstr($clause, 'civicrm_phone_contact_target_phone')
         ) {
-          $this->_selectClauses[$key] = "GROUP_CONCAT($clause SEPARATOR '; ') as $clause";
+          $this->_selectClauses[$key] = "GROUP_CONCAT($clause SEPARATOR ';') as $clause";
         }
       }
     }
@@ -578,7 +610,7 @@ class CRM_Report_Form_Activity extends CRM_Report_Form {
           }
           else {
             $op = CRM_Utils_Array::value("{$fieldName}_op", $this->_params);
-            if ($op && ($op != 'nnll' || $op != 'nll')) {
+            if ($op && ($op != 'nnll' && $op != 'nll')) {
               $clause = $this->whereClause($field,
                 $op,
                 CRM_Utils_Array::value("{$fieldName}_value", $this->_params),
@@ -642,7 +674,7 @@ class CRM_Report_Form_Activity extends CRM_Report_Form {
    * Override group by function.
    */
   public function groupBy() {
-    $this->_groupBy = "GROUP BY {$this->_aliases['civicrm_activity']}.id";
+    $this->_groupBy = CRM_Contact_BAO_Query::getGroupByFromSelectColumns($this->_selectClauses, "{$this->_aliases['civicrm_activity']}.id");
   }
 
   /**
@@ -695,7 +727,7 @@ FROM civireport_activity_temp_target tar
 GROUP BY civicrm_activity_id $having {$this->_orderBy}";
     $select = 'AS addtogroup_contact_id';
     $query = str_ireplace('AS civicrm_contact_contact_target_id', $select, $query);
-    $dao = CRM_Core_DAO::executeQuery($query);
+    $dao = $this->executeReportQuery($query);
 
     $contactIDs = array();
     // Add resulting contacts to group
@@ -743,7 +775,7 @@ GROUP BY civicrm_activity_id $having {$this->_orderBy}";
 
   public function postProcess() {
     //reset value of activity_date
-    if (!empty($this->_force)) {
+    if (!empty($this->_resetDateFilter)) {
       $this->_formValues["activity_date_time_relative"] = NULL;
     }
     $this->beginPostProcess();
@@ -770,9 +802,9 @@ GROUP BY civicrm_activity_id $having {$this->_orderBy}";
     $this->customDataFrom();
     $this->where('target');
     $insertCols = implode(',', $this->_selectAliases);
-    $tempQuery = "CREATE TEMPORARY TABLE civireport_activity_temp_target CHARACTER SET utf8 COLLATE utf8_unicode_ci AS
+    $tempQuery = "CREATE TEMPORARY TABLE civireport_activity_temp_target {$this->_databaseAttributes} AS
 {$this->_select} {$this->_from} {$this->_where} ";
-    CRM_Core_DAO::executeQuery($tempQuery);
+    $this->executeReportQuery($tempQuery);
 
     // 2. add new columns to hold assignee and source results
     // fixme: add when required
@@ -787,7 +819,7 @@ GROUP BY civicrm_activity_id $having {$this->_orderBy}";
   ADD COLUMN civicrm_phone_contact_source_phone VARCHAR(128),
   ADD COLUMN civicrm_email_contact_assignee_email VARCHAR(128),
   ADD COLUMN civicrm_email_contact_source_email VARCHAR(128)";
-    CRM_Core_DAO::executeQuery($tempQuery);
+    $this->executeReportQuery($tempQuery);
 
     // 3. fill temp table with assignee results
     $this->buildACLClause(array('civicrm_contact_assignee'));
@@ -799,7 +831,7 @@ GROUP BY civicrm_activity_id $having {$this->_orderBy}";
     $tempQuery = "INSERT INTO civireport_activity_temp_target ({$insertCols})
 {$this->_select}
 {$this->_from} {$this->_where}";
-    CRM_Core_DAO::executeQuery($tempQuery);
+    $this->executeReportQuery($tempQuery);
 
     // 4. fill temp table with source results
     $this->buildACLClause(array('civicrm_contact_source'));
@@ -811,7 +843,7 @@ GROUP BY civicrm_activity_id $having {$this->_orderBy}";
     $tempQuery = "INSERT INTO civireport_activity_temp_target ({$insertCols})
 {$this->_select}
 {$this->_from} {$this->_where}";
-    CRM_Core_DAO::executeQuery($tempQuery);
+    $this->executeReportQuery($tempQuery);
 
     // 5. show final result set from temp table
     $rows = array();
@@ -821,10 +853,16 @@ GROUP BY civicrm_activity_id $having {$this->_orderBy}";
       $this->_having = "HAVING " . implode(' AND ', $nullFilters);
     }
     $this->orderBy();
+    foreach ($this->_sections as $alias => $section) {
+      if (!empty($section) && $section['name'] == 'activity_date_time') {
+        $this->alterSectionHeaderForDateTime('civireport_activity_temp_target', $section['tplField']);
+      }
+    }
     $this->limit();
+    $groupByFromSelect = CRM_Contact_BAO_Query::getGroupByFromSelectColumns($this->_selectClauses, 'civicrm_activity_id');
     $sql = "{$this->_select}
 FROM civireport_activity_temp_target tar
-GROUP BY civicrm_activity_id {$this->_having} {$this->_orderBy} {$this->_limit}";
+{$groupByFromSelect} {$this->_having} {$this->_orderBy} {$this->_limit}";
     $this->buildRows($sql, $rows);
 
     // format result set.
@@ -850,6 +888,7 @@ GROUP BY civicrm_activity_id {$this->_having} {$this->_orderBy} {$this->_limit}"
     $entryFound = FALSE;
     $activityType = CRM_Core_PseudoConstant::activityType(TRUE, TRUE, FALSE, 'label', TRUE);
     $activityStatus = CRM_Core_PseudoConstant::activityStatus();
+    $priority = CRM_Core_PseudoConstant::get('CRM_Activity_DAO_Activity', 'priority_id');
     $viewLinks = FALSE;
     $context = CRM_Utils_Request::retrieve('context', 'String', $this, FALSE, 'report');
     $actUrl = '';
@@ -966,6 +1005,13 @@ GROUP BY civicrm_activity_id {$this->_having} {$this->_orderBy} {$this->_limit}"
         }
       }
 
+      if (array_key_exists('civicrm_activity_priority_id', $row)) {
+        if ($value = $row['civicrm_activity_priority_id']) {
+          $rows[$rowNum]['civicrm_activity_priority_id'] = $priority[$value];
+          $entryFound = TRUE;
+        }
+      }
+
       if (array_key_exists('civicrm_activity_details', $row) && $this->_outputMode == 'html') {
         if ($value = $row['civicrm_activity_details']) {
           $fullDetails = $rows[$rowNum]['civicrm_activity_details'];
@@ -1024,14 +1070,16 @@ GROUP BY civicrm_activity_id {$this->_having} {$this->_orderBy} {$this->_limit}"
       foreach (array_merge($sectionAliases, $this->_selectAliases) as $alias) {
         $ifnulls[] = "ifnull($alias, '') as $alias";
       }
+      $this->_select = "SELECT " . implode(", ", $ifnulls);
+      $this->_select = CRM_Contact_BAO_Query::appendAnyValueToSelect($ifnulls, $sectionAliases);
 
-      $query = "select " . implode(", ", $ifnulls) .
+      $query = $this->_select .
         ", count(DISTINCT civicrm_activity_id) as ct from civireport_activity_temp_target group by " .
         implode(", ", $sectionAliases);
 
       // initialize array of total counts
       $totals = array();
-      $dao = CRM_Core_DAO::executeQuery($query);
+      $dao = $this->executeReportQuery($query);
       while ($dao->fetch()) {
         // let $this->_alterDisplay translate any integer ids to human-readable values.
         $rows[0] = $dao->toArray();

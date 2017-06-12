@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -40,12 +40,12 @@ class CRM_Case_Form_ActivityToCase extends CRM_Core_Form {
    * Build all the data structures needed to build the form.
    */
   public function preProcess() {
-    $this->_activityId = CRM_Utils_Request::retrieve('activityId', 'Positive', CRM_Core_DAO::$_nullObject);
+    $this->_activityId = CRM_Utils_Request::retrieve('activityId', 'Positive');
     if (!$this->_activityId) {
       CRM_Core_Error::fatal('required activity id is missing.');
     }
 
-    $this->_currentCaseId = CRM_Utils_Request::retrieve('caseId', 'Positive', CRM_Core_DAO::$_nullObject);
+    $this->_currentCaseId = CRM_Utils_Request::retrieve('caseId', 'Positive');
     $this->assign('currentCaseId', $this->_currentCaseId);
     $this->assign('buildCaseActivityForm', TRUE);
   }
@@ -68,18 +68,20 @@ class CRM_Case_Form_ActivityToCase extends CRM_Core_Form {
     // If this contact has an open case, supply it as a default
     $cid = CRM_Utils_Request::retrieve('cid', 'Integer');
     if ($cid) {
-      $cases = CRM_Case_BAO_Case::getUnclosedCases(array('contact_id' => $cid), $this->_currentCaseId);
-      foreach ($cases as $id => $details) {
-        $defaults['file_on_case_unclosed_case_id'] = $id;
-        $value = array(
-          'label' => $details['sort_name'] . ' - ' . $details['case_type'],
-          'extra' => array('contact_id' => $cid),
-        );
-        $this->updateElementAttr('file_on_case_unclosed_case_id', array('data-value' => json_encode($value)));
+      $cases = civicrm_api3('CaseContact', 'get', array(
+        'contact_id' => $cid,
+        'case_id' => array('!=' => $this->_currentCaseId),
+        'case_id.status_id' => array('!=' => "Closed"),
+        'case_id.is_deleted' => 0,
+        'case_id.end_date' => array('IS NULL' => 1),
+        'options' => array('limit' => 1),
+        'return' => 'case_id',
+      ));
+      foreach ($cases['values'] as $record) {
+        $defaults['file_on_case_unclosed_case_id'] = $record['case_id'];
         break;
       }
     }
-
     return $defaults;
   }
 
@@ -87,7 +89,18 @@ class CRM_Case_Form_ActivityToCase extends CRM_Core_Form {
    * Build the form object.
    */
   public function buildQuickForm() {
-    $this->add('text', 'file_on_case_unclosed_case_id', ts('Select Case'), array('class' => 'huge'), TRUE);
+    $this->addEntityRef('file_on_case_unclosed_case_id', ts('Select Case'), array(
+      'entity' => 'Case',
+      'api' => array(
+        'extra' => array('contact_id'),
+        'params' => array(
+          'case_id' => array('!=' => $this->_currentCaseId),
+          'case_id.is_deleted' => 0,
+          'case_id.status_id' => array('!=' => "Closed"),
+          'case_id.end_date' => array('IS NULL' => 1),
+        ),
+      ),
+    ), TRUE);
     $this->addEntityRef('file_on_case_target_contact_id', ts('With Contact(s)'), array('multiple' => TRUE));
     $this->add('text', 'file_on_case_activity_subject', ts('Subject'), array('size' => 50));
   }

@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,11 +28,11 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  * $Id$
  *
  */
-class CRM_Grant_BAO_Query {
+class CRM_Grant_BAO_Query extends CRM_Core_BAO_Query {
   /**
    * @return array
    */
@@ -50,40 +50,41 @@ class CRM_Grant_BAO_Query {
    * @return void
    */
   public static function select(&$query) {
-    if (($query->_mode & CRM_Contact_BAO_Query::MODE_GRANT) || !empty($query->_returnProperties)) {
-      if (!empty($query->_returnProperties['grant_status_id'])) {
-        $query->_select['grant_status_id'] = 'grant_status.id as grant_status_id';
-        $query->_element['grant_status'] = 1;
-        $query->_tables['grant_status'] = $query->_whereTables['grant_status'] = 1;
-        $query->_tables['civicrm_grant'] = $query->_whereTables['civicrm_grant'] = 1;
-      }
+    if (!empty($query->_returnProperties['grant_status_id'])) {
+      $query->_select['grant_status_id'] = 'grant_status.id as grant_status_id';
+      $query->_element['grant_status'] = 1;
+      $query->_tables['grant_status'] = $query->_whereTables['grant_status'] = 1;
+      $query->_tables['civicrm_grant'] = $query->_whereTables['civicrm_grant'] = 1;
+    }
 
-      if (!empty($query->_returnProperties['grant_status'])) {
-        $query->_select['grant_status'] = 'grant_status.label as grant_status';
-        $query->_element['grant_status'] = 1;
-        $query->_tables['grant_status'] = $query->_whereTables['grant_status'] = 1;
-        $query->_tables['civicrm_grant'] = $query->_whereTables['civicrm_grant'] = 1;
-      }
+    if (!empty($query->_returnProperties['grant_status'])) {
+      $query->_select['grant_status'] = 'grant_status.label as grant_status';
+      $query->_element['grant_status'] = 1;
+      $query->_tables['grant_status'] = $query->_whereTables['grant_status'] = 1;
+      $query->_tables['civicrm_grant'] = $query->_whereTables['civicrm_grant'] = 1;
+    }
 
-      if (!empty($query->_returnProperties['grant_type_id'])) {
-        $query->_select['grant_type_id'] = 'grant_type.id as grant_type_id';
-        $query->_element['grant_type'] = 1;
-        $query->_tables['grant_type'] = $query->_whereTables['grant_type'] = 1;
-        $query->_tables['civicrm_grant'] = $query->_whereTables['civicrm_grant'] = 1;
-      }
+    if (!empty($query->_returnProperties['grant_type_id'])) {
+      $query->_select['grant_type_id'] = 'grant_type.id as grant_type_id';
+      $query->_element['grant_type'] = 1;
+      $query->_tables['grant_type'] = $query->_whereTables['grant_type'] = 1;
+      $query->_tables['civicrm_grant'] = $query->_whereTables['civicrm_grant'] = 1;
+    }
 
-      if (!empty($query->_returnProperties['grant_type'])) {
-        $query->_select['grant_type'] = 'grant_type.label as grant_type';
-        $query->_element['grant_type'] = 1;
-        $query->_tables['grant_type'] = $query->_whereTables['grant_type'] = 1;
-        $query->_tables['civicrm_grant'] = $query->_whereTables['civicrm_grant'] = 1;
-      }
+    if (!empty($query->_returnProperties['grant_type'])) {
+      $query->_select['grant_type'] = 'grant_type.label as grant_type';
+      $query->_element['grant_type'] = 1;
+      $query->_tables['grant_type'] = $query->_whereTables['grant_type'] = 1;
+      $query->_tables['civicrm_grant'] = $query->_whereTables['civicrm_grant'] = 1;
+    }
 
-      if (!empty($query->_returnProperties['grant_note'])) {
-        $query->_select['grant_note'] = "civicrm_note.note as grant_note";
-        $query->_element['grant_note'] = 1;
-        $query->_tables['grant_note'] = 1;
-      }
+    if (!empty($query->_returnProperties['grant_note'])) {
+      $query->_select['grant_note'] = "civicrm_note.note as grant_note";
+      $query->_element['grant_note'] = 1;
+      $query->_tables['grant_note'] = 1;
+    }
+
+    if ($query->_mode & CRM_Contact_BAO_Query::MODE_GRANT) {
       $query->_select['grant_amount_requested'] = 'civicrm_grant.amount_requested as grant_amount_requested';
       $query->_select['grant_amount_granted'] = 'civicrm_grant.amount_granted as grant_amount_granted';
       $query->_select['grant_amount_total'] = 'civicrm_grant.amount_total as grant_amount_total';
@@ -267,15 +268,6 @@ class CRM_Grant_BAO_Query {
   }
 
   /**
-   * Getter for the qill object.
-   *
-   * @return string
-   */
-  public function qill() {
-    return (isset($this->_qill)) ? $this->_qill : "";
-  }
-
-  /**
    * @param $mode
    * @param bool $includeCustomFields
    *
@@ -353,38 +345,9 @@ class CRM_Grant_BAO_Query {
     $form->add('text', 'grant_amount_high', ts('Maximum Amount'), array('size' => 8, 'maxlength' => 8));
     $form->addRule('grant_amount_high', ts('Please enter a valid money value (e.g. %1).', array(1 => CRM_Utils_Money::format('99.99', ' '))), 'money');
 
-    // add all the custom  searchable fields
-    $grant = array('Grant');
-    $groupDetails = CRM_Core_BAO_CustomGroup::getGroupDetail(NULL, TRUE, $grant);
-    if ($groupDetails) {
-      $form->assign('grantGroupTree', $groupDetails);
-      foreach ($groupDetails as $group) {
-        foreach ($group['fields'] as $field) {
-          $fieldId = $field['id'];
-          $elementName = 'custom_' . $fieldId;
-          CRM_Core_BAO_CustomField::addQuickFormElement($form,
-            $elementName,
-            $fieldId,
-            FALSE, FALSE, TRUE
-          );
-        }
-      }
-    }
+    self::addCustomFormFields($form, array('Grant'));
 
     $form->assign('validGrant', TRUE);
-  }
-
-  /**
-   * @param $row
-   * @param int $id
-   */
-  public static function searchAction(&$row, $id) {
-  }
-
-  /**
-   * @param $tables
-   */
-  public static function tableNames(&$tables) {
   }
 
 }

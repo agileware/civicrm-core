@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -66,6 +66,7 @@ class CRM_Contribute_Form_Contribution_ThankYou extends CRM_Contribute_Form_Cont
     if ($this->_params['is_pay_later']) {
       $this->assign('pay_later_receipt', $this->_values['pay_later_receipt']);
     }
+    $this->assign('is_for_organization', CRM_Utils_Array::value('is_for_organization', $this->_params));
   }
 
   /**
@@ -88,6 +89,7 @@ class CRM_Contribute_Form_Contribution_ThankYou extends CRM_Contribute_Form_Cont
    */
   public function buildQuickForm() {
     $this->assignToTemplate();
+    $this->_ccid = $this->get('ccid');
     $productID = $this->get('productID');
     $option = $this->get('option');
     $membershipTypeID = $this->get('membershipTypeID');
@@ -115,7 +117,7 @@ class CRM_Contribute_Form_Contribution_ThankYou extends CRM_Contribute_Form_Cont
     if ($invoicing) {
       $getTaxDetails = FALSE;
       $taxTerm = CRM_Utils_Array::value('tax_term', $invoiceSettings);
-      foreach ($this->_lineItem as $key => $value) {
+      foreach ($this->_lineItem as $value) {
         foreach ($value as $v) {
           if (isset($v['tax_rate'])) {
             if ($v['tax_rate'] != '') {
@@ -129,7 +131,6 @@ class CRM_Contribute_Form_Contribution_ThankYou extends CRM_Contribute_Form_Cont
       $this->assign('totalTaxAmount', $params['tax_amount']);
     }
     if (!empty($this->_values['honoree_profile_id']) && !empty($params['soft_credit_type_id'])) {
-      $honorName = NULL;
       $softCreditTypes = CRM_Core_OptionGroup::values("soft_credit_type", FALSE);
 
       $this->assign('soft_credit_type', $softCreditTypes[$params['soft_credit_type_id']]);
@@ -183,9 +184,16 @@ class CRM_Contribute_Form_Contribution_ThankYou extends CRM_Contribute_Form_Cont
     $this->_separateMembershipPayment = $this->get('separateMembershipPayment');
     $this->assign("is_separate_payment", $this->_separateMembershipPayment);
 
-    $this->buildCustom($this->_values['custom_pre_id'], 'customPre', TRUE);
-    $this->buildCustom($this->_values['custom_post_id'], 'customPost', TRUE);
-    if (!empty($params['onbehalf'])) {
+    if (empty($this->_ccid)) {
+      $this->buildCustom($this->_values['custom_pre_id'], 'customPre', TRUE);
+      $this->buildCustom($this->_values['custom_post_id'], 'customPost', TRUE);
+    }
+    if (!empty($this->_values['onbehalf_profile_id']) &&
+      !empty($params['onbehalf']) &&
+      ($this->_values['is_for_organization'] == 2 ||
+        !empty($params['is_for_organization'])
+      ) && empty($this->_ccid)
+    ) {
       $fieldTypes = array('Contact', 'Organization');
       $contactSubType = CRM_Contact_BAO_ContactType::subTypes('Organization');
       $fieldTypes = array_merge($fieldTypes, $contactSubType);
@@ -274,6 +282,28 @@ class CRM_Contribute_Form_Contribution_ThankYou extends CRM_Contribute_Form_Cont
       }
       $this->assign('friendURL', $url);
     }
+
+    $isPendingOutcome = TRUE;
+    try {
+      // A payment notification update could have come in at any time. Check at the last minute.
+      $contributionStatusID = civicrm_api3('Contribution', 'getvalue', array(
+        'id' => CRM_Utils_Array::value('contributionID', $params),
+        'return' => 'contribution_status_id',
+        'invoice_id' => CRM_Utils_Array::value('invoiceID', $params),
+      ));
+      if (CRM_Core_PseudoConstant::getName('CRM_Contribute_BAO_Contribution', 'contribution_status_id', $contributionStatusID) === 'Pending'
+        && !empty($params['payment_processor_id'])
+      ) {
+        $isPendingOutcome = TRUE;
+      }
+      else {
+        $isPendingOutcome = FALSE;
+      }
+    }
+    catch (CiviCRM_API3_Exception $e) {
+
+    }
+    $this->assign('isPendingOutcome', $isPendingOutcome);
 
     $this->freeze();
 

@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -121,6 +121,7 @@ class CRM_Core_Payment_BaseIPN {
       return FALSE;
     }
     $contribution->receive_date = CRM_Utils_Date::isoToMysql($contribution->receive_date);
+    $contribution->receipt_date = CRM_Utils_Date::isoToMysql($contribution->receipt_date);
 
     $objects['contact'] = &$contact;
     $objects['contribution'] = &$contribution;
@@ -141,14 +142,14 @@ class CRM_Core_Payment_BaseIPN {
    *
    * @input array information from Payment processor
    *
-   * @param $input
+   * @param array $input
    * @param array $ids
    * @param array $objects
    * @param bool $required
    * @param int $paymentProcessorID
    * @param array $error_handling
    *
-   * @return bool
+   * @return bool|array
    */
   public function loadObjects(&$input, &$ids, &$objects, $required, $paymentProcessorID, $error_handling = NULL) {
     if (empty($error_handling)) {
@@ -221,7 +222,7 @@ class CRM_Core_Payment_BaseIPN {
     }
     $participant = &$objects['participant'];
 
-    //CRM-15546
+    // CRM-15546
     $contributionStatuses = CRM_Core_PseudoConstant::get('CRM_Contribute_DAO_Contribution', 'contribution_status_id', array(
         'labelColumn' => 'name',
         'flip' => 1,
@@ -297,8 +298,8 @@ class CRM_Core_Payment_BaseIPN {
   /**
    * Process cancelled payment outcome.
    *
-   * @param $objects
-   * @param $transaction
+   * @param array $objects
+   * @param CRM_Core_Transaction $transaction
    * @param array $input
    *
    * @return bool
@@ -345,8 +346,11 @@ class CRM_Core_Payment_BaseIPN {
             'labelColumn' => 'name',
             'flip' => 1,
           ));
+        // Cancel only Pending memberships
+        // CRM-18688
+        $pendingStatusId = $membershipStatuses['Pending'];
         foreach ($memberships as $membership) {
-          if ($membership) {
+          if ($membership && ($membership->status_id == $pendingStatusId)) {
             $membership->status_id = $membershipStatuses['Cancelled'];
             $membership->save();
 
@@ -375,8 +379,8 @@ class CRM_Core_Payment_BaseIPN {
   /**
    * Rollback unhandled outcomes.
    *
-   * @param $objects
-   * @param $transaction
+   * @param array $objects
+   * @param CRM_Core_Transaction $transaction
    *
    * @return bool
    */
@@ -388,6 +392,8 @@ class CRM_Core_Payment_BaseIPN {
   }
 
   /**
+   * @deprecated
+   *
    * Jumbled up function.
    *
    * The purpose of this function is to transition a pending transaction to Completed including updating any
@@ -437,16 +443,13 @@ class CRM_Core_Payment_BaseIPN {
    * @param array $input
    * @param array $ids
    * @param array $objects
-   * @param $transaction
+   * @param CRM_Core_Transaction $transaction
    * @param bool $recur
    */
   public function completeTransaction(&$input, &$ids, &$objects, &$transaction, $recur = FALSE) {
-    $isRecurring = $this->_isRecurring;
-    $isFirstOrLastRecurringPayment = $this->_isFirstOrLastRecurringPayment;
     $contribution = &$objects['contribution'];
 
-    CRM_Contribute_BAO_Contribution::completeOrder($input, $ids, $objects, $transaction, $recur, $contribution,
-      $isRecurring, $isFirstOrLastRecurringPayment);
+    CRM_Contribute_BAO_Contribution::completeOrder($input, $ids, $objects, $transaction, $recur, $contribution);
   }
 
   /**
@@ -467,9 +470,9 @@ class CRM_Core_Payment_BaseIPN {
   }
 
   /**
-   * Send receipt from contribution.
-   *
    * @deprecated
+   *
+   * @todo confirm this function is not being used by any payment processor outside core & remove.
    *
    * Note that the compose message part has been moved to contribution
    * In general LoadObjects is called first to get the objects but the composeMessageArray function now calls it
@@ -478,7 +481,7 @@ class CRM_Core_Payment_BaseIPN {
    *   Incoming data from Payment processor.
    * @param array $ids
    *   Related object IDs.
-   * @param $objects
+   * @param array $objects
    * @param array $values
    *   Values related to objects that have already been loaded.
    * @param bool $recur
@@ -490,7 +493,7 @@ class CRM_Core_Payment_BaseIPN {
    * @return array
    */
   public function sendMail(&$input, &$ids, &$objects, &$values, $recur = FALSE, $returnMessageText = FALSE) {
-    return CRM_Contribute_BAO_Contribution::sendMail($input, $ids, $objects['contribution'], $values, $recur,
+    return CRM_Contribute_BAO_Contribution::sendMail($input, $ids, $objects['contribution']->id, $values,
       $returnMessageText);
   }
 

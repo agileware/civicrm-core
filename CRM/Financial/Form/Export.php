@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -167,12 +167,11 @@ class CRM_Financial_Form_Export extends CRM_Core_Form {
     $batchParams['modified_id'] = $session->get('userID');
     $batchParams['status_id'] = $this->_exportStatusId;
 
-    $ids = array();
     foreach ($batchIds as $batchId) {
-      $batchParams['id'] = $ids['batchID'] = $batchId;
+      $batchParams['id'] = $batchId;
       // Update totals
       $batchParams = array_merge($batchParams, $totals[$batchId]);
-      CRM_Batch_BAO_Batch::create($batchParams, $ids, 'financialBatch');
+      CRM_Batch_BAO_Batch::create($batchParams);
     }
 
     CRM_Batch_BAO_Batch::exportFinancialBatch($batchIds, $this->_exportFormat);

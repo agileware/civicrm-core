@@ -3,7 +3,7 @@
   +--------------------------------------------------------------------+
   | CiviCRM version 4.7                                                |
   +--------------------------------------------------------------------+
-  | Copyright CiviCRM LLC (c) 2004-2015                                |
+  | Copyright CiviCRM LLC (c) 2004-2017                                |
   +--------------------------------------------------------------------+
   | This file is a part of CiviCRM.                                    |
   |                                                                    |
@@ -25,13 +25,11 @@
   +--------------------------------------------------------------------+
  */
 
-
-require_once 'CiviTest/CiviUnitTestCase.php';
-
 /**
  * Test class for CRM_Contact_BAO_Group BAO
  *
  * @package   CiviCRM
+ * @group headless
  */
 class CRM_Contact_BAO_GroupTest extends CiviUnitTestCase {
 
@@ -113,9 +111,8 @@ class CRM_Contact_BAO_GroupTest extends CiviUnitTestCase {
    * Load saved search sql files into the DB.
    */
   public function loadSavedSearches() {
-    $dsn = CRM_Core_Config::singleton()->dsn;
     foreach (glob(dirname(__FILE__) . "/SavedSearchDataSets/*.sql") as $file) {
-      CRM_Utils_File::sourceSQLFile($dsn, $file);
+      CRM_Utils_File::sourceSQLFile(NULL, $file);
     }
   }
 

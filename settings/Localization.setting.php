@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  * $Id$
  *
  */
@@ -188,13 +188,14 @@ return array(
     'group' => 'localization',
     'name' => 'countryLimit',
     'type' => 'Array',
-    'quick_form_type' => 'Select',
-    'html_type' => 'Select',
+    'quick_form_type' => 'Element',
+    'html_type' => 'advmultiselect',
     'html_attributes' => array(
-      'multiple' => 1,
-      'class' => 'crm-select2',
+      'size' => 5,
+      'style' => 'width:150px',
+      'class' => 'advmultiselect',
     ),
-    'default' => array('1228'),
+    'default' => array(),
     'add' => '4.3',
     'title' => 'Available Countries',
     'is_domain' => 1,
@@ -210,15 +211,16 @@ return array(
     'group' => 'localization',
     'name' => 'provinceLimit',
     'type' => 'Array',
-    'quick_form_type' => 'Select',
-    'html_type' => 'Select',
+    'quick_form_type' => 'Element',
+    'html_type' => 'advmultiselect',
     'html_attributes' => array(
-      'multiple' => 1,
-      'class' => 'crm-select2',
+      'size' => 5,
+      'style' => 'width:150px',
+      'class' => 'advmultiselect',
     ),
-    'default' => array('1228'),
+    'default' => array(),
     'add' => '4.3',
-    'title' => 'Available States and Provinces',
+    'title' => 'Available States and Provinces (by Country)',
     'is_domain' => 1,
     'is_contact' => 0,
     'description' => '',
@@ -322,6 +324,44 @@ return array(
     ),
     'default' => '%Y',
     'title' => 'Date Format: Year Only',
+    'description' => '',
+  ),
+  'dateformatFinancialBatch' => array(
+    'add' => '4.7',
+    'help_text' => NULL,
+    'is_domain' => 1,
+    'is_contact' => 0,
+    'group_name' => 'Localization Preferences',
+    'group' => 'localization',
+    'name' => 'dateformatFinancialBatch',
+    'type' => 'String',
+    'quick_form_type' => 'Element',
+    'html_type' => 'text',
+    'html_attributes' => array(
+      'size' => '12',
+      'maxlength' => '60',
+    ),
+    'default' => '%m/%d/%Y',
+    'title' => 'Date Format: Financial Batch',
+    'description' => '',
+  ),
+  'dateformatshortdate' => array(
+    'add' => '4.7',
+    'help_text' => NULL,
+    'is_domain' => 1,
+    'is_contact' => 0,
+    'group_name' => 'Localization Preferences',
+    'group' => 'localization',
+    'name' => 'dateformatshortdate',
+    'type' => 'String',
+    'quick_form_type' => 'Element',
+    'html_type' => 'text',
+    'html_attributes' => array(
+      'size' => '12',
+      'maxlength' => '60',
+    ),
+    'default' => '%m/%d/%Y',
+    'title' => 'Date Format: Short date Month Day Year',
     'description' => '',
   ),
   'dateInputFormat' => array(

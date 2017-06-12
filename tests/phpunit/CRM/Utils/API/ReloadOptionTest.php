@@ -1,7 +1,5 @@
 <?php
 
-require_once 'CiviTest/CiviUnitTestCase.php';
-
 /**
  * Test that the API accepts the 'reload' option.
  *
@@ -9,6 +7,7 @@ require_once 'CiviTest/CiviUnitTestCase.php';
  * to munge the database. If the reload option is present, then the return value should reflect
  * the final SQL content (after calling hook_civicrm_post). If the reload option is missing,
  * then the return should reflect the inputted (unmodified) data.
+ * @group headless
  */
 class CRM_Utils_API_ReloadOptionTest extends CiviUnitTestCase {
 
@@ -108,25 +107,6 @@ class CRM_Utils_API_ReloadOptionTest extends CiviUnitTestCase {
     $this->assertEquals('First', $result['values'][0]['first_name']);
     $this->assertEquals('munged', $result['values'][0]['nick_name']);
     $this->assertAPISuccess($result['values'][0]['api.Email.create']);
-  }
-
-  /**
-   * An implementation of hook_civicrm_post used with all our test cases.
-   *
-   * @param $op
-   * @param string $objectName
-   * @param int $objectId
-   * @param $objectRef
-   */
-  public function onPost($op, $objectName, $objectId, &$objectRef) {
-    if ($op == 'create' && $objectName == 'Individual') {
-      CRM_Core_DAO::executeQuery(
-        "UPDATE civicrm_contact SET nick_name = 'munged' WHERE id = %1",
-        array(
-          1 => array($objectId, 'Integer'),
-        )
-      );
-    }
   }
 
 }

@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -166,6 +166,8 @@ class CRM_Contribute_BAO_ContributionPage extends CRM_Contribute_DAO_Contributio
       'useForMember',
       'membership_assign',
       'amount',
+      'receipt_date',
+      'is_pay_later',
     );
 
     foreach ($valuesRequiredForTemplate as $valueRequiredForTemplate) {
@@ -380,12 +382,18 @@ class CRM_Contribute_BAO_ContributionPage extends CRM_Contribute_DAO_Contributio
         'useForMember' => $values['useForMember'],
         'membership_assign' => $values['membership_assign'],
         'amount' => $values['amount'],
+        'is_pay_later' => $values['is_pay_later'],
+        'receipt_date' => !$values['receipt_date'] ? NULL : date('YmdHis', strtotime($values['receipt_date'])),
+        'pay_later_receipt' => CRM_Utils_Array::value('pay_later_receipt', $values),
       );
 
       if ($contributionTypeId = CRM_Utils_Array::value('financial_type_id', $values)) {
-        $tplParams['contributionTypeId'] = $contributionTypeId;
-        $tplParams['contributionTypeName'] = CRM_Core_DAO::getFieldValue('CRM_Financial_DAO_FinancialType',
+        $tplParams['financialTypeId'] = $contributionTypeId;
+        $tplParams['financialTypeName'] = CRM_Core_DAO::getFieldValue('CRM_Financial_DAO_FinancialType',
           $contributionTypeId);
+        // Legacy support
+        $tplParams['contributionTypeName'] = $tplParams['financialTypeName'];
+        $tplParams['contributionTypeId'] = $contributionTypeId;
       }
 
       if ($contributionPageId = CRM_Utils_Array::value('id', $values)) {
@@ -439,6 +447,10 @@ class CRM_Contribute_BAO_ContributionPage extends CRM_Contribute_DAO_Contributio
           'to' => $displayName,
           'html' => $html,
         );
+      }
+
+      if (empty($values['receipt_from_name']) && empty($values['receipt_from_name'])) {
+        list($values['receipt_from_name'], $values['receipt_from_email']) = CRM_Core_BAO_Domain::getNameAndEmail();
       }
 
       if ($values['is_email_receipt']) {
@@ -596,7 +608,7 @@ class CRM_Contribute_BAO_ContributionPage extends CRM_Contribute_DAO_Contributio
         // like in PaypalPro, & therefore we set it here additionally.
         $template = CRM_Core_Smarty::singleton();
         $paymentProcessor = CRM_Financial_BAO_PaymentProcessor::getProcessorForEntity($recur->id, 'recur', 'obj');
-        $url = $paymentProcessor->subscriptionURL($recur->id, 'recur');
+        $url = $paymentProcessor->subscriptionURL($recur->id, 'recur', 'cancel');
         $template->assign('cancelSubscriptionUrl', $url);
 
         $url = $paymentProcessor->subscriptionURL($recur->id, 'recur', 'billing');
@@ -843,7 +855,7 @@ LEFT JOIN  civicrm_premiums            ON ( civicrm_premiums.entity_id = civicrm
    * @return array|string
    */
   public static function formatModuleData($params, $setDefault = FALSE, $module) {
-    global $tsLocale;
+    $tsLocale = CRM_Core_I18n::getLocale();
     $config = CRM_Core_Config::singleton();
     $json = $jsonDecode = NULL;
     $domain = new CRM_Core_DAO_Domain();
@@ -946,8 +958,7 @@ LEFT JOIN  civicrm_premiums            ON ( civicrm_premiums.entity_id = civicrm
       'output' => 'pdf_invoice',
       'forPage' => 'confirmpage',
     );
-    $pdfHtml = CRM_Contribute_Form_Task_Invoice::printPDF($contributionID,
-      $pdfParams, $contactId, CRM_Core_DAO::$_nullObject);
+    $pdfHtml = CRM_Contribute_Form_Task_Invoice::printPDF($contributionID, $pdfParams, $contactId);
     return $pdfHtml;
   }
 

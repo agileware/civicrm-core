@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -136,6 +136,8 @@ class CRM_Utils_System_Joomla extends CRM_Utils_System_Base {
     $query = $db->getQuery(TRUE);
     $query->select('username, email');
     $query->from($JUserTable->getTableName());
+
+    // LOWER in query below roughly translates to 'hurt my database without deriving any benefit' See CRM-19811.
     $query->where('(LOWER(username) = LOWER(\'' . $name . '\')) OR (LOWER(email) = LOWER(\'' . $email . '\'))');
     $db->setQuery($query, 0, 10);
     $users = $db->loadAssocList();
@@ -430,13 +432,30 @@ class CRM_Utils_System_Joomla extends CRM_Utils_System_Base {
   }
 
   /**
-   * FIXME: Do something
-   *
-   * @param \obj $user
+   * @param \string $username
+   * @param \string $password
    *
    * @return bool
    */
-  public function loadUser($user) {
+  public function loadUser($username, $password = NULL) {
+    $uid = JUserHelper::getUserId($username);
+    if (empty($uid)) {
+      return FALSE;
+    }
+    $contactID = CRM_Core_BAO_UFMatch::getContactId($uid);
+    if (!empty($password)) {
+      $instance = JFactory::getApplication('site');
+      $params = array(
+        'username' => $username,
+        'password' => $password,
+      );
+      //perform the login action
+      $instance->login($params);
+    }
+
+    $session = CRM_Core_Session::singleton();
+    $session->set('ufID', $uid);
+    $session->set('userID', $contactID);
     return TRUE;
   }
 
@@ -586,6 +605,14 @@ class CRM_Utils_System_Joomla extends CRM_Utils_System_Base {
   }
 
   /**
+   * @inheritDoc
+   */
+  public function getTimeZoneString() {
+    $timezone = JFactory::getConfig()->get('offset');
+    return !$timezone ? date_default_timezone_get() : $timezone;
+  }
+
+  /**
    * Get a list of all installed modules, including enabled and disabled ones
    *
    * @return array
@@ -661,17 +688,44 @@ class CRM_Utils_System_Joomla extends CRM_Utils_System_Base {
   }
 
   /**
+   * Determine the location of the CMS root.
+   *
+   * @return string|NULL
+   *   local file system path to CMS root, or NULL if it cannot be determined
+   */
+  public function cmsRootPath() {
+    list($url, $siteName, $siteRoot) = $this->getDefaultSiteSettings();
+    $includePath = "$siteRoot/libraries/cms/version";
+    if (file_exists("$includePath/version.php")) {
+      return $siteRoot;
+    }
+    return NULL;
+  }
+
+  /**
    * @inheritDoc
    */
-  public function getDefaultSiteSettings($dir) {
+  public function getDefaultSiteSettings($dir = NULL) {
     $config = CRM_Core_Config::singleton();
     $url = preg_replace(
       '|/administrator|',
       '',
       $config->userFrameworkBaseURL
     );
+    // CRM-19453 revisited. Under Windows, the pattern wasn't recognised.
+    // This is the original pattern, but it doesn't work under Windows.
+    // By setting the pattern to the one used before the change first and only
+    // changing it means that the change code only affects Windows users.
+    $pattern = '|/media/civicrm/.*$|';
+    if (DIRECTORY_SEPARATOR == '\\') {
+      // This regular expression will handle Windows as well as Linux
+      // and any combination of forward and back slashes in directory
+      // separators.  We only apply it if the directory separator is the one
+      // used by Windows.
+      $pattern = '|[\\\\/]media[\\\\/]civicrm[\\\\/].*$|';
+    }
     $siteRoot = preg_replace(
-      '|/media/civicrm/.*$|',
+      $pattern,
       '',
       $config->imageUploadDir
     );

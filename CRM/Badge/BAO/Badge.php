@@ -26,7 +26,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -36,8 +36,14 @@
  */
 class CRM_Badge_BAO_Badge {
 
+  /**
+   * @var bool
+   */
   public $debug = FALSE;
 
+  /**
+   * @var int
+   */
   public $border = 0;
 
   /**
@@ -481,7 +487,7 @@ class CRM_Badge_BAO_Badge {
         $value = isset($dao->$key) ? $dao->$key : NULL;
         // Format custom fields
         if (strstr($key, 'custom_') && isset($value)) {
-          $value = CRM_Core_BAO_CustomField::getDisplayValue($value, substr($key, 7), $query->_options, $dao->contact_id);
+          $value = CRM_Core_BAO_CustomField::displayValue($value, substr($key, 7), $dao->contact_id);
         }
         $rows[$dao->participant_id][$key] = $value;
       }

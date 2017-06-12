@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -25,14 +25,11 @@
  +--------------------------------------------------------------------+
  */
 
-
-require_once 'CiviTest/CiviUnitTestCase.php';
-require_once 'CiviTest/ContributionPage.php';
-
 /**
  * Test class for CRM_Pledge_BAO_PledgeBlock BAO
  *
  * @package   CiviCRM
+ * @group headless
  */
 class CRM_Pledge_BAO_PledgeBlockTest extends CiviUnitTestCase {
 
@@ -42,7 +39,8 @@ class CRM_Pledge_BAO_PledgeBlockTest extends CiviUnitTestCase {
    */
   protected function setUp() {
     parent::setUp();
-    $this->_contributionPageId = ContributionPage::create();
+    $contributionPage = $this->contributionPageCreate();
+    $this->_contributionPageId = $contributionPage['id'];
   }
 
   /**
@@ -74,13 +72,13 @@ class CRM_Pledge_BAO_PledgeBlockTest extends CiviUnitTestCase {
 
     //Checking for pledgeBlock id in the Pledge_block table.
     $pledgeBlock = CRM_Pledge_BAO_PledgeBlock::create($params);
-    $pledgeBlockId = $this->assertDBNotNull('CRM_Pledge_DAO_PledgeBlock', $pledgeBlock->id, 'id',
+    $this->assertDBNotNull('CRM_Pledge_DAO_PledgeBlock', $pledgeBlock->id, 'id',
       'id', 'Check DB for Pledge block id'
     );
 
     //Checking for pledgeBlock id after delete.
     CRM_Pledge_BAO_PledgeBlock::deletePledgeBlock($pledgeBlock->id);
-    $pledgeBlockId = $this->assertDBNull('CRM_Pledge_DAO_PledgeBlock', $pledgeBlock->id, 'id',
+    $this->assertDBNull('CRM_Pledge_DAO_PledgeBlock', $pledgeBlock->id, 'id',
       'id', 'Check DB for Pledge block id'
     );
   }

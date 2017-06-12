@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
 | CiviCRM version 4.7                                                |
 +--------------------------------------------------------------------+
-| Copyright CiviCRM LLC (c) 2004-2015                                |
+| Copyright CiviCRM LLC (c) 2004-2017                                |
 +--------------------------------------------------------------------+
 | This file is a part of CiviCRM.                                    |
 |                                                                    |
@@ -25,10 +25,9 @@
 +--------------------------------------------------------------------+
  */
 
-require_once 'CiviTest/CiviUnitTestCase.php';
-
 /**
  * Class api_v3_PriceFieldTest
+ * @group headless
  */
 class api_v3_PriceFieldTest extends CiviUnitTestCase {
   protected $_apiversion = 3;
@@ -114,6 +113,46 @@ class api_v3_PriceFieldTest extends CiviUnitTestCase {
   public function testGetFieldsPriceField() {
     $result = $this->callAPISuccess($this->_entity, 'getfields', array('action' => 'create'));
     $this->assertEquals(1, $result['values']['options_per_line']['type']);
+  }
+
+  /**
+   * CRM-19741
+   * Test updating the label of a texte price field and ensure price field value label is also updated
+   */
+  public function testUpdatePriceFieldLabel() {
+    $field = $this->callAPISuccess($this->_entity, 'create', $this->_params);
+    $this->callAPISuccess('price_field_value', 'create', array(
+      'price_field_id' => $field['id'],
+      'name' => 'rye grass',
+      'label' => 'juicy and healthy',
+      'amount' => 1,
+      'financial_type_id' => 1,
+    ));
+    $priceField = $this->callAPISuccess($this->_entity, 'create', array('id' => $field['id'], 'label' => 'Rose Variety'));
+    $priceFieldValue = $this->callAPISuccess('price_field_value', 'get', array('price_field_id' => $field['id']));
+    $this->assertEquals($priceField['values'][$priceField['id']]['label'], $priceFieldValue['values'][$priceFieldValue['id']]['label']);
+    $this->callAPISuccess('price_field_value', 'delete', array('id' => $priceFieldValue['id']));
+    $this->callAPISuccess($this->_entity, 'delete', array('id' => $field['id']));
+  }
+
+  /**
+   * CRM-19741
+   * Confirm value label only updates if fiedl type is html.
+   */
+  public function testUpdatePriceFieldLabelNotUpdateField() {
+    $field = $this->callAPISuccess($this->_entity, 'create', array_merge($this->_params, array('html_type' => 'Radio')));
+    $this->callAPISuccess('price_field_value', 'create', array(
+      'price_field_id' => $field['id'],
+      'name' => 'rye grass',
+      'label' => 'juicy and healthy',
+      'amount' => 1,
+      'financial_type_id' => 1,
+    ));
+    $priceField = $this->callAPISuccess($this->_entity, 'create', array('id' => $field['id'], 'label' => 'Rose Variety'));
+    $priceFieldValue = $this->callAPISuccess('price_field_value', 'get', array('price_field_id' => $field['id']));
+    $this->assertEquals('juicy and healthy', $priceFieldValue['values'][$priceFieldValue['id']]['label']);
+    $this->callAPISuccess('price_field_value', 'delete', array('id' => $priceFieldValue['id']));
+    $this->callAPISuccess($this->_entity, 'delete', array('id' => $field['id']));
   }
 
 }

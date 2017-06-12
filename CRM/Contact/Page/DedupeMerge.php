@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 class CRM_Contact_Page_DedupeMerge extends CRM_Core_Page {
 
@@ -55,18 +55,15 @@ class CRM_Contact_Page_DedupeMerge extends CRM_Core_Page {
    * Build a queue of tasks by dividing dupe pairs in batches.
    */
   public static function getRunner() {
-    $rgid = CRM_Utils_Request::retrieve('rgid', 'Positive', $this, FALSE, 0);
-    $gid  = CRM_Utils_Request::retrieve('gid', 'Positive', $this, FALSE, 0);
-    $action = CRM_Utils_Request::retrieve('action', 'String', CRM_Core_DAO::$_nullObject);
+    $rgid = CRM_Utils_Request::retrieve('rgid', 'Positive');
+    $gid  = CRM_Utils_Request::retrieve('gid', 'Positive');
+    $limit  = CRM_Utils_Request::retrieve('limit', 'Positive');
+    $action = CRM_Utils_Request::retrieve('action', 'String');
     $mode   = CRM_Utils_Request::retrieve('mode', 'String', CRM_Core_DAO::$_nullObject, FALSE, 'safe');
 
-    $contactType = CRM_Core_DAO::getFieldValue('CRM_Dedupe_DAO_RuleGroup', $rgid, 'contact_type');
-    $cacheKeyString = "merge {$contactType}";
-    $cacheKeyString .= $rgid ? "_{$rgid}" : '_0';
-    $cacheKeyString .= $gid ? "_{$gid}" : '_0';
+    $cacheKeyString = CRM_Dedupe_Merger::getMergeCacheKeyString($rgid, $gid);
 
-    $urlQry = "reset=1&action=update&rgid={$rgid}";
-    $urlQry = $gid ? ($urlQry . "&gid={$gid}") : $urlQry;
+    $urlQry = "reset=1&action=update&rgid={$rgid}&gid={$gid}&limit={$limit}";
 
     if ($mode == 'aggressive' && !CRM_Core_Permission::check('force merge duplicate contacts')) {
       CRM_Core_Session::setStatus(ts('You do not have permission to force merge duplicate contact records'), ts('Permission Denied'), 'error');
@@ -101,7 +98,7 @@ class CRM_Contact_Page_DedupeMerge extends CRM_Core_Page {
     for ($i = 1; $i <= ceil($total / self::BATCHLIMIT); $i++) {
       $task  = new CRM_Queue_Task(
         array('CRM_Contact_Page_DedupeMerge', 'callBatchMerge'),
-        array($rgid, $gid, $mode, TRUE, self::BATCHLIMIT, $isSelected),
+        array($rgid, $gid, $mode, self::BATCHLIMIT, $isSelected),
         "Processed " . $i * self::BATCHLIMIT . " pair of duplicates out of " . $total
       );
 
@@ -128,15 +125,14 @@ class CRM_Contact_Page_DedupeMerge extends CRM_Core_Page {
    * @param int $rgid
    * @param int $gid
    * @param string $mode
-   * @param bool $autoFlip
+   *   'safe' mode or 'force' mode.
    * @param int $batchLimit
    * @param int $isSelected
    *
    * @return int
    */
-  public static function callBatchMerge(CRM_Queue_TaskContext $ctx, $rgid, $gid = NULL, $mode = 'safe', $autoFlip = TRUE, $batchLimit = 1, $isSelected = 2) {
-    $result = CRM_Dedupe_Merger::batchMerge($rgid, $gid, $mode, $autoFlip, $batchLimit, $isSelected);
-
+  public static function callBatchMerge(CRM_Queue_TaskContext $ctx, $rgid, $gid, $mode = 'safe', $batchLimit, $isSelected) {
+    CRM_Dedupe_Merger::batchMerge($rgid, $gid, $mode, $batchLimit, $isSelected);
     return CRM_Queue_Task::TASK_SUCCESS;
   }
 

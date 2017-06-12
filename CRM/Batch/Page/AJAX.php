@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -50,7 +50,8 @@ class CRM_Batch_Page_AJAX {
   }
 
   /**
-   * Retrieve records.
+   * This function uses the deprecated v1 datatable api and needs updating. See CRM-16353.
+   * @deprecated
    */
   public static function getBatchList() {
     $sortMapper = array(

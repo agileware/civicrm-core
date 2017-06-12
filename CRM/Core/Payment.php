@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -83,13 +83,25 @@ abstract class CRM_Core_Payment {
   protected $_paymentProcessor;
 
   /**
-   * Base url of the calling form.
-   *
-   * This is used for processors that need to return the browser back to the CiviCRM site.
+   * Base url of the calling form (offsite processors).
    *
    * @var string
    */
   protected $baseReturnUrl;
+
+  /**
+   * Return url upon success (offsite processors).
+   *
+   * @var string
+   */
+  protected $successUrl;
+
+  /**
+   * Return url upon failure (offsite processors).
+   *
+   * @var string
+   */
+  protected $cancelUrl;
 
   /**
    * The profile configured to show on the billing form.
@@ -108,13 +120,91 @@ abstract class CRM_Core_Payment {
   protected $billingProfile;
 
   /**
-   * Set Base return URL.
+   * Payment instrument ID.
+   *
+   * This is normally retrieved from the payment_processor table.
+   *
+   * @var int
+   */
+  protected $paymentInstrumentID;
+
+  /**
+   * Is this a back office transaction.
+   *
+   * @var bool
+   */
+  protected $backOffice = FALSE;
+
+  /**
+   * @return bool
+   */
+  public function isBackOffice() {
+    return $this->backOffice;
+  }
+
+  /**
+   * Set back office property.
+   *
+   * @param bool $isBackOffice
+   */
+  public function setBackOffice($isBackOffice) {
+    $this->backOffice = $isBackOffice;
+  }
+
+  /**
+   * Get payment instrument id.
+   *
+   * @return int
+   */
+  public function getPaymentInstrumentID() {
+    return $this->paymentInstrumentID ? $this->paymentInstrumentID : $this->_paymentProcessor['payment_instrument_id'];
+  }
+
+  /**
+   * Set payment Instrument id.
+   *
+   * By default we actually ignore the form value. The manual processor takes it more seriously.
+   *
+   * @param int $paymentInstrumentID
+   */
+  public function setPaymentInstrumentID($paymentInstrumentID) {
+    $this->paymentInstrumentID = $this->_paymentProcessor['payment_instrument_id'];
+  }
+
+  /**
+   * Set base return path (offsite processors).
+   *
+   * This is only useful with an internal civicrm form.
    *
    * @param string $url
-   *   Url of site to return browser to.
+   *   Internal civicrm path.
    */
   public function setBaseReturnUrl($url) {
     $this->baseReturnUrl = $url;
+  }
+
+  /**
+   * Set success return URL (offsite processors).
+   *
+   * This overrides $baseReturnUrl
+   *
+   * @param string $url
+   *   Full url of site to return browser to upon success.
+   */
+  public function setSuccessUrl($url) {
+    $this->successUrl = $url;
+  }
+
+  /**
+   * Set cancel return URL (offsite processors).
+   *
+   * This overrides $baseReturnUrl
+   *
+   * @param string $url
+   *   Full url of site to return browser to upon failure.
+   */
+  public function setCancelUrl($url) {
+    $this->cancelUrl = $url;
   }
 
   /**
@@ -249,6 +339,10 @@ abstract class CRM_Core_Payment {
   /**
    * Does this processor support cancelling recurring contributions through code.
    *
+   * If the processor returns true it must be possible to take action from within CiviCRM
+   * that will result in no further payments being processed. In the case of token processors (e.g
+   * IATS, eWay) updating the contribution_recur table is probably sufficient.
+   *
    * @return bool
    */
   protected function supportsCancelRecurring() {
@@ -324,7 +418,7 @@ abstract class CRM_Core_Payment {
   public function validatePaymentInstrument($values, &$errors) {
     CRM_Core_Form::validateMandatoryFields($this->getMandatoryFields(), $values, $errors);
     if ($this->_paymentProcessor['payment_type'] == 1) {
-      CRM_Core_Payment_Form::validateCreditCard($values, $errors);
+      CRM_Core_Payment_Form::validateCreditCard($values, $errors, $this->_paymentProcessor['id']);
     }
   }
 
@@ -371,6 +465,42 @@ abstract class CRM_Core_Payment {
   }
 
   /**
+   * Get help text information (help, description, etc.) about this payment,
+   * to display to the user.
+   *
+   * @param string $context
+   *   Context of the text.
+   *   Only explicitly supported contexts are handled without error.
+   *   Currently supported:
+   *   - contributionPageRecurringHelp (params: is_recur_installments, is_email_receipt)
+   *
+   * @param array $params
+   *   Parameters for the field, context specific.
+   *
+   * @return string
+   */
+  public function getText($context, $params) {
+    // I have deliberately added a noisy fail here.
+    // The function is intended to be extendable, but not by changes
+    // not documented clearly above.
+    switch ($context) {
+      case 'contributionPageRecurringHelp':
+        // require exactly two parameters
+        if (array_keys($params) == array('is_recur_installments', 'is_email_receipt')) {
+          $gotText = ts('Your recurring contribution will be processed automatically.');
+          if ($params['is_recur_installments']) {
+            $gotText .= ts(' You can specify the number of installments, or you can leave the number of installments blank if you want to make an open-ended commitment. In either case, you can choose to cancel at any time.');
+          }
+          if ($params['is_email_receipt']) {
+            $gotText .= ts(' You will receive an email receipt for each recurring contribution.');
+          }
+        }
+        break;
+    }
+    return $gotText;
+  }
+
+  /**
    * Getter for accessing member vars.
    *
    * @todo believe this is unused
@@ -412,6 +542,51 @@ abstract class CRM_Core_Payment {
       return array();
     }
     return $this->_paymentProcessor['payment_type'] == 1 ? $this->getCreditCardFormFields() : $this->getDirectDebitFormFields();
+  }
+
+  /**
+   * Get an array of the fields that can be edited on the recurring contribution.
+   *
+   * Some payment processors support editing the amount and other scheduling details of recurring payments, especially
+   * those which use tokens. Others are fixed. This function allows the processor to return an array of the fields that
+   * can be updated from the contribution recur edit screen.
+   *
+   * The fields are likely to be a subset of these
+   *  - 'amount',
+   *  - 'installments',
+   *  - 'frequency_interval',
+   *  - 'frequency_unit',
+   *  - 'cycle_day',
+   *  - 'next_sched_contribution_date',
+   *  - 'end_date',
+   * - 'failure_retry_day',
+   *
+   * The form does not restrict which fields from the contribution_recur table can be added (although if the html_type
+   * metadata is not defined in the xml for the field it will cause an error.
+   *
+   * Open question - would it make sense to return membership_id in this - which is sometimes editable and is on that
+   * form (UpdateSubscription).
+   *
+   * @return array
+   */
+  public function getEditableRecurringScheduleFields() {
+    if (method_exists($this, 'changeSubscriptionAmount')) {
+      return array('amount');
+    }
+  }
+
+  /**
+   * Get the help text to present on the recurring update page.
+   *
+   * This should reflect what can or cannot be edited.
+   *
+   * @return string
+   */
+  public function getRecurringScheduleUpdateHelpText() {
+    if (!in_array('amount', $this->getEditableRecurringScheduleFields())) {
+      return ts('Updates made using this form will change the recurring contribution information stored in your CiviCRM database, but will NOT be sent to the payment processor. You must enter the same changes using the payment processor web site.');
+    }
+    return ts('Use this form to change the amount or number of installments for this recurring contribution. Changes will be automatically sent to the payment processor. You can not change the contribution frequency.');
   }
 
   /**
@@ -599,6 +774,34 @@ abstract class CRM_Core_Payment {
         'is_required' => TRUE,
 
       ),
+      'check_number' => array(
+        'htmlType' => 'text',
+        'name' => 'check_number',
+        'title' => ts('Check Number'),
+        'is_required' => FALSE,
+        'cc_field' => TRUE,
+        'attributes' => NULL,
+      ),
+      'pan_truncation' => array(
+        'htmlType' => 'text',
+        'name' => 'pan_truncation',
+        'title' => ts('Last 4 digits of the card'),
+        'is_required' => FALSE,
+        'cc_field' => TRUE,
+        'attributes' => array(
+          'size' => 4,
+          'maxlength' => 4,
+          'minlength' => 4,
+          'autocomplete' => 'off',
+        ),
+        'rules' => array(
+          array(
+            'rule_message' => ts('Please enter valid last 4 digit card number.'),
+            'rule_name' => 'numeric',
+            'rule_parameters' => NULL,
+          ),
+        ),
+      ),
     );
   }
 
@@ -770,14 +973,18 @@ abstract class CRM_Core_Payment {
   }
 
   /**
-   * Get url to return to after cancelled or failed transaction
+   * Get url to return to after cancelled or failed transaction.
    *
-   * @param $qfKey
-   * @param $participantID
+   * @param string $qfKey
+   * @param int $participantID
    *
    * @return string cancel url
    */
   public function getCancelUrl($qfKey, $participantID) {
+    if (isset($this->cancelUrl)) {
+      return $this->cancelUrl;
+    }
+
     if ($this->_component == 'event') {
       return CRM_Utils_System::url($this->getBaseReturnUrl(), array(
         'reset' => 1,
@@ -805,6 +1012,10 @@ abstract class CRM_Core_Payment {
    * @return string
    */
   protected function getReturnSuccessUrl($qfKey) {
+    if (isset($this->successUrl)) {
+      return $this->successUrl;
+    }
+
     return CRM_Utils_System::url($this->getBaseReturnUrl(), array(
       '_qf_ThankYou_display' => 1,
       'qfKey' => $qfKey,
@@ -824,6 +1035,10 @@ abstract class CRM_Core_Payment {
    *   URL for a failing transactor to be redirected to.
    */
   protected function getReturnFailUrl($key, $participantID = NULL, $eventID = NULL) {
+    if (isset($this->cancelUrl)) {
+      return $this->cancelUrl;
+    }
+
     $test = $this->_is_test ? '&action=preview' : '';
     if ($this->_component == "event") {
       return CRM_Utils_System::url('civicrm/event/register',
@@ -868,7 +1083,9 @@ abstract class CRM_Core_Payment {
     $url = CRM_Utils_System::url(
       'civicrm/payment/ipn/' . $this->_paymentProcessor['id'],
       array(),
-      TRUE
+      TRUE,
+      NULL,
+      FALSE
     );
     return (stristr($url, '.')) ? $url : '';
   }
@@ -1015,7 +1232,6 @@ abstract class CRM_Core_Payment {
         'processor_name' => @$_GET['processor_name'],
         'processor_id' => @$_GET['processor_id'],
         'mode' => @$_GET['mode'],
-        'q' => @$_GET['q'],
       )
     );
     CRM_Utils_System::civiExit();
@@ -1040,12 +1256,13 @@ abstract class CRM_Core_Payment {
    */
   public static function handlePaymentMethod($method, $params = array()) {
     if (!isset($params['processor_id']) && !isset($params['processor_name'])) {
-      $q = explode('/', CRM_Utils_Array::value('q', $params, ''));
+      $q = explode('/', CRM_Utils_Array::value(CRM_Core_Config::singleton()->userFrameworkURLVar, $_GET, ''));
       $lastParam = array_pop($q);
       if (is_numeric($lastParam)) {
         $params['processor_id'] = $_GET['processor_id'] = $lastParam;
       }
       else {
+        self::logPaymentNotification($params);
         throw new CRM_Core_Exception("Either 'processor_id' (recommended) or 'processor_name' (deprecated) is required for payment callback.");
       }
     }
@@ -1095,7 +1312,7 @@ abstract class CRM_Core_Payment {
         require_once $ext->classToPath($paymentClass);
       }
 
-      $processorInstance = Civi\Payment\System::singleton()->getById($dao->processor_id);
+      $processorInstance = System::singleton()->getById($dao->processor_id);
 
       // Should never be empty - we already established this processor_id exists and is active.
       if (empty($processorInstance)) {
@@ -1133,7 +1350,7 @@ abstract class CRM_Core_Payment {
    *
    * @return bool
    */
-  public function isSupported($method = 'cancelSubscription') {
+  public function isSupported($method) {
     return method_exists(CRM_Utils_System::getClassName($this), $method);
   }
 
@@ -1200,8 +1417,7 @@ abstract class CRM_Core_Payment {
         break;
     }
 
-    $session = CRM_Core_Session::singleton();
-    $userId = $session->get('userID');
+    $userId = CRM_Core_Session::singleton()->get('userID');
     $contactID = 0;
     $checksumValue = '';
     $entityArg = '';
@@ -1285,6 +1501,15 @@ INNER JOIN civicrm_contribution con ON ( con.contribution_recur_id = rec.id )
    * @return bool
    */
   public function supportsEditRecurringContribution() {
+    return FALSE;
+  }
+
+  /**
+   * Should a receipt be sent out for a pending payment.
+   *
+   * e.g for traditional pay later & ones with a delayed settlement a pending receipt makes sense.
+   */
+  public function isSendReceiptForPending() {
     return FALSE;
   }
 

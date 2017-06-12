@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 class CRM_Mailing_Form_Subscribe extends CRM_Core_Form {
   protected $_groupID = NULL;
@@ -56,7 +56,7 @@ SELECT   title, description
    AND   visibility != 'User and User Admin Only'
    AND   $groupTypeCondition";
 
-      $dao = CRM_Core_DAO::executeQuery($query, CRM_Core_DAO::$_nullArray);
+      $dao = CRM_Core_DAO::executeQuery($query);
       if ($dao->fetch()) {
         $this->assign('groupName', $dao->title);
         CRM_Utils_System::setTitle(ts('Subscribe to Mailing List - %1', array(1 => $dao->title)));
@@ -100,7 +100,7 @@ SELECT   id, title, description
    AND   visibility != 'User and User Admin Only'
    AND   $groupTypeCondition
 ORDER BY title";
-      $dao = CRM_Core_DAO::executeQuery($query, CRM_Core_DAO::$_nullArray);
+      $dao = CRM_Core_DAO::executeQuery($query);
       $rows = array();
       while ($dao->fetch()) {
         $row = array();

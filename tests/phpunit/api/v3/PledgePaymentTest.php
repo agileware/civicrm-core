@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -25,12 +25,11 @@
  +--------------------------------------------------------------------+
  */
 
-require_once 'CiviTest/CiviUnitTestCase.php';
-
 /**
  * Test class for Pledge API - civicrm_pledge_*
  *
  * @package CiviCRM_APIv3
+ * @group headless
  */
 class api_v3_PledgePaymentTest extends CiviUnitTestCase {
 
@@ -48,7 +47,7 @@ class api_v3_PledgePaymentTest extends CiviUnitTestCase {
   public function setUp() {
     parent::setUp();
     $this->_individualId = $this->individualCreate();
-    $this->_pledgeID = $this->pledgeCreate($this->_individualId);
+    $this->_pledgeID = $this->pledgeCreate(array('contact_id' => $this->_individualId));
     $this->_contributionID = $this->contributionCreate(array('contact_id' => $this->_individualId));
   }
 

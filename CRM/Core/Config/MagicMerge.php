@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -58,10 +58,16 @@ class CRM_Core_Config_MagicMerge {
 
   private $cache = array();
 
+  /**
+   * CRM_Core_Config_MagicMerge constructor.
+   */
   public function __construct() {
     $this->map = self::getPropertyMap();
   }
 
+  /**
+   * Set the map to the property map.
+   */
   public function __wakeup() {
     $this->map = self::getPropertyMap();
   }
@@ -118,13 +124,14 @@ class CRM_Core_Config_MagicMerge {
       'backtrace' => array('setting'),
       'contact_default_language' => array('setting'),
       'countryLimit' => array('setting'),
-      'dashboardCacheTimeout' => array('setting'),
       'dateInputFormat' => array('setting'),
       'dateformatDatetime' => array('setting'),
       'dateformatFull' => array('setting'),
       'dateformatPartial' => array('setting'),
       'dateformatTime' => array('setting'),
       'dateformatYear' => array('setting'),
+      'dateformatFinancialBatch' => array('setting'),
+      'dateformatshortdate' => array('setting'),
       'debug' => array('setting', 'debug_enabled'), // renamed.
       'defaultContactCountry' => array('setting'),
       'defaultContactStateProvince' => array('setting'),
@@ -172,13 +179,14 @@ class CRM_Core_Config_MagicMerge {
       'userFrameworkLogging' => array('setting'),
       'userFrameworkUsersTableName' => array('setting'),
       'verpSeparator' => array('setting'),
-      'versionCheck' => array('setting'),
       'wkhtmltopdfPath' => array('setting'),
       'wpBasePage' => array('setting'),
       'wpLoadPhp' => array('setting'),
 
       // "setting-path" properties are settings with special filtering
       // to return normalized file paths.
+      // Option: `mkdir` - auto-create dir
+      // Option: `restrict` - auto-restrict remote access
       'customFileUploadDir' => array('setting-path', NULL, array('mkdir', 'restrict')),
       'customPHPPathDir' => array('setting-path'),
       'customTemplateDir' => array('setting-path'),
@@ -186,13 +194,15 @@ class CRM_Core_Config_MagicMerge {
       'imageUploadDir' => array('setting-path', NULL, array('mkdir')),
       'uploadDir' => array('setting-path', NULL, array('mkdir', 'restrict')),
 
-      // "setting-url-*" properties are settings with special filtering
-      // to return normalized URLs (in either absolute or relative format).
-      'customCSSURL' => array('setting-url-abs'),
-      'extensionsURL' => array('setting-url-abs'),
-      'imageUploadURL' => array('setting-url-abs'),
-      'resourceBase' => array('setting-url-rel', 'userFrameworkResourceURL'),
-      'userFrameworkResourceURL' => array('setting-url-abs'),
+      // "setting-url" properties are settings with special filtering
+      // to return normalized URLs.
+      // Option: `noslash` - don't append trailing slash
+      // Option: `rel` - convert to relative URL (if possible)
+      'customCSSURL' => array('setting-url', NULL, array('noslash')),
+      'extensionsURL' => array('setting-url'),
+      'imageUploadURL' => array('setting-url'),
+      'resourceBase' => array('setting-url', 'userFrameworkResourceURL', array('rel')),
+      'userFrameworkResourceURL' => array('setting-url'),
 
       // "callback" properties are generated on-demand by calling a function.
       'geocodeMethod' => array('callback', 'CRM_Utils_Geocode', 'getProviderClass'),
@@ -200,6 +210,14 @@ class CRM_Core_Config_MagicMerge {
     );
   }
 
+  /**
+   * Get value.
+   *
+   * @param string $k
+   *
+   * @return mixed
+   * @throws \CRM_Core_Exception
+   */
   public function __get($k) {
     if (!isset($this->map[$k])) {
       throw new \CRM_Core_Exception("Cannot read unrecognized property CRM_Core_Config::\${$k}.");
@@ -222,7 +240,12 @@ class CRM_Core_Config_MagicMerge {
         if ($value) {
           $value = CRM_Utils_File::addTrailingSlash($value);
           if (isset($this->map[$k][2]) && in_array('mkdir', $this->map[$k][2])) {
-            CRM_Utils_File::createDir($value);
+            if (!is_dir($value) && !CRM_Utils_File::createDir($value, FALSE)) {
+              CRM_Core_Session::setStatus(ts('Failed to make directory (%1) at "%2". Please update the settings or file permissions.', array(
+                1 => $k,
+                2 => $value,
+              )));
+            }
           }
           if (isset($this->map[$k][2]) && in_array('restrict', $this->map[$k][2])) {
             CRM_Utils_File::restrictAccess($value);
@@ -231,11 +254,14 @@ class CRM_Core_Config_MagicMerge {
         $this->cache[$k] = $value;
         return $value;
 
-      case 'setting-url-abs':
-      case 'setting-url-rel':
-        $type = (strstr($type, 'abs')) ? 'absolute' : 'relative';
-        $value = CRM_Utils_File::addTrailingSlash($this->getSettings()->get($name));
-        $this->cache[$k] = Civi::paths()->getUrl($value, $type);
+      case 'setting-url':
+        $options = !empty($this->map[$k][2]) ? $this->map[$k][2] : array();
+        $value = $this->getSettings()->get($name);
+        if ($value && !(in_array('noslash', $options))) {
+          $value = CRM_Utils_File::addTrailingSlash($value, '/');
+        }
+        $this->cache[$k] = Civi::paths()->getUrl($value,
+          in_array('rel', $options) ? 'relative' : 'absolute');
         return $this->cache[$k];
 
       case 'runtime':
@@ -269,19 +295,29 @@ class CRM_Core_Config_MagicMerge {
     }
   }
 
+  /**
+   * Set value.
+   *
+   * @param string $k
+   * @param mixed $v
+   *
+   * @throws \CRM_Core_Exception
+   */
   public function __set($k, $v) {
     if (!isset($this->map[$k])) {
       throw new \CRM_Core_Exception("Cannot set unrecognized property CRM_Core_Config::\${$k}");
     }
     unset($this->cache[$k]);
     $type = $this->map[$k][0];
-    $name = isset($this->map[$k][1]) ? $this->map[$k][1] : $k;
+
+    // If foreign name is set, use that name (except with callback types because
+    // their second parameter is the object, not the foreign name).
+    $name = isset($this->map[$k][1]) && $type != 'callback' ? $this->map[$k][1] : $k;
 
     switch ($type) {
       case 'setting':
       case 'setting-path':
-      case 'setting-url-abs':
-      case 'setting-url-rel':
+      case 'setting-url':
       case 'user-system':
       case 'runtime':
       case 'callback':
@@ -300,10 +336,24 @@ class CRM_Core_Config_MagicMerge {
     }
   }
 
+  /**
+   * Is value set.
+   *
+   * @param string $k
+   *
+   * @return bool
+   */
   public function __isset($k) {
     return isset($this->map[$k]);
   }
 
+  /**
+   * Unset value.
+   *
+   * @param string $k
+   *
+   * @throws \CRM_Core_Exception
+   */
   public function __unset($k) {
     if (!isset($this->map[$k])) {
       throw new \CRM_Core_Exception("Cannot unset unrecognized property CRM_Core_Config::\${$k}");
@@ -315,8 +365,7 @@ class CRM_Core_Config_MagicMerge {
     switch ($type) {
       case 'setting':
       case 'setting-path':
-      case 'setting-url-abs':
-      case 'setting-url-rel':
+      case 'setting-url':
         $this->getSettings()->revert($k);
         return;
 
@@ -348,6 +397,9 @@ class CRM_Core_Config_MagicMerge {
     return $this->settings;
   }
 
+  /**
+   * Initialise local settings.
+   */
   private function initLocals() {
     if ($this->locals === NULL) {
       $this->locals = array(

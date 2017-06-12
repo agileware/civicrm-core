@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 class CRM_Contact_Form_Search_Custom_ActivitySearch extends CRM_Contact_Form_Search_Custom_Base implements CRM_Contact_Form_Search_Interface {
 
@@ -70,12 +70,10 @@ class CRM_Contact_Form_Search_Custom_ActivitySearch extends CRM_Contact_Form_Sea
     );
 
     //Add custom fields to columns array for inclusion in export
-    $groupTree = &CRM_Core_BAO_CustomGroup::getTree('Activity', $form, NULL,
-      NULL, '', NULL
-    );
+    $groupTree = CRM_Core_BAO_CustomGroup::getTree('Activity');
 
     //use simplified formatted groupTree
-    $groupTree = CRM_Core_BAO_CustomGroup::formatGroupTree($groupTree, 1, $form);
+    $groupTree = CRM_Core_BAO_CustomGroup::formatGroupTree($groupTree);
 
     //cycle through custom fields and assign to _columns array
     foreach ($groupTree as $key) {
@@ -84,7 +82,6 @@ class CRM_Contact_Form_Search_Custom_ActivitySearch extends CRM_Contact_Form_Sea
         $this->_columns[$fieldlabel] = $field['column_name'];
       }
     }
-    //end custom fields
   }
 
   /**
@@ -204,7 +201,7 @@ class CRM_Contact_Form_Search_Custom_ActivitySearch extends CRM_Contact_Form_Sea
     }
 
     // add custom group fields to SELECT and FROM clause
-    $groupTree = CRM_Core_BAO_CustomGroup::getTree('Activity', $form, NULL, NULL, '', NULL);
+    $groupTree = CRM_Core_BAO_CustomGroup::getTree('Activity');
 
     foreach ($groupTree as $key) {
       if (!empty($key['extends']) && $key['extends'] == 'Activity') {

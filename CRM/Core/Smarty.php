@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  * $Id$
  *
  */
@@ -82,7 +82,7 @@ class CRM_Core_Smarty extends Smarty {
    *
    * @return CRM_Core_Smarty
    */
-  private function __construct() {
+  public function __construct() {
     parent::__construct();
   }
 
@@ -146,7 +146,7 @@ class CRM_Core_Smarty extends Smarty {
     $this->assign_by_ref('config', $config);
     $this->assign_by_ref('session', $session);
 
-    global $tsLocale;
+    $tsLocale = CRM_Core_I18n::getLocale();
     $this->assign('tsLocale', $tsLocale);
 
     // CRM-7163 hack: we don’t display langSwitch on upgrades anyway
@@ -317,8 +317,13 @@ class CRM_Core_Smarty extends Smarty {
     return $this;
   }
 
+  /**
+   * Get the locale for translation.
+   *
+   * @return string
+   */
   private function getLocale() {
-    global $tsLocale;
+    $tsLocale = CRM_Core_I18n::getLocale();
     if (!empty($tsLocale)) {
       return $tsLocale;
     }

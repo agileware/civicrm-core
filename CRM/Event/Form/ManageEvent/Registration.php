@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -27,7 +27,7 @@
 
 /**
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -133,6 +133,11 @@ class CRM_Event_Form_ManageEvent_Registration extends CRM_Event_Form_ManageEvent
       }
 
       $this->assign('profilePostMultiple', CRM_Utils_Array::value('custom_post', $defaults));
+
+      // CRM-17745: Make max additional participants configurable
+      if (empty($defaults['max_additional_participants'])) {
+        $defaults['max_additional_participants'] = 9;
+      }
 
       if (!empty($defaults['is_multiple_registrations'])) {
         // CRM-4377: set additional participants’ profiles – set to ‘none’ if explicitly unset (non-active)
@@ -264,6 +269,10 @@ class CRM_Event_Form_ManageEvent_Registration extends CRM_Event_Form_ManageEvent
       ts('Register multiple participants?')
     );
 
+    // CRM-17745: Make maximum additional participants configurable
+    $numericOptions = CRM_Core_SelectValues::getNumericOptions(1, 9);
+    $this->add('select', 'max_additional_participants', ts('Maximum additional participants'), $numericOptions, FALSE, array('class' => 'required'));
+
     $this->addElement('checkbox',
       'allow_same_participant_emails',
       ts('Same email address?')
@@ -307,7 +316,7 @@ class CRM_Event_Form_ManageEvent_Registration extends CRM_Event_Form_ManageEvent
    *
    */
   public function buildRegistrationBlock(&$form) {
-    $attributes = CRM_Core_DAO::getAttribute('CRM_Event_DAO_Event', 'intro_text') + array('class' => 'collapsed');
+    $attributes = CRM_Core_DAO::getAttribute('CRM_Event_DAO_Event', 'intro_text') + array('class' => 'collapsed', 'preset' => 'civievent');
     $form->add('wysiwyg', 'intro_text', ts('Introductory Text'), $attributes);
     $form->add('wysiwyg', 'footer_text', ts('Footer Text'), $attributes);
 
@@ -397,8 +406,8 @@ class CRM_Event_Form_ManageEvent_Registration extends CRM_Event_Form_ManageEvent
       $form->addYesNo('is_confirm_enabled', ts('Use a confirmation screen?'), NULL, NULL, array('onclick' => "return showHideByValue('is_confirm_enabled','','confirm_screen_settings','block','radio',false);"));
     }
     $form->add('text', 'confirm_title', ts('Title'), $attributes['confirm_title']);
-    $form->add('wysiwyg', 'confirm_text', ts('Introductory Text'), $attributes['confirm_text'] + array('class' => 'collapsed'));
-    $form->add('wysiwyg', 'confirm_footer_text', ts('Footer Text'), $attributes['confirm_text'] + array('class' => 'collapsed'));
+    $form->add('wysiwyg', 'confirm_text', ts('Introductory Text'), $attributes['confirm_text'] + array('class' => 'collapsed', 'preset' => 'civievent'));
+    $form->add('wysiwyg', 'confirm_footer_text', ts('Footer Text'), $attributes['confirm_text'] + array('class' => 'collapsed', 'preset' => 'civievent'));
   }
 
   /**
@@ -427,8 +436,8 @@ class CRM_Event_Form_ManageEvent_Registration extends CRM_Event_Form_ManageEvent
   public function buildThankYouBlock(&$form) {
     $attributes = CRM_Core_DAO::getAttribute('CRM_Event_DAO_Event');
     $form->add('text', 'thankyou_title', ts('Title'), $attributes['thankyou_title']);
-    $form->add('wysiwyg', 'thankyou_text', ts('Introductory Text'), $attributes['thankyou_text'] + array('class' => 'collapsed'));
-    $form->add('wysiwyg', 'thankyou_footer_text', ts('Footer Text'), $attributes['thankyou_text'] + array('class' => 'collapsed'));
+    $form->add('wysiwyg', 'thankyou_text', ts('Introductory Text'), $attributes['thankyou_text'] + array('class' => 'collapsed', 'preset' => 'civievent'));
+    $form->add('wysiwyg', 'thankyou_footer_text', ts('Footer Text'), $attributes['thankyou_text'] + array('class' => 'collapsed', 'preset' => 'civievent'));
   }
 
   /**

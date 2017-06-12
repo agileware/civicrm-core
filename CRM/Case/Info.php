@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -31,7 +31,7 @@
  * abstract class.
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 class CRM_Case_Info extends CRM_Core_Component_Info {
 
@@ -101,19 +101,23 @@ class CRM_Case_Info extends CRM_Core_Component_Info {
     $permissions = array(
       'delete in CiviCase' => array(
         ts('delete in CiviCase'),
-        ts('Delete Cases'),
+        ts('Delete cases'),
       ),
       'administer CiviCase' => array(
         ts('administer CiviCase'),
+        ts('Define case types, access deleted cases'),
       ),
       'access my cases and activities' => array(
         ts('access my cases and activities'),
+        ts('View and edit only those cases managed by this user'),
       ),
       'access all cases and activities' => array(
         ts('access all cases and activities'),
+        ts('View and edit all cases (for visible contacts)'),
       ),
       'add cases' => array(
         ts('add cases'),
+        ts('Open a new case'),
       ),
     );
 
@@ -208,15 +212,12 @@ class CRM_Case_Info extends CRM_Core_Component_Info {
     if (CRM_Core_Permission::check('access all cases and activities') ||
       CRM_Core_Permission::check('add cases')
     ) {
-      $atype = CRM_Core_OptionGroup::getValue('activity_type',
-        'Open Case',
-        'name'
-      );
-      if ($atype) {
+      $activityType = CRM_Core_PseudoConstant::getKey('CRM_Activity_BAO_Activity', 'activity_type_id', 'Open Case');
+      if ($activityType) {
         $shortCuts = array_merge($shortCuts, array(
           array(
             'path' => 'civicrm/case/add',
-            'query' => "reset=1&action=add&atype=$atype&context=standalone",
+            'query' => "reset=1&action=add&atype={$activityType}&context=standalone",
             'ref' => 'new-case',
             'title' => ts('Case'),
           ),
@@ -245,8 +246,7 @@ class CRM_Case_Info extends CRM_Core_Component_Info {
       (!$oldValue || !in_array('CiviCase', $oldValue))
     ) {
       $pathToCaseSampleTpl = __DIR__ . '/xml/configuration.sample/';
-      $config = CRM_Core_Config::singleton();
-      CRM_Admin_Form_Setting_Component::loadCaseSampleData($config->dsn, $pathToCaseSampleTpl . 'case_sample.mysql.tpl');
+      CRM_Admin_Form_Setting_Component::loadCaseSampleData($pathToCaseSampleTpl . 'case_sample.mysql.tpl');
       if (!CRM_Case_BAO_Case::createCaseViews()) {
         $msg = ts("Could not create the MySQL views for CiviCase. Your mysql user needs to have the 'CREATE VIEW' permission");
         CRM_Core_Error::fatal($msg);

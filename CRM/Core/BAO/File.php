@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  * $Id$
  *
  */
@@ -145,7 +145,7 @@ class CRM_Core_BAO_File extends CRM_Core_DAO_File {
     $fileDAO->uri = $filename;
     $fileDAO->mime_type = $mimeType;
     $fileDAO->file_type_id = $fileTypeID;
-    $fileDAO->upload_date = date('Ymdhis');
+    $fileDAO->upload_date = date('YmdHis');
     $fileDAO->save();
 
     // need to add/update civicrm_entity_file
@@ -165,7 +165,7 @@ class CRM_Core_BAO_File extends CRM_Core_DAO_File {
 
     //save free tags
     if (isset($fileParams['attachment_taglist']) && !empty($fileParams['attachment_taglist'])) {
-      CRM_Core_Form_Tag::postProcess($fileParams['attachment_taglist'], $entityFileDAO->id, 'civicrm_file', CRM_Core_DAO::$_nullObject);
+      CRM_Core_Form_Tag::postProcess($fileParams['attachment_taglist'], $entityFileDAO->id, 'civicrm_file');
     }
 
     // lets call the post hook here so attachments code can do the right stuff
@@ -319,6 +319,7 @@ class CRM_Core_BAO_File extends CRM_Core_DAO_File {
       $result['url'] = CRM_Utils_System::url('civicrm/file', "reset=1&id={$dao->cfID}&eid={$dao->entity_id}");
       $result['href'] = "<a href=\"{$result['url']}\">{$result['cleanName']}</a>";
       $result['tag'] = CRM_Core_BAO_EntityTag::getTag($dao->cfID, 'civicrm_file');
+      $result['icon'] = CRM_Utils_File::getIconFromMimeType($dao->mime_type);
       if ($addDeleteArgs) {
         $result['deleteURLArgs'] = self::deleteURLArgs($dao->entity_table, $dao->entity_id, $dao->cfID);
       }
@@ -532,8 +533,6 @@ AND       CEF.entity_id    = %2";
 
     $numAttachments = Civi::settings()->get('max_attachments');
 
-    $now = date('Ymdhis');
-
     // setup all attachments
     for ($i = 1; $i <= $numAttachments; $i++) {
       $attachName = "attachFile_$i";
@@ -551,17 +550,19 @@ AND       CEF.entity_id    = %2";
 
         // we dont care if the file is empty or not
         // CRM-7448
-        $fileParams = array(
-          'uri' => $formValues[$attachName]['name'],
-          'type' => $formValues[$attachName]['type'],
-          'location' => $formValues[$attachName]['name'],
+        $extraParams = array(
           'description' => $formValues[$attachDesc],
-          'upload_date' => $now,
           'tag' => $tagParams,
           'attachment_taglist' => CRM_Utils_Array::value($attachFreeTags, $formValues, array()),
         );
 
-        $params[$attachName] = $fileParams;
+        CRM_Utils_File::formatFile($formValues, $attachName, $extraParams);
+
+        // set the formatted attachment attributes to $params, later used by
+        // CRM_Activity_BAO_Activity::sendEmail(...) to send mail with desired attachments
+        if (!empty($formValues[$attachName])) {
+          $params[$attachName] = $formValues[$attachName];
+        }
       }
     }
   }
@@ -666,7 +667,7 @@ AND       CEF.entity_id    = %2";
       CRM_Core_Error::fatal('Request signature is invalid');
     }
 
-    CRM_Core_BAO_File::deleteEntityFile($params['entityTable'], $params['entityID'], NULL, $params['fileID']);
+    self::deleteEntityFile($params['entityTable'], $params['entityID'], NULL, $params['fileID']);
   }
 
 
@@ -691,26 +692,27 @@ AND       CEF.entity_id    = %2";
     $currentAttachmentInfo = self::getEntityFile($entityTable, $entityID);
     foreach ($currentAttachmentInfo as $fileKey => $fileValue) {
       $fileID = $fileValue['fileID'];
-      $fileType = $fileValue['mime_type'];
       if ($fileID) {
+        $fileType = $fileValue['mime_type'];
+        $url = $fileValue['url'];
+        $title = $fileValue['cleanName'];
         if ($fileType == 'image/jpeg' ||
           $fileType == 'image/pjpeg' ||
           $fileType == 'image/gif' ||
           $fileType == 'image/x-png' ||
           $fileType == 'image/png'
         ) {
-          $url = $fileValue['url'];
-          $alt = $fileValue['cleanName'];
           $file_url[$fileID] = "
-              <a href=\"$url\" class='crm-image-popup'>
-              <div class='icon paper-icon' title=\"$alt\" alt=\"$alt\"></div>
+              <a href='$url' class='crm-image-popup' title='$title'>
+                <i class='crm-i fa-file-image-o'></i>
               </a>";
-          // for non image files
         }
+        // for non image files
         else {
-          $url = $fileValue['url'];
-          $alt = $fileValue['cleanName'];
-          $file_url[$fileID] = "<a href=\"$url\"><div class='icon paper-icon' title=\"$alt\" alt=\"$alt\"></div></a>";
+          $file_url[$fileID] = "
+              <a href='$url' title='$title'>
+                <i class='crm-i fa-paperclip'></i>
+              </a>";
         }
       }
     }

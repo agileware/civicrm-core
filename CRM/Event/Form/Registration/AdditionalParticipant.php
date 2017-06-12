@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -29,7 +29,7 @@
  *
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -125,6 +125,8 @@ class CRM_Event_Form_Registration_AdditionalParticipant extends CRM_Event_Form_R
       $this->_discountId = $discountId;
       $this->_pId = $this->_additionalParticipantId;
       $this->_contactId = CRM_Core_DAO::getFieldValue('CRM_Event_DAO_Participant', $this->_additionalParticipantId, 'contact_id');
+
+      CRM_Event_BAO_Participant::formatFieldsAndSetProfileDefaults($this->_contactId, $this);
       $participantDefaults = CRM_Event_Form_EventFees::setDefaultValues($this);
       $participantDefaults = array_merge($this->_defaults, $participantDefaults);
       // use primary email address if billing email address is empty
@@ -144,6 +146,19 @@ class CRM_Event_Form_Registration_AdditionalParticipant extends CRM_Event_Form_R
     //load default campaign from page.
     if (array_key_exists('participant_campaign_id', $this->_fields)) {
       $defaults['participant_campaign_id'] = CRM_Utils_Array::value('campaign_id', $this->_values['event']);
+    }
+
+    //CRM-17865 set custom field defaults
+    if (!empty($this->_fields)) {
+      foreach ($this->_fields as $name => $field) {
+        if ($customFieldID = CRM_Core_BAO_CustomField::getKeyID($name)) {
+          if (!isset($defaults[$name])) {
+            CRM_Core_BAO_CustomField::setProfileDefaults($customFieldID, $name, $defaults,
+              NULL, CRM_Profile_Form::MODE_REGISTER
+            );
+          }
+        }
+      }
     }
 
     return $defaults;
@@ -557,10 +572,11 @@ class CRM_Event_Form_Registration_AdditionalParticipant extends CRM_Event_Form_R
 
     CRM_Core_Form::validateMandatoryFields($self->_fields, $fields, $errors);
 
-    // validate supplied payment instrument values (e.g. credit card number and cvv)
-    $payment_processor_id = $self->_params[0]['payment_processor'];
-    CRM_Core_Payment_Form::validatePaymentInstrument($payment_processor_id, $self->_params[0], $errors, (!$self->_isBillingAddressRequiredForPayLater ? NULL : 'billing'));
-
+    if (isset($self->_params[0]['payment_processor'])) {
+      // validate supplied payment instrument values (e.g. credit card number and cvv)
+      $payment_processor_id = $self->_params[0]['payment_processor'];
+      CRM_Core_Payment_Form::validatePaymentInstrument($payment_processor_id, $self->_params[0], $errors, (!$self->_isBillingAddressRequiredForPayLater ? NULL : 'billing'));
+    }
     if (!empty($errors)) {
       return FALSE;
     }
@@ -594,7 +610,7 @@ class CRM_Event_Form_Registration_AdditionalParticipant extends CRM_Event_Form_R
 
     if (!$this->_allowConfirmation) {
       // check if the participant is already registered
-      $params['contact_id'] = CRM_Event_Form_Registration_Register::checkRegistration($params, $this, TRUE, TRUE);
+      $params['contact_id'] = CRM_Event_Form_Registration_Register::getRegistrationContactID($params, $this, TRUE);
     }
 
     //carry campaign to partcipants.

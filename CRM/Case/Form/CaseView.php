@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -56,9 +56,9 @@ class CRM_Case_Form_CaseView extends CRM_Core_Form {
     if ($this->_showRelatedCases) {
       $relatedCases = $this->get('relatedCases');
       if (!isset($relatedCases)) {
-        $cId = CRM_Utils_Request::retrieve('cid', 'Integer', CRM_Core_DAO::$_nullObject);
-        $caseId = CRM_Utils_Request::retrieve('id', 'Integer', CRM_Core_DAO::$_nullObject);
-        $relatedCases = CRM_Case_BAO_Case::getRelatedCases($caseId, $cId);
+        $cId = CRM_Utils_Request::retrieve('cid', 'Integer');
+        $caseId = CRM_Utils_Request::retrieve('id', 'Integer');
+        $relatedCases = CRM_Case_BAO_Case::getRelatedCases($caseId);
       }
       $this->assign('relatedCases', $relatedCases);
       $this->assign('showRelatedCases', TRUE);
@@ -66,41 +66,24 @@ class CRM_Case_Form_CaseView extends CRM_Core_Form {
       return;
     }
 
-    //check for civicase access.
-    if (!CRM_Case_BAO_Case::accessCiviCase()) {
-      CRM_Core_Error::fatal(ts('You are not authorized to access this page.'));
-    }
     $this->_hasAccessToAllCases = CRM_Core_Permission::check('access all cases and activities');
     $this->assign('hasAccessToAllCases', $this->_hasAccessToAllCases);
 
-    $this->_contactID = $this->get('cid');
-    $this->_caseID = $this->get('id');
+    $this->assign('contactID', $this->_contactID = (int) $this->get('cid'));
+    $this->assign('caseID', $this->_caseID = (int) $this->get('id'));
 
-    $fulltext = CRM_Utils_Request::retrieve('context', 'String', CRM_Core_DAO::$_nullObject);
+    // Access check.
+    if (!CRM_Case_BAO_Case::accessCase($this->_caseID, FALSE)) {
+      CRM_Core_Error::fatal(ts('You are not authorized to access this page.'));
+    }
+
+    $fulltext = CRM_Utils_Request::retrieve('context', 'String');
     if ($fulltext == 'fulltext') {
       $this->assign('fulltext', $fulltext);
     }
 
-    $this->assign('caseID', $this->_caseID);
-    $this->assign('contactID', $this->_contactID);
     $this->assign('contactType', CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_Contact', $this->_contactID, 'contact_type'));
-
-    //validate case id.
-    $this->_userCases = array();
-    $session = CRM_Core_Session::singleton();
-    $userID = $session->get('userID');
-    if (!$this->_hasAccessToAllCases) {
-      $this->_userCases = CRM_Case_BAO_Case::getCases(FALSE, $userID, 'any');
-      if (!array_key_exists($this->_caseID, $this->_userCases)) {
-        CRM_Core_Error::fatal(ts('You are not authorized to access this page.'));
-      }
-    }
-    $this->assign('userID', $userID);
-
-    if (CRM_Case_BAO_Case::caseCount($this->_contactID) >= 2) {
-      $this->_mergeCases = TRUE;
-    }
-    $this->assign('mergeCases', $this->_mergeCases);
+    $this->assign('userID', CRM_Core_Session::getLoggedInContactID());
 
     //retrieve details about case
     $params = array('id' => $this->_caseID);
@@ -158,7 +141,7 @@ class CRM_Case_Form_CaseView extends CRM_Core_Form {
     //get the related cases for given case.
     $relatedCases = $this->get('relatedCases');
     if (!isset($relatedCases)) {
-      $relatedCases = CRM_Case_BAO_Case::getRelatedCases($this->_caseID, $this->_contactID);
+      $relatedCases = CRM_Case_BAO_Case::getRelatedCases($this->_caseID);
       $relatedCases = empty($relatedCases) ? FALSE : $relatedCases;
       $this->set('relatedCases', $relatedCases);
     }
@@ -178,15 +161,13 @@ class CRM_Case_Form_CaseView extends CRM_Core_Form {
 
     $entitySubType = !empty($values['case_type_id']) ? $values['case_type_id'] : NULL;
     $this->assign('caseTypeID', $entitySubType);
-    $groupTree = &CRM_Core_BAO_CustomGroup::getTree('Case',
-      $this,
+    $groupTree = CRM_Core_BAO_CustomGroup::getTree('Case',
+      NULL,
       $this->_caseID,
       NULL,
       $entitySubType
     );
-    CRM_Core_BAO_CustomGroup::buildCustomDataView($this,
-      $groupTree
-    );
+    CRM_Core_BAO_CustomGroup::buildCustomDataView($this, $groupTree, FALSE, NULL, NULL, NULL, $this->_caseID);
   }
 
   /**
@@ -242,10 +223,17 @@ class CRM_Case_Form_CaseView extends CRM_Core_Form {
       unset($aTypes[$openActTypeId]);
     }
 
-    //check for link cases.
-    $unclosedCases = CRM_Case_BAO_Case::getUnclosedCases(NULL, array($this->_caseID));
-    if (empty($unclosedCases) && ($linkActTypeId = array_search('Link Cases', $allActTypes))) {
-      unset($aTypes[$linkActTypeId]);
+    // Only show "link cases" activity if other cases exist.
+    $linkActTypeId = array_search('Link Cases', $allActTypes);
+    if ($linkActTypeId) {
+      $count = civicrm_api3('Case', 'getcount', array(
+        'check_permissions' => TRUE,
+        'id' => array('!=' => $this->_caseID),
+        'is_deleted' => 0,
+      ));
+      if (!$count) {
+        unset($aTypes[$linkActTypeId]);
+      }
     }
 
     if (!$xmlProcessor->getNaturalActivityTypeSort()) {
@@ -289,43 +277,7 @@ class CRM_Case_Form_CaseView extends CRM_Core_Form {
     }
     $this->addElement('submit', $this->getButtonName('next'), ' ', array('class' => 'hiddenElement'));
 
-    if ($this->_mergeCases) {
-      $allCases = CRM_Case_BAO_Case::getContactCases($this->_contactID);
-      $otherCases = array();
-      foreach ($allCases as $caseId => $details) {
-        //filter current and own cases.
-        if (($caseId == $this->_caseID) ||
-          (!$this->_hasAccessToAllCases &&
-            !array_key_exists($caseId, $this->_userCases)
-          )
-        ) {
-          continue;
-        }
-
-        $otherCases[$caseId] = 'Case ID: ' . $caseId . ' Type: ' . $details['case_type'] . ' Start: ' . $details['case_start_date'];
-      }
-      if (empty($otherCases)) {
-        $this->_mergeCases = FALSE;
-        $this->assign('mergeCases', $this->_mergeCases);
-      }
-      else {
-        $this->add('select', 'merge_case_id',
-          ts('Select Case for Merge'),
-          array(
-            '' => ts('- select case -'),
-          ) + $otherCases,
-          FALSE,
-          array('class' => 'crm-select2 huge')
-        );
-        $this->addElement('submit',
-          $this->getButtonName('next', 'merge_case'),
-          ts('Merge'),
-          array(
-            'class' => 'hiddenElement',
-          )
-        );
-      }
-    }
+    $this->buildMergeCaseForm();
 
     //call activity form
     self::activityForm($this, $aTypes);
@@ -391,28 +343,28 @@ class CRM_Case_Form_CaseView extends CRM_Core_Form {
       $this->assign('hookCaseSummary', $hookCaseSummary);
     }
 
-    CRM_Core_BAO_Tag::getTags('civicrm_case', $allTags, NULL,
-      '&nbsp;&nbsp;', TRUE);
+    $allTags = CRM_Core_BAO_Tag::getColorTags('civicrm_case');
 
     if (!empty($allTags)) {
-      $this->add('select', 'case_tag', ts('Tags'), $allTags, FALSE,
-        array('id' => 'tags', 'multiple' => 'multiple', 'class' => 'crm-select2')
+      $this->add('select2', 'case_tag', ts('Tags'), $allTags, FALSE,
+        array('id' => 'tags', 'multiple' => 'multiple')
       );
 
       $tags = CRM_Core_BAO_EntityTag::getTag($this->_caseID, 'civicrm_case');
 
-      $this->setDefaults(array('case_tag' => $tags));
-
       foreach ($tags as $tid) {
-        if (isset($allTags[$tid])) {
-          $tags[$tid] = $allTags[$tid];
+        $tagInfo = CRM_Utils_Array::findInTree($tid, $allTags);
+        if ($tagInfo) {
+          $tags[$tid] = $tagInfo;
         }
         else {
           unset($tags[$tid]);
         }
       }
 
-      $this->assign('tags', implode(', ', array_filter($tags)));
+      $this->setDefaults(array('case_tag' => implode(',', array_keys($tags))));
+
+      $this->assign('tags', $tags);
       $this->assign('showTags', TRUE);
     }
     else {
@@ -423,12 +375,27 @@ class CRM_Case_Form_CaseView extends CRM_Core_Form {
 
     // see if we have any tagsets which can be assigned to cases
     $parentNames = CRM_Core_BAO_Tag::getTagSet('civicrm_case');
+    $tagSetTags = array();
     if ($parentNames) {
-      $this->assign('showTagsets', TRUE);
+      $this->assign('showTags', TRUE);
+      $tagSetItems = civicrm_api3('entityTag', 'get', array(
+        'entity_id' => $this->_caseID,
+        'entity_table' => 'civicrm_case',
+        'tag_id.parent_id.is_tagset' => 1,
+        'options' => array('limit' => 0),
+        'return' => array("tag_id.parent_id", "tag_id.parent_id.name", "tag_id.name"),
+      ));
+      foreach ($tagSetItems['values'] as $tag) {
+        $tagSetTags += array(
+          $tag['tag_id.parent_id'] => array(
+            'name' => $tag['tag_id.parent_id.name'],
+            'items' => array(),
+          ),
+        );
+        $tagSetTags[$tag['tag_id.parent_id']]['items'][] = $tag['tag_id.name'];
+      }
     }
-    else {
-      $this->assign('showTagsets', FALSE);
-    }
+    $this->assign('tagSetTags', $tagSetTags);
     CRM_Core_Form_Tag::buildQuickForm($this, $parentNames, 'civicrm_case', $this->_caseID, FALSE, TRUE);
 
     $this->addButtons(array(
@@ -457,21 +424,13 @@ class CRM_Case_Form_CaseView extends CRM_Core_Form {
     $session->pushUserContext($url);
 
     if (!empty($params['timeline_id']) && !empty($_POST['_qf_CaseView_next'])) {
-      $session = CRM_Core_Session::singleton();
-      $this->_uid = $session->get('userID');
-      $xmlProcessor = new CRM_Case_XMLProcessor_Process();
-      $xmlProcessorParams = array(
-        'clientID' => $this->_contactID,
-        'creatorID' => $this->_uid,
-        'standardTimeline' => 0,
-        'activity_date_time' => date('YmdHis'),
-        'caseID' => $this->_caseID,
-        'caseType' => $this->_caseType,
-        'activitySetName' => $params['timeline_id'],
-      );
-      $xmlProcessor->run($this->_caseType, $xmlProcessorParams);
-      $reports = $xmlProcessor->get($this->_caseType, 'ActivitySets');
+      civicrm_api3('Case', 'addtimeline', array(
+        'case_id' => $this->_caseID,
+        'timeline' => $params['timeline_id'],
+      ));
 
+      $xmlProcessor = new CRM_Case_XMLProcessor_Process();
+      $reports = $xmlProcessor->get($this->_caseType, 'ActivitySets');
       CRM_Core_Session::setStatus(ts('Activities from the %1 activity set have been added to this case.',
         array(1 => $reports[$params['timeline_id']])
       ), ts('Done'), 'success');
@@ -531,6 +490,43 @@ class CRM_Case_Form_CaseView extends CRM_Core_Form {
 
     if (CRM_Core_Permission::check('administer CiviCRM')) {
       $form->add('checkbox', 'activity_deleted', ts('Deleted Activities'), '', FALSE, array('id' => 'activity_deleted_' . $form->_caseID));
+    }
+  }
+
+  /**
+   * Form elements for merging cases
+   */
+  public function buildMergeCaseForm() {
+    $otherCases = array();
+    $result = civicrm_api3('Case', 'get', array(
+      'check_permissions' => TRUE,
+      'contact_id' => $this->_contactID,
+      'is_deleted' => 0,
+      'id' => array('!=' => $this->_caseID),
+      'return' => array('id', 'start_date', 'case_type_id.title'),
+    ));
+    foreach ($result['values'] as $id => $case) {
+      $otherCases[$id] = "#$id: {$case['case_type_id.title']} " . ts('(opened %1)', array(1 => $case['start_date']));
+    }
+
+    $this->assign('mergeCases', $this->_mergeCases = (bool) $otherCases);
+
+    if ($otherCases) {
+      $this->add('select', 'merge_case_id',
+        ts('Select Case for Merge'),
+        array(
+          '' => ts('- select case -'),
+        ) + $otherCases,
+        FALSE,
+        array('class' => 'crm-select2 huge')
+      );
+      $this->addElement('submit',
+        $this->getButtonName('next', 'merge_case'),
+        ts('Merge'),
+        array(
+          'class' => 'hiddenElement',
+        )
+      );
     }
   }
 

@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 abstract class CRM_Core_Page_Basic extends CRM_Core_Page {
 
@@ -243,8 +243,12 @@ abstract class CRM_Core_Page_Basic extends CRM_Core_Page {
           CRM_Core_DAO::storeValues($object, $values[$object->id]);
 
           if (is_a($object, 'CRM_Contact_DAO_RelationshipType')) {
-            $values[$object->id]['contact_type_a_display'] = $contactTypes[$values[$object->id]['contact_type_a']];
-            $values[$object->id]['contact_type_b_display'] = $contactTypes[$values[$object->id]['contact_type_b']];
+            if (isset($values[$object->id]['contact_type_a'])) {
+              $values[$object->id]['contact_type_a_display'] = $contactTypes[$values[$object->id]['contact_type_a']];
+            }
+            if (isset($values[$object->id]['contact_type_b'])) {
+              $values[$object->id]['contact_type_b_display'] = $contactTypes[$values[$object->id]['contact_type_b']];
+            }
           }
 
           // populate action links

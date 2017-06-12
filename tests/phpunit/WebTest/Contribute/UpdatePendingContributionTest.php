@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -35,6 +35,51 @@ class WebTest_Contribute_UpdatePendingContributionTest extends CiviSeleniumTestC
     parent::setUp();
   }
 
+  public function testPayNowLink() {
+    $this->webtestLogin();
+
+    //Offline Pay Later Contribution
+    $contact = $this->_testOfflineContribution();
+    $this->openCiviPage("contact/view", "reset=1&cid={$contact['id']}", "css=li#tab_contribute a");
+    $this->click("css=li#tab_contribute a");
+    $this->waitForElementPresent("xpath=//table[@class='selector row-highlight']/tbody//tr/td[8]/span/a");
+
+    $this->clickPopupLink("xpath=//table[@class='selector row-highlight']/tbody//tr/td[8]/span/a[@title='Edit Contribution']");
+    $this->waitForElementPresent('financial_type_id');
+
+    $this->clickPopupLink("xpath=//a[contains(text(), 'Pay with Credit Card')]");
+    $this->assertElementContainsText("xpath=//span[@class='ui-dialog-title']", "Pay with Credit Card");
+    $this->assertElementNotPresent("xpath=//select[@id='currency']");
+    $this->assertNotEditable('total_amount');
+    $this->assertElementNotPresent("xpath=//select[@id='contribution_status_id']");
+
+    $this->webtestAddCreditCardDetails();
+    $this->webtestAddBillingDetails();
+
+    //return to the edit contrib form
+    $this->clickAjaxLink('_qf_Contribution_upload-bottom');
+    $this->waitForText('crm-notification-container', "The contribution record has been saved.");
+
+    //save the edit form
+    $this->clickAjaxLink('_qf_Contribution_upload-bottom');
+    $this->waitForText('crm-notification-container', "The contribution record has been saved.");
+
+    $this->clickPopupLink("xpath=//table[@class='selector row-highlight']/tbody//tr/td[8]/span/a[@title='View Contribution']");
+
+    // View Contribution Record and test for expected values
+    $expected = array(
+      'From' => $contact['display_name'],
+      'Financial Type' => 'Donation',
+      'Total Amount' => '$ 100.00',
+      'Payment Method' => 'Credit Card (Test Processor)',
+      'Contribution Status' => 'Completed',
+      'Received Into' => 'Payment Processor Account',
+      'Net Amount' => '$ 98.50',
+      'Fee Amount' => '$ 1.50',
+    );
+    $this->webtestVerifyTabularData($expected);
+  }
+
   public function testUpdatePendingContribution() {
     $this->webtestLogin();
 
@@ -50,8 +95,8 @@ class WebTest_Contribute_UpdatePendingContributionTest extends CiviSeleniumTestC
     $this->waitForPageToLoad($this->getTimeoutMsec());
 
     $this->click('radio_ts', 'ts_all');
-    $contriIDOff = explode('&', $this->getAttribute("xpath=//div[@id='contributionSearch']/table/tbody/tr[1]/td[11]/span/a@href"));
-    $contriIDOn = explode('&', $this->getAttribute("xpath=//div[@id='contributionSearch']/table/tbody/tr[1]/td[11]/span/a@href"));
+    $contriIDOff = explode('&', $this->getAttribute("xpath=//div[@id='contributionSearch']/table/tbody/tr[1]//td/span/a@href"));
+    $contriIDOn = explode('&', $this->getAttribute("xpath=//div[@id='contributionSearch']/table/tbody/tr[1]//td/span/a@href"));
     if (!empty($contriIDOff)) {
       $contriIDOff = substr($contriIDOff[1], (strrpos($contriIDOff[1], '=') + 1));
     }
@@ -69,8 +114,8 @@ class WebTest_Contribute_UpdatePendingContributionTest extends CiviSeleniumTestC
     $this->click("_qf_Result_done");
     $this->waitForPageToLoad($this->getTimeoutMsec());
     $status = 'Completed';
-    $this->verifyText("xpath=id('contributionSearch')/table[1]/tbody/tr[1]/td[9]", preg_quote($status));
-    $this->verifyText("xpath=id('contributionSearch')/table[1]/tbody/tr[2]/td[9]", preg_quote($status));
+    $this->verifyText("xpath=id('contributionSearch')/table[1]/tbody/tr[1]//td[@class='crm-contribution-status']", preg_quote($status));
+    $this->verifyText("xpath=id('contributionSearch')/table[1]/tbody/tr[2]//td[@class='crm-contribution-status']", preg_quote($status));
   }
 
   /**
@@ -122,8 +167,6 @@ class WebTest_Contribute_UpdatePendingContributionTest extends CiviSeleniumTestC
 
     $this->type("note", "This is a test note.");
     $this->type("non_deductible_amount", "10");
-    $this->type("fee_amount", "0");
-    $this->type("net_amount", "0");
     $this->type("invoice_id", time());
     $this->webtestFillDate('thankyou_date');
 
@@ -151,7 +194,7 @@ class WebTest_Contribute_UpdatePendingContributionTest extends CiviSeleniumTestC
     // View Contribution Record and test for expected values
     $expected = array(
       'Financial Type' => 'Donation',
-      'Total Amount' => '100.00',
+      'Total Amount' => '$ 100.00',
       'Contribution Status' => 'Pending',
       'Payment Method' => 'Check',
       'Check Number' => 'check #1041',
@@ -170,7 +213,7 @@ class WebTest_Contribute_UpdatePendingContributionTest extends CiviSeleniumTestC
     // verify soft credit details
     $expected = array(
       4 => 'Donation',
-      2 => '100.00',
+      2 => '$ 100.00',
       6 => 'Pending',
       1 => $contact['display_name'],
     );
@@ -237,7 +280,8 @@ class WebTest_Contribute_UpdatePendingContributionTest extends CiviSeleniumTestC
 
     $this->click("xpath=//div[@class='crm-section other_amount-section']//div[2]/input");
     $this->type("xpath=//div[@class='crm-section other_amount-section']//div[2]/input", 100);
-    $this->click("xpath=//div[@class='crm-section payment_processor-section']/div[2]//label[text()='Pay later label {$hash}']");
+    $this->click("xpath=//label[text()='Pay later label {$hash}']");
+    $this->waitForAjaxContent();
     $streetAddress = "100 Main Street";
     $this->type("street_address-1", $streetAddress);
     $this->type("city-1", "San Francisco");
@@ -257,8 +301,8 @@ class WebTest_Contribute_UpdatePendingContributionTest extends CiviSeleniumTestC
     $this->openCiviPage("contribute/search", "reset=1", "contribution_date_low");
     $this->click("xpath=//tr/td[1]/label[contains(text(), 'Contribution is a Test?')]/../../td[2]/label[contains(text(), 'Yes')]/preceding-sibling::input[1]");
     $this->type("sort_name", $contact['sort_name']);
-    $this->clickLink("_qf_Search_refresh", "xpath=//div[@id='contributionSearch']//table/tbody/tr[1]/td[11]/span/a[text()='View']", FALSE);
-    $this->click("xpath=//div[@id='contributionSearch']//table/tbody/tr[1]/td[11]/span/a[text()='View']");
+    $this->clickLink("_qf_Search_refresh", "xpath=//div[@id='contributionSearch']//table/tbody/tr[1]//td/span/a[text()='View']", FALSE);
+    $this->click("xpath=//div[@id='contributionSearch']//table/tbody/tr[1]//td/span/a[text()='View']");
     // View Contribution Record and test for expected values
     $expected = array(
       'From' => $contact['display_name'],

@@ -2,7 +2,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -49,7 +49,7 @@
   <table class="campaigns">
     <thead>
     <tr class="columnheader">
-      <th class="hiddenElement">{ts}Campaign ID{/ts}</th>
+      <th>{ts}ID{/ts}</th>
       <th class="hiddenElement">{ts}Campaign Name{/ts}</th>
       <th>{ts}Title{/ts}</th>
       <th>{ts}Description{/ts}</th>
@@ -191,7 +191,7 @@
       "bLengthChange": false,
       "aaSorting": [],
       "aoColumns": [
-        {sClass: 'crm-campaign-id                   hiddenElement' },
+        {sClass: 'crm-campaign-id'                         },
         {sClass: 'crm-campaign-name                 hiddenElement' },
         {sClass: 'crmf-title'                              },
         {sClass: 'crmf-description'                        },
@@ -214,8 +214,7 @@
       "oLanguage": {"sEmptyTable": noRecordFoundMsg,
         "sZeroRecords": noRecordFoundMsg },
       "fnDrawCallback": function () {
-        // FIXME: trigger crmLoad and crmEditable would happen automatically
-        $('.crm-editable').crmEditable();
+        $(this).trigger('crmLoad');
       },
       "fnRowCallback": function (nRow, aData, iDisplayIndex) {
         //insert the id for each row for enable/disable.

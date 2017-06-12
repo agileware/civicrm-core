@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -245,7 +245,11 @@ class WebTest_Contact_SearchTest extends CiviSeleniumTestCase {
     $this->assertElementContainsText('css=.crm-search-results > table.row-highlight', $sortName);
     $this->assertElementContainsText('css=.crm-search-results > table.row-highlight', $childSortName);
 
-    // select to export all the contasct from search result
+    // CRM-18284 - Test Task after sorting with state
+    $this->clickAjaxLink("xpath=//div[@class='crm-search-results']//table/thead/tr//th/a[contains(text(), 'State')]");
+    $this->waitForElementPresent("xpath=//div[@class='crm-search-results']//table/thead/tr//th/a[contains(text(), 'State')]");
+
+    // select to export all the contact from search result
     $this->click("CIVICRM_QFID_ts_all_4");
 
     // Select the task action to export

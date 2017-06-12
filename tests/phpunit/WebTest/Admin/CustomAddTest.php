@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -78,11 +78,11 @@ class WebTest_Admin_CustomAddTest extends CiviSeleniumTestCase {
     $checkboxOptionLabel2 = 'check2' . substr(sha1(rand()), 0, 3);
     $this->type("option_label_2", $checkboxOptionLabel2);
     $this->type("option_value_2", "2");
-    $this->click("link=another choice");
+    $this->click("link=add another choice");
     $checkboxOptionLabel3 = 'check3' . substr(sha1(rand()), 0, 3);
     $this->type("option_label_3", $checkboxOptionLabel3);
     $this->type("option_value_3", "3");
-    $this->click("link=another choice");
+    $this->click("link=add another choice");
     $checkboxOptionLabel4 = 'check4' . substr(sha1(rand()), 0, 3);
     $this->type("option_label_4", $checkboxOptionLabel4);
     $this->type("option_value_4", "4");

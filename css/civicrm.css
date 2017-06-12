@@ -270,6 +270,7 @@ input.crm-form-entityref {
     border: 1px solid #FF0000;
 }
 .crm-container input.crm-form-text,
+.crm-container .crm-icon-picker-button,
 .crm-container input.dateplugin {
   border: 1px solid #999;
   vertical-align: middle;
@@ -838,7 +839,7 @@ input.crm-form-entityref {
 }
 
 #crm-container .crm-flashchart {
-  overflow: scroll;
+  overflow: auto;
 }
 
 #crm-container td.enclosingNested {
@@ -1437,7 +1438,7 @@ input.crm-form-entityref {
   text-decoration: none;
   font-size: .9em;
   color: #000;
-  padding: 1px 2px 1px 0;
+  padding: 1px 3px;
   opacity: .7;
   cursor: pointer;
 }
@@ -1454,7 +1455,8 @@ input.crm-form-entityref {
 .crm-container .crm-accordion-header .crm-hover-button {
   opacity: 1;
   position: relative;
-  top: -4px;
+  top: -2px;
+  color: inherit;
 }
 .crm-container .crm-hover-button:hover,
 .crm-container a.crm-hover-button:hover,
@@ -1496,7 +1498,7 @@ input.crm-form-entityref {
   text-decoration: none;
 }
 
-.crm-container .panel {
+.crm-container ul.panel {
   display: none;
   z-index: 9999;
   position: absolute;
@@ -1539,7 +1541,6 @@ input.crm-form-entityref {
   width: 15px;
   background: url("../i/TreePlus.gif") no-repeat right 1px;
 }
-
 
 .crm-container .btn-slide-active .panel {
   z-index: 10;
@@ -2245,6 +2246,12 @@ div.crm-master-accordion-header a.helpicon {
   display: none;
 }
 
+.crm-container .crm-expand-row {
+  min-width: 16px;
+  min-height: 16px;
+  display: inline-block;
+}
+
 .crm-container .crm-accordion-inner .crm-accordion-header,
 .crm-container .crm-accordion-wrapper .crm-master-accordion-header,
 .crm-container .crm-collapsible .collapsible-title {
@@ -2317,34 +2324,8 @@ div.crm-master-accordion-header a.helpicon {
   color: #0200A0;
 }
 
-/* civicrm admin menu */
-#civicrm-menu .ui-autocomplete-input,
-.crm-container .ui-autocomplete-input {
-  background: white url("../bower_components/select2/select2.png") no-repeat scroll right -23px;
-  padding-right: 16px;
-  /* so that text doesn't flow on top of icon */
-}
-
-#civicrm-menu #crm-qsearch {
-  padding: 1px 3px 1px 2px;
-  background-color: #000 !important;
-}
-
-#civicrm-menu #crm-qsearch input {
-  background-color: #eaeaea;
-  border: 1px solid black;
-  margin: 0;
-  padding: 2px 16px 3px 2px;
-  height: 16px;
-}
-#civicrm-menu #crm-qsearch input:hover,
-#civicrm-menu #crm-qsearch input:focus,
-#civicrm-menu #crm-qsearch.activetarget input {
-  background-color: #ffffff;
-}
-/* This ensures the drop-down menus appear at the right height */
-#civicrm-menu > li.menumain {
-  height: 19px !important;
+.crm-container .crm-child-row > td {
+  padding-left: 1.8em;
 }
 
 /* Status message box */
@@ -2863,6 +2844,20 @@ tbody.scrollContent tr.alternateRow {
   color: #3e3e3e;
 }
 
+.crm-container a.crm-icon-picker-button {
+  min-width: 10em;
+  text-align: inherit;
+  color: #3e3e3e;
+}
+
+.crm-container a.crm-icon-picker-button .ui-button-text {
+  color: #9f9f9f;
+}
+
+.crm-container a.crm-icon-picker-button.ui-button-text-only .ui-button-text {
+  padding: .4em .2em;
+}
+
 /* search results */
 .crm-container .crm-search-tasks,
 .crm-container .crm-tasks {
@@ -3044,18 +3039,27 @@ div.m ul#civicrm-menu,
 .select2-drop .crm-entityref-filters {
   margin-top: 4px;
 }
-.select2-drop .crm-entityref-filters select {
+.select2-drop .crm-entityref-filters select,
+.select2-drop .crm-entityref-filters input {
   border-radius: 3px;
   border: 1px solid #f2f2f2;
   background-color: #f6f6f6;
   color: #494949;
   font-size: 11px;
-  max-width: 70%;
+  max-width: 60%;
 }
 .select2-drop .crm-entityref-filters select:hover,
 .select2-drop .crm-entityref-filters select:focus,
-.select2-drop .crm-entityref-filters select.active {
+.select2-drop .crm-entityref-filters select.active,
+.select2-drop .crm-entityref-filters input {
   border: 1px solid #808080;
+}
+.select2-drop .crm-entityref-filter-value {
+  margin-left: 1em;
+}
+.select2-drop .crm-entityref-filters input {
+  padding-left: .5em;
+  background-color: #fefefe;
 }
 /* Style autocomplete results */
 .crm-container .select2-results {
@@ -3065,14 +3069,14 @@ div.m ul#civicrm-menu,
 }
 .crm-container .select2-results li,
 .crm-container .select2-results .crm-select2-row,
-.crm-container .select2-results .crm-select2-row .crm-select2-row-description p {
+.crm-container .select2-results .crm-select2-row-description p {
   padding: 0;
   margin: 0;
 }
 .crm-container .select2-results .crm-select2-row .crm-select2-row-label {
   font-size: 1.1em;
 }
-.crm-container .select2-results .crm-select2-row .crm-select2-row-description p {
+.crm-container .select2-results .crm-select2-row-description p {
   font-size: 0.8em;
   line-height: 1.5em;
   color: #696969;
@@ -3080,9 +3084,13 @@ div.m ul#civicrm-menu,
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-weight: normal;
 }
-.crm-container .select2-results .select2-highlighted .crm-select2-row .crm-select2-row-description p {
+.crm-container .select2-results .select2-highlighted > .select2-result-label .crm-select2-row-description p {
   color: #f0f0f0;
+}
+.select2-container .crm-select2-row-description {
+  display: none;
 }
 .crm-container .select2-results .crm-select2-icon {
   width: 20px;
@@ -3113,6 +3121,14 @@ div.m ul#civicrm-menu,
 /* Restore this property otherwise our css overrides it */
 .select2-search input {
   box-sizing: border-box;
+}
+
+span.crm-select-item-color {
+  display: inline-block;
+  width: .8em;
+  height: .7em;
+  border-radius: 2px;
+  border: 1px solid grey;
 }
 
 /* jQuery UI styles */
@@ -3161,6 +3177,14 @@ div.m ul#civicrm-menu,
 }
 
 /* table row highlightng */
+.crm-container .crm-row-ok {
+  background-color: #EFFFE7;
+  border-bottom: 1px solid #ccc;
+}
+.crm-container .crm-row-error {
+  background-color: #FFECEC;
+  border-bottom: 1px solid #ccc;
+}
 .crm-container table.row-highlight tr:hover,
 .crm-container .crm-row-selected {
   background-color: #FFFFCC;
@@ -3273,7 +3297,6 @@ div.m ul#civicrm-menu,
 
 /* in place edit  */
 .crm-container .crm-editable-enabled {
-  white-space: nowrap;
   padding-left: 2px;
   border: 2px dashed transparent;
 }
@@ -3342,6 +3365,7 @@ div.m ul#civicrm-menu,
   text-align: center;
   height: 23px;
   width: 32px;
+  z-index: 1;
 }
 
 .crm-editable-form button[type=cancel] {
@@ -3386,15 +3410,16 @@ div.m ul#civicrm-menu,
   padding-left: 20px;
 }
 
-#crm-container span.collapsed,
-#crm-container a.collapsed {
+.crm-container span.collapsed,
+.crm-container a.collapsed,
+.crm-container .crm-expand-row {
   background: url("../i/TreePlus.gif") no-repeat 0 0;
   padding-left: 19px;
   cursor: pointer;
 }
 
-#crm-container span.expanded,
-#crm-container a.expanded {
+.crm-container span.expanded,
+.crm-container a.expanded {
   background: url("../i/TreeMinus.gif") no-repeat 0 0;
   padding-left: 19px;
   cursor: pointer;
@@ -3547,7 +3572,6 @@ span.crm-status-icon {
 }
 .crm-container.crm-public .select2-container .select2-choice {
   padding: 5px 5px 5px 8px;
-  height: auto;
 }
 .crm-container.crm-public .select2-container-multi .select2-choices {
   padding: 4px;
@@ -3781,10 +3805,6 @@ span.crm-status-icon {
   color: #fff;
 }
 
-.crm-container .paper-icon {
-  background-position: -101px -222px;background-image: url("../i/icons/jquery-ui-3E3E3E.gif");
-}
-
 .crm-container .strikethrough {
   text-decoration: line-through;
 }
@@ -3817,4 +3837,11 @@ span.crm-status-icon {
 
 .crm-container .crm-grip {
   cursor: move;
+}
+
+.crm-tag-item {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid grey;
 }

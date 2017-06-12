@@ -121,6 +121,7 @@
      <path>civicrm/contact/merge</path>
      <title>Merge Contact</title>
      <page_callback>CRM_Contact_Form_Merge</page_callback>
+     <access_arguments>merge duplicate contacts</access_arguments>
   </item>
   <item>
      <path>civicrm/contact/email</path>
@@ -195,11 +196,6 @@
     <page_callback>CRM_Contact_Page_View_ContactSmartGroup</page_callback>
   </item>
   <item>
-     <path>civicrm/contact/view/sunlight</path>
-     <title>Sunlight</title>
-     <page_callback>CRM_Contact_Page_View_Sunlight</page_callback>
-  </item>
-  <item>
      <path>civicrm/contact/view/note</path>
      <path_arguments>cid=%%cid%%</path_arguments>
      <title>Notes</title>
@@ -252,7 +248,7 @@
   </item>
   <item>
      <path>civicrm/dashlet/getting-started</path>
-     <title>Getting Started</title>
+     <title>CiviCRM Resources</title>
      <page_callback>CRM_Dashlet_Page_GettingStarted</page_callback>
   </item>
 

@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,14 +28,14 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  * $Id$
  *
  */
 class CRM_Core_I18n_Form extends CRM_Core_Form {
   public function buildQuickForm() {
     $config = CRM_Core_Config::singleton();
-    global $tsLocale;
+    $tsLocale = CRM_Core_I18n::getLocale();
     $this->_locales = array_keys($config->languageLimit);
 
     // get the part of the database we want to edit and validate it

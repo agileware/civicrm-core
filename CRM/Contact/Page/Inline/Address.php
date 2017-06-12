@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -77,11 +77,13 @@ class CRM_Contact_Page_Inline_Address extends CRM_Core_Page {
           );
         }
       }
+      $idValue = $currentAddressBlock['address'][$locBlockNo]['id'];
+      if (!empty($currentAddressBlock['address'][$locBlockNo]['master_id'])) {
+        $idValue = $currentAddressBlock['address'][$locBlockNo]['master_id'];
+      }
 
       // add custom data of type address
-      $groupTree = CRM_Core_BAO_CustomGroup::getTree('Address',
-        $this, $currentAddressBlock['address'][$locBlockNo]['id']
-      );
+      $groupTree = CRM_Core_BAO_CustomGroup::getTree('Address', NULL, $idValue);
 
       // we setting the prefix to dnc_ below so that we don't overwrite smarty's grouptree var.
       $currentAddressBlock['address'][$locBlockNo]['custom'] = CRM_Core_BAO_CustomGroup::buildCustomDataView($this, $groupTree, FALSE, NULL, "dnc_");

@@ -3,7 +3,7 @@
    +--------------------------------------------------------------------+
    | CiviCRM version 4.7                                                |
    +--------------------------------------------------------------------+
-   | Copyright CiviCRM LLC (c) 2004-2015                                |
+   | Copyright CiviCRM LLC (c) 2004-2017                                |
    +--------------------------------------------------------------------+
    | This file is a part of CiviCRM.                                    |
    |                                                                    |
@@ -430,6 +430,7 @@ class WebTest_Event_MultiprofileEventTest extends CiviSeleniumTestCase {
     $locationFields = array(
       'supplemental_address_1',
       'supplemental_address_2',
+      'supplemental_address_3',
       'city',
       'country',
       'email',

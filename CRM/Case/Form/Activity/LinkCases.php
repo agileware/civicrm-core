@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,11 +28,11 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
- * This class generates form components for OpenCase Activity.
+ * This class generates form components for LinkCase Activity.
  */
 class CRM_Case_Form_Activity_LinkCases {
   /**
@@ -41,7 +41,7 @@ class CRM_Case_Form_Activity_LinkCases {
    * @throws Exception
    */
   public static function preProcess(&$form) {
-    if (!isset($form->_caseId)) {
+    if (empty($form->_caseId)) {
       CRM_Core_Error::fatal(ts('Case Id not found.'));
     }
     if (count($form->_caseId) != 1) {
@@ -51,19 +51,15 @@ class CRM_Case_Form_Activity_LinkCases {
     $caseId = CRM_Utils_Array::first($form->_caseId);
 
     $form->assign('clientID', $form->_currentlyViewedContactId);
+    $form->assign('sortName', CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_Contact', $form->_currentlyViewedContactId, 'sort_name'));
     $form->assign('caseTypeLabel', CRM_Case_BAO_Case::getCaseType($caseId));
 
     // get the related cases for given case.
     $relatedCases = $form->get('relatedCases');
     if (!isset($relatedCases)) {
-      $relatedCases = CRM_Case_BAO_Case::getRelatedCases($caseId, $form->_currentlyViewedContactId);
+      $relatedCases = CRM_Case_BAO_Case::getRelatedCases($caseId);
       $form->set('relatedCases', empty($relatedCases) ? FALSE : $relatedCases);
     }
-    $excludeCaseIds = array($caseId);
-    if (is_array($relatedCases) && !empty($relatedCases)) {
-      $excludeCaseIds = array_merge($excludeCaseIds, array_keys($relatedCases));
-    }
-    $form->assign('excludeCaseIds', implode(',', $excludeCaseIds));
   }
 
   /**
@@ -74,14 +70,32 @@ class CRM_Case_Form_Activity_LinkCases {
    * @return array
    */
   public static function setDefaultValues(&$form) {
-    return $defaults = array();
+    $defaults = array();
+    if (!empty($_GET['link_to_case_id']) && CRM_Utils_Rule::positiveInteger($_GET['link_to_case_id'])) {
+      $defaults['link_to_case_id'] = $_GET['link_to_case_id'];
+    }
+    return $defaults;
   }
 
   /**
    * @param CRM_Core_Form $form
    */
   public static function buildQuickForm(&$form) {
-    $form->add('text', 'link_to_case_id', ts('Link To Case'), array('class' => 'huge'), TRUE);
+    $excludeCaseIds = (array) $form->_caseId;
+    $relatedCases = $form->get('relatedCases');
+    if (is_array($relatedCases) && !empty($relatedCases)) {
+      $excludeCaseIds = array_merge($excludeCaseIds, array_keys($relatedCases));
+    }
+    $form->addEntityRef('link_to_case_id', ts('Link To Case'), array(
+      'entity' => 'Case',
+      'api' => array(
+        'extra' => array('case_id.case_type_id.title', 'contact_id.sort_name'),
+        'params' => array(
+          'case_id' => array('NOT IN' => $excludeCaseIds),
+          'case_id.is_deleted' => 0,
+        ),
+      ),
+    ), TRUE);
   }
 
   /**

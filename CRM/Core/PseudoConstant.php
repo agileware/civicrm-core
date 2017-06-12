@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -43,7 +43,7 @@
  * This provides greater consistency/predictability after flushing.
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 class CRM_Core_PseudoConstant {
 
@@ -77,7 +77,7 @@ class CRM_Core_PseudoConstant {
    * States/provinces abbreviations
    * @var array
    */
-  private static $stateProvinceAbbreviation;
+  private static $stateProvinceAbbreviation = array();
 
   /**
    * Country.
@@ -98,12 +98,6 @@ class CRM_Core_PseudoConstant {
    * @var array
    */
   private static $group;
-
-  /**
-   * GroupIterator
-   * @var mixed
-   */
-  private static $groupIterator;
 
   /**
    * RelationshipType
@@ -218,38 +212,15 @@ class CRM_Core_PseudoConstant {
       'localize' => FALSE,
       'onlyActive' => ($context == 'validate' || $context == 'get') ? FALSE : TRUE,
       'fresh' => FALSE,
+      'context' => $context,
     );
+    $entity = CRM_Core_DAO_AllCoreTables::getBriefName(CRM_Core_DAO_AllCoreTables::getCanonicalClassName($daoName));
 
     // Custom fields are not in the schema
     if (strpos($fieldName, 'custom_') === 0 && is_numeric($fieldName[7])) {
-      $customField = new CRM_Core_DAO_CustomField();
+      $customField = new CRM_Core_BAO_CustomField();
       $customField->id = (int) substr($fieldName, 7);
-      $customField->find(TRUE);
-      $options = FALSE;
-
-      if (!empty($customField->option_group_id)) {
-        $options = CRM_Core_OptionGroup::valuesByID($customField->option_group_id,
-          FALSE,
-          $params['grouping'],
-          $params['localize'],
-          // Note: for custom fields the 'name' column is NULL
-          CRM_Utils_Array::value('labelColumn', $params, 'label'),
-          $params['onlyActive'],
-          $params['fresh']
-        );
-      }
-      else {
-        if ($customField->data_type === 'StateProvince') {
-          $options = self::stateProvince();
-        }
-        elseif ($customField->data_type === 'Country') {
-          $options = $context == 'validate' ? self::countryIsoCode() : self::country();
-        }
-        elseif ($customField->data_type === 'Boolean') {
-          $options = $context == 'validate' ? array(0, 1) : CRM_Core_SelectValues::boolean();
-        }
-      }
-      CRM_Utils_Hook::customFieldOptions($customField->id, $options, FALSE);
+      $options = $customField->getOptions($context);
       if ($options && $flip) {
         $options = array_flip($options);
       }
@@ -261,7 +232,11 @@ class CRM_Core_PseudoConstant {
     $dao = new $daoName();
     $fieldSpec = $dao->getFieldSpec($fieldName);
     $dao->free();
-    // If neither worked then this field doesn't exist. Return false.
+
+    // Ensure we have the canonical name for this field
+    $fieldName = CRM_Utils_Array::value('name', $fieldSpec, $fieldName);
+
+    // Return false if field doesn't exist.
     if (empty($fieldSpec)) {
       return FALSE;
     }
@@ -271,7 +246,10 @@ class CRM_Core_PseudoConstant {
 
       // if callback is specified..
       if (!empty($pseudoconstant['callback'])) {
-        return call_user_func(Civi\Core\Resolver::singleton()->get($pseudoconstant['callback']));
+        $fieldOptions = call_user_func(Civi\Core\Resolver::singleton()->get($pseudoconstant['callback']), $context);
+        //CRM-18223: Allow additions to field options via hook.
+        CRM_Utils_Hook::fieldOptions($entity, $fieldName, $fieldOptions, $params);
+        return $fieldOptions;
       }
 
       // Merge params with schema defaults
@@ -304,7 +282,7 @@ class CRM_Core_PseudoConstant {
           $params['keyColumn'] = 'name';
         }
         // Call our generic fn for retrieving from the option_value table
-        return CRM_Core_OptionGroup::values(
+        $options = CRM_Core_OptionGroup::values(
           $pseudoconstant['optionGroupName'],
           $flip,
           $params['grouping'],
@@ -313,8 +291,11 @@ class CRM_Core_PseudoConstant {
           $params['labelColumn'] ? $params['labelColumn'] : 'label',
           $params['onlyActive'],
           $params['fresh'],
-          $params['keyColumn'] ? $params['keyColumn'] : 'value'
+          $params['keyColumn'] ? $params['keyColumn'] : 'value',
+          !empty($params['orderColumn']) ? $params['orderColumn'] : 'weight'
         );
+        CRM_Utils_Hook::fieldOptions($entity, $fieldName, $options, $params);
+        return $options;
       }
 
       // Fetch options from other tables
@@ -415,6 +396,7 @@ class CRM_Core_PseudoConstant {
               CRM_Utils_Array::asort($output);
             }
           }
+          CRM_Utils_Hook::fieldOptions($entity, $fieldName, $output, $params);
           self::$cache[$cacheKey] = $output;
         }
         return $flip ? array_flip($output) : $output;
@@ -423,7 +405,8 @@ class CRM_Core_PseudoConstant {
 
     // Return "Yes" and "No" for boolean fields
     elseif (CRM_Utils_Array::value('type', $fieldSpec) === CRM_Utils_Type::T_BOOLEAN) {
-      $output = $context == 'validate' ? array(0, 1) : array(1 => ts('Yes'), 0 => ts('No'));
+      $output = $context == 'validate' ? array(0, 1) : CRM_Core_SelectValues::boolean();
+      CRM_Utils_Hook::fieldOptions($entity, $fieldName, $output, $params);
       return $flip ? array_flip($output) : $output;
     }
     // If we're still here, it's an error. Return FALSE.
@@ -565,6 +548,7 @@ class CRM_Core_PseudoConstant {
       return $var;
     }
 
+    /* @var CRM_Core_DAO $object */
     $object = new $name();
 
     $object->selectAdd();
@@ -582,6 +566,10 @@ class CRM_Core_PseudoConstant {
 
     if (!$all) {
       $object->$filter = 1;
+      $aclClauses = array_filter($name::getSelectWhereClause());
+      foreach ($aclClauses as $clause) {
+        $object->whereAdd($clause);
+      }
     }
 
     $object->find();
@@ -718,7 +706,7 @@ class CRM_Core_PseudoConstant {
       self::populate(self::$stateProvince, 'CRM_Core_DAO_StateProvince', TRUE, 'name', 'is_active', $whereClause);
 
       // localise the province names if in an non-en_US locale
-      global $tsLocale;
+      $tsLocale = CRM_Core_I18n::getLocale();
       if ($tsLocale != '' and $tsLocale != 'en_US') {
         $i18n = CRM_Core_I18n::singleton();
         $i18n->localizeArray(self::$stateProvince, array(
@@ -753,22 +741,22 @@ class CRM_Core_PseudoConstant {
    *   array reference of all State/Province abbreviations.
    */
   public static function stateProvinceAbbreviation($id = FALSE, $limit = TRUE) {
-    if ($id > 1) {
-      $query = "
-SELECT abbreviation
+    if ($id && is_numeric($id)) {
+      if (!array_key_exists($id, (array) self::$stateProvinceAbbreviation)) {
+        $query = "SELECT abbreviation
 FROM   civicrm_state_province
 WHERE  id = %1";
-      $params = array(
-        1 => array(
-          $id,
-          'Integer',
-        ),
-      );
-      return CRM_Core_DAO::singleValueQuery($query, $params);
+        $params = array(
+          1 => array(
+            $id,
+            'Integer',
+          ),
+        );
+        self::$stateProvinceAbbreviation[$id] = CRM_Core_DAO::singleValueQuery($query, $params);
+      }
+      return self::$stateProvinceAbbreviation[$id];
     }
-
-    if (!self::$stateProvinceAbbreviation || !$id) {
-
+    else {
       $whereClause = FALSE;
 
       if ($limit) {
@@ -789,15 +777,6 @@ WHERE  id = %1";
       self::populate(self::$stateProvinceAbbreviation, 'CRM_Core_DAO_StateProvince', TRUE, 'abbreviation', 'is_active', $whereClause);
     }
 
-    if ($id) {
-      if (array_key_exists($id, self::$stateProvinceAbbreviation)) {
-        return self::$stateProvinceAbbreviation[$id];
-      }
-      else {
-        $result = NULL;
-        return $result;
-      }
-    }
     return self::$stateProvinceAbbreviation;
   }
 
@@ -815,7 +794,7 @@ WHERE  id = %1";
    *
    * @param bool $applyLimit
    *
-   * @return array
+   * @return array|null
    *   array reference of all countries.
    */
   public static function country($id = FALSE, $applyLimit = TRUE) {
@@ -858,7 +837,7 @@ WHERE  id = %1";
       }
 
       // localise the country names if in an non-en_US locale
-      global $tsLocale;
+      $tsLocale = CRM_Core_I18n::getLocale();
       if ($tsLocale != '' and $tsLocale != 'en_US') {
         $i18n = CRM_Core_I18n::singleton();
         $i18n->localizeArray(self::$country, array(
@@ -872,7 +851,7 @@ WHERE  id = %1";
         return self::$country[$id];
       }
       else {
-        return CRM_Core_DAO::$_nullObject;
+        return NULL;
       }
     }
     return self::$country;
@@ -930,40 +909,12 @@ WHERE  id = %1";
    */
   public static function allGroup($groupType = NULL, $excludeHidden = TRUE) {
     $condition = CRM_Contact_BAO_Group::groupTypeCondition($groupType, $excludeHidden);
-
-    if (!self::$group) {
-      self::$group = array();
-    }
-
     $groupKey = ($groupType ? $groupType : 'null') . !empty($excludeHidden);
 
-    if (!isset(self::$group[$groupKey])) {
-      self::$group[$groupKey] = NULL;
-      self::populate(self::$group[$groupKey], 'CRM_Contact_DAO_Group', FALSE, 'title', 'is_active', $condition);
+    if (!isset(Civi::$statics[__CLASS__]['groups']['allGroup'][$groupKey])) {
+      self::populate(Civi::$statics[__CLASS__]['groups']['allGroup'][$groupKey], 'CRM_Contact_DAO_Group', FALSE, 'title', 'is_active', $condition);
     }
-    return self::$group[$groupKey];
-  }
-
-  /**
-   * Create or get groups iterator (iterates over nested groups in a
-   * logical fashion)
-   *
-   * The GroupNesting instance is returned; it's created if this is being
-   * called for the first time
-   *
-   *
-   *
-   * @param bool $styledLabels
-   *
-   * @return CRM_Contact_BAO_GroupNesting
-   */
-  public static function &groupIterator($styledLabels = FALSE) {
-    if (!self::$groupIterator) {
-      // When used as an object, GroupNesting implements Iterator
-      // and iterates nested groups in a logical manner for us
-      self::$groupIterator = new CRM_Contact_BAO_GroupNesting($styledLabels);
-    }
-    return self::$groupIterator;
+    return Civi::$statics[__CLASS__]['groups']['allGroup'][$groupKey];
   }
 
   /**
@@ -1051,14 +1002,16 @@ WHERE  id = %1";
    *   Db column name/label.
    * @param bool $reset
    *   Reset relationship types if true.
-   *
+   * @param bool $isActive
+   *   Filter by is_active. NULL to disable.
    *
    * @return array
    *   array reference of all relationship types.
    */
-  public static function &relationshipType($valueColumnName = 'label', $reset = FALSE) {
-    if (!CRM_Utils_Array::value($valueColumnName, self::$relationshipType) || $reset) {
-      self::$relationshipType[$valueColumnName] = array();
+  public static function &relationshipType($valueColumnName = 'label', $reset = FALSE, $isActive = 1) {
+    $cacheKey = $valueColumnName . '::' . $isActive;
+    if (!CRM_Utils_Array::value($cacheKey, self::$relationshipType) || $reset) {
+      self::$relationshipType[$cacheKey] = array();
 
       //now we have name/label columns CRM-3336
       $column_a_b = "{$valueColumnName}_a_b";
@@ -1067,11 +1020,13 @@ WHERE  id = %1";
       $relationshipTypeDAO = new CRM_Contact_DAO_RelationshipType();
       $relationshipTypeDAO->selectAdd();
       $relationshipTypeDAO->selectAdd("id, {$column_a_b}, {$column_b_a}, contact_type_a, contact_type_b, contact_sub_type_a, contact_sub_type_b");
-      $relationshipTypeDAO->is_active = 1;
+      if ($isActive !== NULL) {
+        $relationshipTypeDAO->is_active = $isActive;
+      }
       $relationshipTypeDAO->find();
       while ($relationshipTypeDAO->fetch()) {
 
-        self::$relationshipType[$valueColumnName][$relationshipTypeDAO->id] = array(
+        self::$relationshipType[$cacheKey][$relationshipTypeDAO->id] = array(
           'id' => $relationshipTypeDAO->id,
           $column_a_b => $relationshipTypeDAO->$column_a_b,
           $column_b_a => $relationshipTypeDAO->$column_b_a,
@@ -1083,7 +1038,7 @@ WHERE  id = %1";
       }
     }
 
-    return self::$relationshipType[$valueColumnName];
+    return self::$relationshipType[$cacheKey];
   }
 
   /**
@@ -1582,7 +1537,7 @@ ORDER BY name";
 
     // localise the stateProvince names if in an non-en_US locale
     $config = CRM_Core_Config::singleton();
-    global $tsLocale;
+    $tsLocale = CRM_Core_I18n::getLocale();
     if ($tsLocale != '' and $tsLocale != 'en_US') {
       $i18n = CRM_Core_I18n::singleton();
       $i18n->localizeArray($result, array(
@@ -1662,12 +1617,12 @@ ORDER BY name";
    *
    * @param int $stateID
    *
-   * @return int
+   * @return int|null
    *   the country id that the state belongs to
    */
   public static function countryIDForStateID($stateID) {
     if (empty($stateID)) {
-      return CRM_Core_DAO::$_nullObject;
+      return NULL;
     }
 
     $query = "
@@ -1844,15 +1799,32 @@ WHERE  id = %1
   public static function getTaxRates() {
     if (!isset(Civi::$statics[__CLASS__]['taxRates'])) {
       Civi::$statics[__CLASS__]['taxRates'] = array();
+      $option = civicrm_api3('option_value', 'get', array(
+        'sequential' => 1,
+        'option_group_id' => 'account_relationship',
+        'name' => 'Sales Tax Account is',
+      ));
+      $value = array();
+      if ($option['count'] !== 0) {
+        if ($option['count'] > 1) {
+          foreach ($option['values'] as $opt) {
+            $value[] = $opt['value'];
+          }
+        }
+        else {
+          $value[] = $option['values'][0]['value'];
+        }
+        $where = 'AND efa.account_relationship IN (' . implode(', ', $value)  . ' )';
+      }
+      else {
+        $where = '';
+      }
       $sql = "
         SELECT fa.tax_rate, efa.entity_id
         FROM civicrm_entity_financial_account efa
         INNER JOIN civicrm_financial_account fa ON fa.id = efa.financial_account_id
-        INNER JOIN civicrm_option_value cov ON cov.value = efa.account_relationship
-        INNER JOIN civicrm_option_group cog ON cog.id = cov.option_group_id
         WHERE efa.entity_table = 'civicrm_financial_type'
-        AND cov.name = 'Sales Tax Account is'
-        AND cog.name = 'account_relationship'
+        {$where}
         AND fa.is_active = 1";
       $dao = CRM_Core_DAO::executeQuery($sql);
       while ($dao->fetch()) {

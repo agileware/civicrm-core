@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -87,7 +87,6 @@ class CRM_Contact_Form_Search extends CRM_Core_Form_Search {
    */
   public $_group;
   public $_groupElement;
-  public $_groupIterator;
 
   /**
    * The tag elements.
@@ -150,7 +149,7 @@ class CRM_Contact_Form_Search extends CRM_Core_Form_Search {
    *
    * @var array
    */
-  protected $entityReferenceFields = array('membership_type_id');
+  protected $entityReferenceFields = array('event_id', 'membership_type_id');
 
   /**
    * Name of the selector to use.
@@ -500,7 +499,6 @@ class CRM_Contact_Form_Search extends CRM_Core_Form_Search {
 
     $this->_group = CRM_Core_PseudoConstant::group();
 
-    $this->_groupIterator = CRM_Core_PseudoConstant::groupIterator();
     $this->_tag = CRM_Core_BAO_Tag::getTags();
     $this->_done = FALSE;
 
@@ -509,11 +507,9 @@ class CRM_Contact_Form_Search extends CRM_Core_Form_Search {
      * driven by the wizard framework
      */
 
-    $this->_reset = CRM_Utils_Request::retrieve('reset', 'Boolean',
-      CRM_Core_DAO::$_nullObject
-    );
+    $this->_reset = CRM_Utils_Request::retrieve('reset', 'Boolean');
 
-    $this->_force = CRM_Utils_Request::retrieve('force', 'Boolean', CRM_Core_DAO::$_nullObject);
+    $this->_force = CRM_Utils_Request::retrieve('force', 'Boolean');
     $this->_groupID = CRM_Utils_Request::retrieve('gid', 'Positive', $this);
     $this->_amtgID = CRM_Utils_Request::retrieve('amtgID', 'Positive', $this);
     $this->_ssID = CRM_Utils_Request::retrieve('ssID', 'Positive', $this);
@@ -529,12 +525,6 @@ class CRM_Contact_Form_Search extends CRM_Core_Form_Search {
     $this->_actionButtonName = $this->getButtonName('next', 'action');
 
     $this->assign('actionButtonName', $this->_actionButtonName);
-
-    // reset from session, CRM-3526
-    $session = CRM_Core_Session::singleton();
-    if ($this->_force && $session->get('selectedSearchContactIds')) {
-      $session->resetScope('selectedSearchContactIds');
-    }
 
     // if we dont get this from the url, use default if one exsts
     $config = CRM_Core_Config::singleton();
@@ -766,7 +756,7 @@ class CRM_Contact_Form_Search extends CRM_Core_Form_Search {
     $this->_done = TRUE;
 
     //for prev/next pagination
-    $crmPID = CRM_Utils_Request::retrieve('crmPID', 'Integer', CRM_Core_DAO::$_nullObject);
+    $crmPID = CRM_Utils_Request::retrieve('crmPID', 'Integer');
 
     if (array_key_exists($this->_searchButtonName, $_POST) ||
       ($this->_force && !$crmPID)

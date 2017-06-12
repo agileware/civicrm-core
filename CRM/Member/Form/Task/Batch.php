@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  * $Id$
  *
  */
@@ -120,21 +120,19 @@ class CRM_Member_Form_Task_Batch extends CRM_Member_Form_Task {
     $this->_fields = array_slice($this->_fields, 0, $this->_maxFields);
 
     $this->addButtons(array(
-        array(
-          'type' => 'submit',
-          'name' => ts('Update Members(s)'),
-          'isDefault' => TRUE,
-        ),
-        array(
-          'type' => 'cancel',
-          'name' => ts('Cancel'),
-        ),
-      )
-    );
+      array(
+        'type' => 'submit',
+        'name' => ts('Update Members(s)'),
+        'isDefault' => TRUE,
+      ),
+      array(
+        'type' => 'cancel',
+        'name' => ts('Cancel'),
+      ),
+    ));
 
     $this->assign('profileTitle', $this->_title);
     $this->assign('componentIds', $this->_memberIds);
-    $fileFieldExists = FALSE;
 
     //load all campaigns.
     if (array_key_exists('member_campaign_id', $this->_fields)) {
@@ -152,6 +150,7 @@ class CRM_Member_Form_Task_Batch extends CRM_Member_Form_Task {
       foreach ($this->_fields as $name => $field) {
         if ($customFieldID = CRM_Core_BAO_CustomField::getKeyID($name)) {
           $customValue = CRM_Utils_Array::value($customFieldID, $customFields);
+          $entityColumnValue = array();
           if (!empty($customValue['extends_entity_column_value'])) {
             $entityColumnValue = explode(CRM_Core_DAO::VALUE_SEPARATOR,
               $customValue['extends_entity_column_value']
@@ -195,7 +194,6 @@ class CRM_Member_Form_Task_Batch extends CRM_Member_Form_Task {
 
     $defaults = array();
     foreach ($this->_memberIds as $memberId) {
-      $details[$memberId] = array();
       CRM_Core_BAO_UFGroup::setProfileDefaults(NULL, $this->_fields, $defaults, FALSE, $memberId, 'Membership');
     }
 

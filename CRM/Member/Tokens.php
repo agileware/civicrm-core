@@ -4,7 +4,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -44,23 +44,22 @@ class CRM_Member_Tokens extends \Civi\Token\AbstractTokenSubscriber {
    * Class constructor.
    */
   public function __construct() {
-    parent::__construct('membership', array(
-      'fee' => ts('Membership Fee'),
-      'id' => ts('Membership ID'),
-      'join_date' => ts('Membership Join Date'),
-      'start_date' => ts('Membership Start Date'),
-      'end_date' => ts('Membership End Date'),
-      'status' => ts('Membership Status'),
-      'type' => ts('Membership Type'),
+    parent::__construct('membership', array_merge(
+      array(
+        'fee' => ts('Membership Fee'),
+        'id' => ts('Membership ID'),
+        'join_date' => ts('Membership Join Date'),
+        'start_date' => ts('Membership Start Date'),
+        'end_date' => ts('Membership End Date'),
+        'status' => ts('Membership Status'),
+        'type' => ts('Membership Type'),
+      ),
+      $this->getCustomTokens('Membership')
     ));
   }
 
   /**
-   * Is token active.
-   *
-   * @param \Civi\Token\TokenProcessor $processor
-   *
-   * @return bool
+   * @inheritDoc
    */
   public function checkActive(\Civi\Token\TokenProcessor $processor) {
     // Extracted from scheduled-reminders code. See the class description.
@@ -69,30 +68,26 @@ class CRM_Member_Tokens extends \Civi\Token\AbstractTokenSubscriber {
       && $processor->context['actionMapping']->getEntity() === 'civicrm_membership';
   }
 
+  /**
+   * Alter action schedule query.
+   *
+   * @param \Civi\ActionSchedule\Event\MailingQueryEvent $e
+   */
   public function alterActionScheduleQuery(\Civi\ActionSchedule\Event\MailingQueryEvent $e) {
     if ($e->mapping->getEntity() !== 'civicrm_membership') {
       return;
     }
 
+    // FIXME: `select('e.*')` seems too broad.
     $e->query
-      ->select('e.*') // FIXME: seems too broad.
+      ->select('e.*')
       ->select('mt.minimum_fee as fee, e.id as id , e.join_date, e.start_date, e.end_date, ms.name as status, mt.name as type')
       ->join('mt', "!casMailingJoinType civicrm_membership_type mt ON e.membership_type_id = mt.id")
       ->join('ms', "!casMailingJoinType civicrm_membership_status ms ON e.status_id = ms.id");
   }
 
   /**
-   * Evaluate the content of a single token.
-   *
-   * @param \Civi\Token\TokenRow $row
-   *   The record for which we want token values.
-   * @param string $entity
-   * @param string $field
-   *   The name of the token field.
-   * @param mixed $prefetch
-   *   Any data that was returned by the prefetch().
-   *
-   * @return mixed
+   * @inheritDoc
    */
   public function evaluateToken(\Civi\Token\TokenRow $row, $entity, $field, $prefetch = NULL) {
     $actionSearchResult = $row->context['actionSearchResult'];
@@ -102,6 +97,9 @@ class CRM_Member_Tokens extends \Civi\Token\AbstractTokenSubscriber {
     }
     elseif (isset($actionSearchResult->$field)) {
       $row->tokens($entity, $field, $actionSearchResult->$field);
+    }
+    elseif ($cfID = \CRM_Core_BAO_CustomField::getKeyID($field)) {
+      $row->customToken($entity, $cfID, $actionSearchResult->entity_id);
     }
     else {
       $row->tokens($entity, $field, '');

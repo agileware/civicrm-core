@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  * $Id$
  *
  */
@@ -207,6 +207,9 @@ class CRM_Member_BAO_MembershipStatus extends CRM_Member_DAO_MembershipStatus {
     //delete from membership Type table
     $membershipStatus = new CRM_Member_DAO_MembershipStatus();
     $membershipStatus->id = $membershipStatusId;
+    if (!$membershipStatus->find()) {
+      throw new CRM_Core_Exception(ts('Cannot delete membership status ' . $membershipStatusId));
+    }
     $membershipStatus->delete();
     CRM_Member_PseudoConstant::flush('membershipStatus');
     $membershipStatus->free();
@@ -283,7 +286,7 @@ class CRM_Member_BAO_MembershipStatus extends CRM_Member_DAO_MembershipStatus {
  WHERE    {$where}
  ORDER BY weight ASC";
 
-    $membershipStatus = CRM_Core_DAO::executeQuery($query, CRM_Core_DAO::$_nullArray);
+    $membershipStatus = CRM_Core_DAO::executeQuery($query);
     $hour = $minute = $second = 0;
 
     while ($membershipStatus->fetch()) {

@@ -3,7 +3,7 @@
   +--------------------------------------------------------------------+
   | CiviCRM version 4.7                                                |
   +--------------------------------------------------------------------+
-  | Copyright CiviCRM LLC (c) 2004-2015                                |
+  | Copyright CiviCRM LLC (c) 2004-2017                                |
   +--------------------------------------------------------------------+
   | This file is a part of CiviCRM.                                    |
   |                                                                    |
@@ -25,10 +25,9 @@
   +--------------------------------------------------------------------+
  */
 
-require_once 'CiviTest/CiviUnitTestCase.php';
-
 /**
  * Class api_v3_MembershipTypeTest
+ * @group headless
  */
 class api_v3_MembershipTypeTest extends CiviUnitTestCase {
   protected $_contactID;
@@ -78,7 +77,7 @@ class api_v3_MembershipTypeTest extends CiviUnitTestCase {
     $membershipType = $this->callAPIAndDocument('membership_type', 'get', $params, __FUNCTION__, __FILE__);
     $this->assertEquals($membershipType['values'][$id]['name'], 'General');
     $this->assertEquals($membershipType['values'][$id]['member_of_contact_id'], $this->_contactID);
-    $this->assertEquals($membershipType['values'][$id]['financial_type_id'], 1);
+    $this->assertEquals($membershipType['values'][$id]['financial_type_id'], $this->getFinancialTypeId('Member Dues'));
     $this->assertEquals($membershipType['values'][$id]['duration_unit'], 'year');
     $this->assertEquals($membershipType['values'][$id]['duration_interval'], '1');
     $this->assertEquals($membershipType['values'][$id]['period_type'], 'rolling');
@@ -144,6 +143,21 @@ class api_v3_MembershipTypeTest extends CiviUnitTestCase {
 
     $membershipType = $this->callAPIFailure('membership_type', 'create', $params);
     $this->assertEquals($membershipType['error_message'], 'Mandatory key(s) missing from params array: domain_id');
+  }
+
+  /**
+   *  CRM-20010 Tests period_type is required for MemberType create
+   */
+  public function testMemberTypePeriodiTypeRequired() {
+    $this->callAPIFailure('MembershipType', 'create', array(
+      'domain_id' => "Default Domain Name",
+      'member_of_contact_id' => 1,
+      'financial_type_id' => "Member Dues",
+      'duration_unit' => "month",
+      'duration_interval' => 1,
+      'name' => "Standard Member",
+      'minimum_fee' => 100,
+    ));
   }
 
   /**

@@ -12,8 +12,11 @@
  *
  * @package CRM
  * @author Michael Morris and Gene Chi @ Phase2 Technology <mmorris@phase2technology.com>
- * $Id$
- *
+ */
+require_once 'PayJunction/pjClasses.php';
+
+/**
+ * Class CRM_Core_Payment_PayJunction.
  */
 class CRM_Core_Payment_PayJunction extends CRM_Core_Payment {
   # (not used, implicit in the API, might need to convert?)
@@ -38,9 +41,6 @@ class CRM_Core_Payment_PayJunction extends CRM_Core_Payment {
    * @return \CRM_Core_Payment_PayJunction
    */
   public function __construct($mode, &$paymentProcessor) {
-    //require PayJunction API library
-    require_once 'PayJunction/pjClasses.php';
-
     $this->_mode = $mode;
     $this->_paymentProcessor = $paymentProcessor;
     $this->_processorName = ts('PayJunction');

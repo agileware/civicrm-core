@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
 | CiviCRM version 4.7                                                |
 +--------------------------------------------------------------------+
-| Copyright CiviCRM LLC (c) 2004-2015                                |
+| Copyright CiviCRM LLC (c) 2004-2017                                |
 +--------------------------------------------------------------------+
 | This file is a part of CiviCRM.                                    |
 |                                                                    |
@@ -29,7 +29,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -51,11 +51,10 @@
  +--------------------------------------------------------------------+
  */
 
-require_once 'CiviTest/CiviUnitTestCase.php';
-
 /**
  * Class contains api test cases for "civicrm_relationship_type"
  *
+ * @group headless
  */
 class api_v3_RelationshipTypeTest extends CiviUnitTestCase {
   protected $_cId_a;
@@ -166,7 +165,7 @@ class api_v3_RelationshipTypeTest extends CiviUnitTestCase {
       'is_active' => 0,
     );
     $result = $this->callAPIFailure('relationship_type', 'delete', $params,
-      'Invalid value for relationship type ID'
+      'id is not a valid integer'
     );
   }
 

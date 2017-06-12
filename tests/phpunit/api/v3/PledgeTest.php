@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -25,12 +25,11 @@
  +--------------------------------------------------------------------+
  */
 
-require_once 'CiviTest/CiviUnitTestCase.php';
-
 /**
  * Test class for Pledge API - civicrm_pledge_*
  *
  * @package CiviCRM_APIv3
+ * @group headless
  */
 class api_v3_PledgeTest extends CiviUnitTestCase {
 
@@ -397,7 +396,7 @@ class api_v3_PledgeTest extends CiviUnitTestCase {
    */
   public function testCreateUpdatePledge() {
     // we test 'sequential' param here too
-    $pledgeID = $this->pledgeCreate($this->_individualId);
+    $pledgeID = $this->pledgeCreate(array('contact_id' => $this->_individualId));
     $old_params = array(
       'id' => $pledgeID,
       'sequential' => 1,
@@ -444,7 +443,7 @@ class api_v3_PledgeTest extends CiviUnitTestCase {
    * We test 'sequential' param here too.
    */
   public function testCreateUpdatePledgeLegacy() {
-    $pledgeID = $this->pledgeCreate($this->_individualId);
+    $pledgeID = $this->pledgeCreate(array('contact_id' => $this->_individualId));
     $old_params = array(
       'id' => $pledgeID,
       'sequential' => 1,
@@ -506,11 +505,11 @@ class api_v3_PledgeTest extends CiviUnitTestCase {
    */
   public function testDeletePledge() {
 
-    $pledgeID = $this->pledgeCreate($this->_individualId);
+    $pledgeID = $this->pledgeCreate(array('contact_id' => $this->_individualId));
     $params = array(
       'pledge_id' => $pledgeID,
     );
-    $result = $this->callAPIAndDocument('pledge', 'delete', $params, __FUNCTION__, __FILE__);
+    $this->callAPIAndDocument('pledge', 'delete', $params, __FUNCTION__, __FILE__);
   }
 
   /**
@@ -518,7 +517,7 @@ class api_v3_PledgeTest extends CiviUnitTestCase {
    */
   public function testDeletePledgeUseID() {
 
-    $pledgeID = $this->pledgeCreate($this->_individualId);
+    $pledgeID = $this->pledgeCreate(array('contact_id' => $this->_individualId));
     $params = array(
       'id' => $pledgeID,
     );

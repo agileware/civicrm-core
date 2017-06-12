@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 class CRM_Import_DataSource_CSV extends CRM_Import_DataSource {
   const
@@ -66,6 +66,10 @@ class CRM_Import_DataSource_CSV extends CRM_Import_DataSource {
     $config = CRM_Core_Config::singleton();
 
     $uploadFileSize = CRM_Utils_Number::formatUnitSize($config->maxFileSize . 'm', TRUE);
+    //Fetch uploadFileSize from php_ini when $config->maxFileSize is set to "no limit".
+    if (empty($uploadFileSize)) {
+      $uploadFileSize = CRM_Utils_Number::formatUnitSize(ini_get('upload_max_filesize'), TRUE);
+    }
     $uploadSize = round(($uploadFileSize / (1024 * 1024)), 2);
     $form->assign('uploadSize', $uploadSize);
     $form->add('File', 'uploadFile', ts('Import Data File'), 'size=30 maxlength=255', TRUE);
@@ -131,6 +135,9 @@ class CRM_Import_DataSource_CSV extends CRM_Import_DataSource {
     $fd = fopen($file, 'r');
     if (!$fd) {
       CRM_Core_Error::fatal("Could not read $file");
+    }
+    if (filesize($file) == 0) {
+      CRM_Core_Error::fatal("$file is empty. Please upload a valid file.");
     }
 
     $config = CRM_Core_Config::singleton();
@@ -226,7 +233,13 @@ class CRM_Import_DataSource_CSV extends CRM_Import_DataSource {
       }
 
       $first = FALSE;
-      $row = array_map('civicrm_mysql_real_escape_string', $row);
+
+      // CRM-17859 Trim non-breaking spaces from columns.
+      $row = array_map(
+        function($string) {
+          return trim($string, chr(0xC2) . chr(0xA0));
+        }, $row);
+      $row = array_map(array('CRM_Core_DAO', 'escapeString'), $row);
       $sql .= "('" . implode("', '", $row) . "')";
       $count++;
 
@@ -253,17 +266,4 @@ class CRM_Import_DataSource_CSV extends CRM_Import_DataSource {
     return $result;
   }
 
-}
-
-/**
- * @param $string
- *
- * @return string
- */
-function civicrm_mysql_real_escape_string($string) {
-  static $dao = NULL;
-  if (!$dao) {
-    $dao = new CRM_Core_DAO();
-  }
-  return $dao->escape($string);
 }

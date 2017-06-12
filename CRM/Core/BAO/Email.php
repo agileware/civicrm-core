@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -117,9 +117,9 @@ WHERE  contact_id = {$params['contact_id']}
    * @param array $entityBlock
    *   Input parameters to find object.
    *
-   * @return bool
+   * @return array
    */
-  public static function &getValues($entityBlock) {
+  public static function getValues($entityBlock) {
     return CRM_Core_BAO_Block::getValues('email', $entityBlock);
   }
 
@@ -283,8 +283,7 @@ AND    reset_date IS NULL
    *   an array of email ids
    */
   public static function getFromEmail() {
-    $session = CRM_Core_Session::singleton();
-    $contactID = $session->get('userID');
+    $contactID = CRM_Core_Session::singleton()->getLoggedInContactID();
     $fromEmailValues = array();
 
     // add all configured FROM email addresses
@@ -299,7 +298,7 @@ AND    reset_date IS NULL
       $contactEmails = self::allEmails($contactID);
       $fromDisplayName = CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_Contact', $contactID, 'display_name');
 
-      foreach ($contactEmails as $emailId => $emailVal) {
+      foreach ($contactEmails as $emailVal) {
         $email = trim($emailVal['email']);
         if (!$email || $emailVal['on_hold']) {
           continue;

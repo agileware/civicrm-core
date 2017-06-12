@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -25,13 +25,12 @@
  +--------------------------------------------------------------------+
  */
 
-require_once 'CiviTest/CiviUnitTestCase.php';
-
 /**
  *  Test APIv3 civicrm_contribute_* functions
  *
  * @package CiviCRM_APIv3
  * @subpackage API_ContributionSoft
+ * @group headless
  */
 class api_v3_ContributionSoftTest extends CiviUnitTestCase {
 
@@ -292,7 +291,7 @@ class api_v3_ContributionSoftTest extends CiviUnitTestCase {
     $params = array(
       'id' => $softcontributionID,
     );
-    $result = $this->callAPISuccess('contribution_soft', 'delete', $params);
+    $this->callAPISuccess('contribution_soft', 'delete', $params);
   }
 
   /**
@@ -308,7 +307,7 @@ class api_v3_ContributionSoftTest extends CiviUnitTestCase {
     $params = array(
       'contribution_source' => 'SSF',
     );
-    $softcontribution = $this->callAPIFailure('contribution_soft', 'delete', $params);
+    $this->callAPIFailure('contribution_soft', 'delete', $params);
   }
 
   public function testDeleteContributionSoft() {
@@ -325,7 +324,7 @@ class api_v3_ContributionSoftTest extends CiviUnitTestCase {
     $params = array(
       'id' => $softcontributionID,
     );
-    $result = $this->callAPIAndDocument('contribution_soft', 'delete', $params, __FUNCTION__, __FILE__);
+    $this->callAPIAndDocument('contribution_soft', 'delete', $params, __FUNCTION__, __FILE__);
   }
 
   ///////////////// civicrm_contribution_search methods

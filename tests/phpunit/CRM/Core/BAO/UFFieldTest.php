@@ -1,9 +1,8 @@
 <?php
-require_once 'CiviTest/CiviUnitTestCase.php';
-require_once 'CiviTest/Contact.php';
 
 /**
  * Class CRM_Core_BAO_UFFieldTest
+ * @group headless
  */
 class CRM_Core_BAO_UFFieldTest extends CiviUnitTestCase {
 
@@ -195,7 +194,6 @@ class CRM_Core_BAO_UFFieldTest extends CiviUnitTestCase {
 
     foreach ($fields as $field) {
       $defaults = array(
-        'version' => 3,
         'uf_group_id' => $ufGroup->id,
         'visibility' => 'Public Pages and Listings',
         'weight' => 1,
@@ -205,7 +203,7 @@ class CRM_Core_BAO_UFFieldTest extends CiviUnitTestCase {
         'location_type_id' => NULL,
       );
       $params = array_merge($field, $defaults);
-      $ufField = civicrm_api('UFField', 'create', $params);
+      $ufField = $this->callAPISuccess('UFField', 'create', $params);
       $this->assertAPISuccess($ufField);
     }
 

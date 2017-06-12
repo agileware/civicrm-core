@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
 | CiviCRM version 4.7                                                |
 +--------------------------------------------------------------------+
-| Copyright CiviCRM LLC (c) 2004-2015                                |
+| Copyright CiviCRM LLC (c) 2004-2017                                |
 +--------------------------------------------------------------------+
 | This file is a part of CiviCRM.                                    |
 |                                                                    |
@@ -25,10 +25,9 @@
 +--------------------------------------------------------------------+
  */
 
-require_once 'CiviTest/CiviUnitTestCase.php';
-
 /**
  * Class api_v3_OptionValueTest
+ * @group headless
  */
 class api_v3_OptionValueTest extends CiviUnitTestCase {
   protected $_apiversion = 3;
@@ -190,9 +189,9 @@ class api_v3_OptionValueTest extends CiviUnitTestCase {
   }
 
   /**
-   * Check that component  continues to be honoured.
+   * Check that component string is honoured.
    */
-  public function testCreateOptionSpecifyComponent() {
+  public function testCreateOptionSpecifyComponentString() {
     $result = $this->callAPISuccess('option_group', 'get', array(
       'name' => 'from_email_address',
       'sequential' => 1,
@@ -200,7 +199,6 @@ class api_v3_OptionValueTest extends CiviUnitTestCase {
         'component_id' => 'CiviContribute',
         'name' => 'my@y.com',
       ),
-
     ));
     $this->assertAPISuccess($result);
     $optionValueId = $result['values'][0]['api.option_value.create']['id'];
@@ -212,25 +210,53 @@ class api_v3_OptionValueTest extends CiviUnitTestCase {
   }
 
   /**
-   * Check that component string is honoured.
+   * Check that component is honoured when fetching options.
    */
-  public function testCreateOptionSpecifyComponentString() {
-    $result = $this->callAPISuccess('option_group', 'get', array(
-      'name' => 'from_email_address',
-      'sequential' => 1,
+  public function testGetOptionWithComponent() {
+    $components = Civi::settings()->get('enable_components');
+    CRM_Core_BAO_ConfigSetting::enableComponent('CiviContribute');
+    $this->callAPISuccess('option_group', 'get', array(
+      'name' => 'gender',
       'api.option_value.create' => array(
         'component_id' => 'CiviContribute',
-        'name' => 'my@y.com',
+        'name' => 'Contrib',
       ),
+    ));
+    // Verify new option is present
+    $genders = $this->callAPISuccess('contact', 'getoptions', array(
+      'field' => 'gender_id',
+      'context' => 'create',
+    ));
+    $this->assertContains('Contrib', $genders['values']);
 
+    // Disable relevant component
+    CRM_Core_BAO_ConfigSetting::disableComponent('CiviContribute');
+    CRM_Core_PseudoConstant::flush();
+    // New option should now be hidden for "create" context
+    $genders = $this->callAPISuccess('contact', 'getoptions', array(
+      'field' => 'gender_id',
+      'context' => 'create',
     ));
-    $this->assertAPISuccess($result);
-    $optionValueId = $result['values'][0]['api.option_value.create']['id'];
-    $component_id = $this->callAPISuccess('option_value', 'getvalue', array(
-      'id' => $optionValueId,
-      'return' => 'component_id',
+    $this->assertNotContains('Contrib', $genders['values']);
+    // New option should be visible for "get" context even with component disabled
+    $genders = $this->callAPISuccess('contact', 'getoptions', array(
+      'field' => 'gender_id',
+      'context' => 'get',
     ));
-    $this->assertEquals(2, $component_id);
+    $this->assertContains('Contrib', $genders['values']);
+
+    // Now disable all components and ensure we can still fetch options with no errors
+    CRM_Core_BAO_ConfigSetting::setEnabledComponents(array());
+    CRM_Core_PseudoConstant::flush();
+    // New option should still be hidden for "create" context
+    $genders = $this->callAPISuccess('contact', 'getoptions', array(
+      'field' => 'gender_id',
+      'context' => 'create',
+    ));
+    $this->assertNotContains('Contrib', $genders['values']);
+
+    // Restore original state
+    CRM_Core_BAO_ConfigSetting::setEnabledComponents($components);
   }
 
   /**

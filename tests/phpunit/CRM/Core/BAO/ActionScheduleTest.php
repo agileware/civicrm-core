@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -25,11 +25,14 @@
  +--------------------------------------------------------------------+
  */
 
-
-require_once 'CiviTest/CiviUnitTestCase.php';
-
 /**
  * Class CRM_Core_BAO_ActionScheduleTest
+ * @group ActionSchedule
+ * @group headless
+ *
+ * There are additional tests for some specific entities in other classes:
+ * @see CRM_Activity_ActionMappingTest
+ * @see CRM_Contribute_ActionMapping_ByTypeTest
  */
 class CRM_Core_BAO_ActionScheduleTest extends CiviUnitTestCase {
 
@@ -41,7 +44,6 @@ class CRM_Core_BAO_ActionScheduleTest extends CiviUnitTestCase {
   public function setUp() {
     parent::setUp();
 
-    require_once 'CiviTest/CiviMailUtils.php';
     $this->mut = new CiviMailUtils($this, TRUE);
 
     $this->fixtures['rolling_membership'] = array(
@@ -93,6 +95,8 @@ class CRM_Core_BAO_ActionScheduleTest extends CiviUnitTestCase {
       'contact_type' => 'Individual',
       'email' => 'test-member@example.com',
       'gender_id' => 'Female',
+      'first_name' => 'Churmondleia',
+      'last_name' => 'Ōtākou',
     );
     $this->fixtures['contact_birthdate'] = array(
       'is_deceased' => 0,
@@ -105,8 +109,8 @@ class CRM_Core_BAO_ActionScheduleTest extends CiviUnitTestCase {
       'title' => 'One Day Phone Call Notice',
       'limit_to' => '1',
       'absolute_date' => NULL,
-      'body_html' => '<p>1-Day (non-repeating)</p>',
-      'body_text' => '1-Day (non-repeating)',
+      'body_html' => '<p>1-Day (non-repeating) (for {activity.subject})</p>',
+      'body_text' => '1-Day (non-repeating) (for {activity.subject})',
       'end_action' => NULL,
       'end_date' => NULL,
       'end_frequency_interval' => NULL,
@@ -121,7 +125,7 @@ class CRM_Core_BAO_ActionScheduleTest extends CiviUnitTestCase {
       'recipient' => '2',
       'recipient_listing' => NULL,
       'recipient_manual' => NULL,
-      'record_activity' => NULL,
+      'record_activity' => 1,
       'repetition_frequency_interval' => NULL,
       'repetition_frequency_unit' => NULL,
       'start_action_condition' => 'before',
@@ -158,6 +162,36 @@ class CRM_Core_BAO_ActionScheduleTest extends CiviUnitTestCase {
       'start_action_date' => 'activity_date_time',
       'start_action_offset' => '1',
       'start_action_unit' => 'day',
+      'subject' => '1-Day (repeating) (about {activity.activity_type})',
+    );
+    $this->fixtures['sched_activity_1day_r_on_abs_date'] = array(
+      'name' => 'One_Day_Phone_Call_Notice_R',
+      'title' => 'One Day Phone Call Notice R',
+      'limit_to' => 1,
+      'absolute_date' => CRM_Utils_Date::processDate('20120614100000'),
+      'body_html' => '<p>1-Day (repeating)</p>',
+      'body_text' => '1-Day (repeating)',
+      'entity_status' => '1',
+      'entity_value' => '2',
+      'group_id' => NULL,
+      'is_active' => '1',
+      'is_repeat' => '1',
+      'mapping_id' => '1',
+      'msg_template_id' => NULL,
+      'recipient' => '2',
+      'recipient_listing' => NULL,
+      'recipient_manual' => NULL,
+      'record_activity' => NULL,
+      'repetition_frequency_interval' => '6',
+      'repetition_frequency_unit' => 'hour',
+      'end_action' => 'after',
+      'end_date' => 'activity_date_time',
+      'end_frequency_interval' => '2',
+      'end_frequency_unit' => 'day',
+      'start_action_condition' => '',
+      'start_action_date' => '',
+      'start_action_offset' => '',
+      'start_action_unit' => '',
       'subject' => '1-Day (repeating) (about {activity.activity_type})',
     );
     $this->fixtures['sched_membership_join_2week'] = array(
@@ -573,6 +607,46 @@ class CRM_Core_BAO_ActionScheduleTest extends CiviUnitTestCase {
       'start_action_unit' => 'month',
       'subject' => 'limit to none',
     );
+    $this->fixtures['sched_on_membership_end_date_repeat_interval'] = array(
+      'name' => 'sched_on_membership_end_date',
+      'title' => 'sched_on_membership_end_date',
+      'body_html' => '<p>Your membership expired 1 unit ago</p>',
+      'body_text' => 'Your membership expired 1 unit ago',
+      'end_frequency_interval' => 10,
+      'end_frequency_unit' => 'year',
+      'is_active' => 1,
+      'is_repeat' => TRUE,
+      'mapping_id' => 4,
+      'record_activity' => 1,
+      'start_action_condition' => 'after',
+      'start_action_date' => 'membership_end_date',
+      'start_action_offset' => '0',
+      'start_action_unit' => 'hour',
+      'subject' => 'subject send reminder every unit after membership_end_date',
+    );
+
+    $customGroup = $this->callAPISuccess('CustomGroup', 'create', array(
+      'title' => ts('Test Contact Custom group'),
+      'name' => 'test_contact_cg',
+      'extends' => 'Contact',
+      'domain_id' => CRM_Core_Config::domainID(),
+      'is_active' => 1,
+      'collapse_adv_display' => 0,
+      'collapse_display' => 0,
+    ));
+    $customField = $this->callAPISuccess('CustomField', 'create', array(
+      'label' => 'Test Text',
+      'data_type' => 'String',
+      'html_type' => 'Text',
+      'custom_group_id' => $customGroup['id'],
+    ));
+    $this->fixtures['contact_custom_token'] = array(
+      'id' => $customField['id'],
+      'token' => sprintf('{contact.custom_%s}', $customField['id']),
+      'name' => sprintf('custom_%s', $customField['id']),
+      'value' => 'text ' . substr(sha1(rand()), 0, 7),
+    );
+
     $this->_setUp();
   }
 
@@ -583,7 +657,6 @@ class CRM_Core_BAO_ActionScheduleTest extends CiviUnitTestCase {
    */
   public function tearDown() {
     parent::tearDown();
-
     $this->mut->clearMessages();
     $this->mut->stop();
     unset($this->mut);
@@ -595,28 +668,40 @@ class CRM_Core_BAO_ActionScheduleTest extends CiviUnitTestCase {
       'civicrm_event',
       'civicrm_email',
     ));
+    $this->callAPISuccess('CustomField', 'delete', array('id' => $this->fixtures['contact_custom_token']['id']));
+    $this->callAPISuccess('CustomGroup', 'delete', array(
+      'id' => CRM_Core_DAO::getFieldValue('CRM_Core_DAO_CustomGroup', 'test_contact_cg', 'id', 'name'),
+    ));
     $this->_tearDown();
   }
 
   public function mailerExamples() {
     $cases = array();
 
-    $manyTokensTmpl = implode(';;', array(
+    // Some tokens - short as subject has 128char limit in DB.
+    $someTokensTmpl = implode(';;', array(
       '{contact.display_name}', // basic contact token
       '{contact.gender}', // funny legacy contact token
       '{contact.gender_id}', // funny legacy contact token
       '{domain.name}', // domain token
       '{activity.activity_type}', // action-scheduler token
     ));
+    // Further tokens can be tested in the body text/html.
+    $manyTokensTmpl = implode(';;', array(
+      $someTokensTmpl,
+      '{contact.email_greeting}',
+      $this->fixture['contact_custom_token']['token'],
+    ));
     // Note: The behavior of domain-tokens on a scheduled reminder is undefined. All we
     // can really do is check that it has something.
-    $manyTokensExpected = 'test-member@example.com;;Female;;Female;;[a-zA-Z0-9 ]+;;Phone Call';
+    $someTokensExpected = 'Churmondleia Ōtākou;;Female;;Female;;[a-zA-Z0-9 ]+;;Phone Call';
+    $manyTokensExpected = sprintf('%s;;Dear Churmondleia;;%s', $someTokensExpected, $this->fixture['contact_custom_token']['value']);
 
-    // In this example, we use a lot of tokens cutting across multiple components..
+    // In this example, we use a lot of tokens cutting across multiple components.
     $cases[0] = array(
       // Schedule definition.
       array(
-        'subject' => "subj $manyTokensTmpl",
+        'subject' => "subj $someTokensTmpl",
         'body_html' => "html $manyTokensTmpl",
         'body_text' => "text $manyTokensTmpl",
       ),
@@ -624,7 +709,7 @@ class CRM_Core_BAO_ActionScheduleTest extends CiviUnitTestCase {
       array(
         'from_name' => "/^FIXME\$/",
         'from_email' => "/^info@EXAMPLE.ORG\$/",
-        'subject' => "/^subj $manyTokensExpected\$/",
+        'subject' => "/^subj $someTokensExpected\$/",
         'body_html' => "/^html $manyTokensExpected\$/",
         'body_text' => "/^text $manyTokensExpected\$/",
       ),
@@ -697,7 +782,12 @@ class CRM_Core_BAO_ActionScheduleTest extends CiviUnitTestCase {
 
     $activity = $this->createTestObject('CRM_Activity_DAO_Activity', $this->fixtures['phonecall']);
     $this->assertTrue(is_numeric($activity->id));
-    $contact = $this->callAPISuccess('contact', 'create', $this->fixtures['contact']);
+    $contact = $this->callAPISuccess('contact', 'create', array_merge(
+      $this->fixtures['contact'],
+      array(
+        $this->fixtures['contact_custom_token']['name'] => $this->fixtures['contact_custom_token']['value'],
+      )
+    ));
     $activity->save();
 
     $source['contact_id'] = $contact['id'];
@@ -735,7 +825,6 @@ class CRM_Core_BAO_ActionScheduleTest extends CiviUnitTestCase {
       }
     }
     $this->mut->clearMessages();
-
   }
 
   public function testActivityDateTimeMatchNonRepeatableSchedule() {
@@ -745,6 +834,7 @@ class CRM_Core_BAO_ActionScheduleTest extends CiviUnitTestCase {
     $activity = $this->createTestObject('CRM_Activity_DAO_Activity', $this->fixtures['phonecall']);
     $this->assertTrue(is_numeric($activity->id));
     $contact = $this->callAPISuccess('contact', 'create', $this->fixtures['contact']);
+    $activity->subject = "Test subject for Phonecall";
     $activity->save();
 
     $source['contact_id'] = $contact['id'];
@@ -772,6 +862,14 @@ class CRM_Core_BAO_ActionScheduleTest extends CiviUnitTestCase {
         'recipients' => array(),
       ),
     ));
+    $activityTypes = CRM_Core_PseudoConstant::activityType(TRUE, FALSE, FALSE, 'name');
+    $activityDAO = new CRM_Activity_DAO_Activity();
+    $activityDAO->source_record_id = $activity->id;
+    $activityDAO->activity_type_id = array_search('Reminder Sent', $activityTypes);
+    $activityDAO->find();
+    while ($activityDAO->fetch()) {
+      $this->assertContains($activity->subject, $activityDAO->details);
+    }
   }
 
   public function testActivityDateTimeMatchRepeatableSchedule() {
@@ -811,6 +909,49 @@ class CRM_Core_BAO_ActionScheduleTest extends CiviUnitTestCase {
       array(
         // Run cron 6 hours later; send second message.
         'time' => '2012-06-14 21:00:01',
+        'recipients' => array(array('test-member@example.com')),
+        'subjects' => array('1-Day (repeating) (about Phone Call)'),
+      ),
+    ));
+  }
+
+  public function testActivityDateTimeMatchRepeatableScheduleOnAbsDate() {
+    $actionScheduleDao = CRM_Core_BAO_ActionSchedule::add($this->fixtures['sched_activity_1day_r_on_abs_date']);
+    $this->assertTrue(is_numeric($actionScheduleDao->id));
+
+    $activity = $this->createTestObject('CRM_Activity_DAO_Activity', $this->fixtures['phonecall']);
+    $this->assertTrue(is_numeric($activity->id));
+    $contact = $this->callAPISuccess('contact', 'create', $this->fixtures['contact']);
+    $activity->save();
+
+    $source['contact_id'] = $contact['id'];
+    $source['activity_id'] = $activity->id;
+    $source['record_type_id'] = 2;
+    $activityContact = $this->createTestObject('CRM_Activity_DAO_ActivityContact', $source);
+    $activityContact->save();
+
+    $this->assertCronRuns(array(
+      array(
+        // Before the 24-hour mark, no email
+        'time' => '2012-06-13 04:00:00',
+        'recipients' => array(),
+        'subjects' => array(),
+      ),
+      array(
+        // On absolute date set on 2012-06-14
+        'time' => '2012-06-14 00:00:00',
+        'recipients' => array(array('test-member@example.com')),
+        'subjects' => array('1-Day (repeating) (about Phone Call)'),
+      ),
+      array(
+        // Run cron 4 hours later; first message already sent
+        'time' => '2012-06-14 04:00:00',
+        'recipients' => array(),
+        'subjects' => array(),
+      ),
+      array(
+        // Run cron 6 hours later; send second message.
+        'time' => '2012-06-14 06:00:01',
         'recipients' => array(array('test-member@example.com')),
         'subjects' => array('1-Day (repeating) (about Phone Call)'),
       ),
@@ -1170,6 +1311,7 @@ class CRM_Core_BAO_ActionScheduleTest extends CiviUnitTestCase {
   public function testContactModifiedAnniversary() {
     $contact = $this->callAPISuccess('Contact', 'create', $this->fixtures['contact_birthdate']);
     $this->_testObjects['CRM_Contact_DAO_Contact'][] = $contact['id'];
+    $modifiedDate = $this->callAPISuccess('Contact', 'getvalue', array('id' => $contact['id'], 'return' => 'modified_date'));
     $actionSchedule = $this->fixtures['sched_contact_mod_anniv'];
     $actionScheduleDao = CRM_Core_BAO_ActionSchedule::add($actionSchedule);
     $this->assertTrue(is_numeric($actionScheduleDao->id));
@@ -1181,7 +1323,7 @@ class CRM_Core_BAO_ActionScheduleTest extends CiviUnitTestCase {
       ),
       array(
         // On the eve of 3 years after they were modified, send an email.
-        'time' => date('Y-m-d H:i:s', strtotime($contact['values'][$contact['id']]['modified_date'] . ' +3 years -23 hours')),
+        'time' => date('Y-m-d H:i:s', strtotime($modifiedDate . ' +3 years -1 day')),
         'recipients' => array(array('test-bday@example.com')),
       ),
     ));
@@ -1271,6 +1413,13 @@ class CRM_Core_BAO_ActionScheduleTest extends CiviUnitTestCase {
          // After the 2-week of the changed join date 2012-03-29, send an email
         'time' => '2012-04-12 01:00:00',
         'recipients' => array(array('member@example.com')),
+      ),
+    ));
+    $this->assertCronRuns(array(
+      array(
+        // It should not re-send on the same day
+        'time' => '2012-04-12 01:00:00',
+        'recipients' => array(),
       ),
     ));
   }
@@ -1612,6 +1761,86 @@ class CRM_Core_BAO_ActionScheduleTest extends CiviUnitTestCase {
       }
     }
     $this->_testObjects = array();
+  }
+
+  /**
+   * Test that the various repetition units work correctly.
+   * CRM-17028
+   */
+  public function testRepetitionFrequencyUnit() {
+    $membershipTypeParams = array(
+      'duration_interval' => '1',
+      'duration_unit' => 'year',
+      'is_active' => 1,
+      'period_type' => 'rolling',
+    );
+    $membershipType = $this->createTestObject('CRM_Member_DAO_MembershipType', $membershipTypeParams);
+    $interval_units = array('hour', 'day', 'week', 'month', 'year');
+    foreach ($interval_units as $interval_unit) {
+      $membershipEndDate = DateTime::createFromFormat('Y-m-d H:i:s', "2013-03-15 00:00:00");
+      $contactParams = array(
+        'contact_type' => 'Individual',
+        'first_name' => 'Test',
+        'last_name' => "Interval $interval_unit",
+        'is_deceased' => 0,
+      );
+      $contact = $this->createTestObject('CRM_Contact_DAO_Contact', $contactParams);
+      $this->assertTrue(is_numeric($contact->id));
+      $emailParams = array(
+        'contact_id' => $contact->id,
+        'email' => "test-member-{$interval_unit}@example.com",
+        'location_type_id' => 1,
+      );
+      $email = $this->createTestObject('CRM_Core_DAO_Email', $emailParams);
+      $this->assertTrue(is_numeric($email->id));
+      $membershipParams = array(
+        'membership_type_id' => $membershipType->id,
+        'contact_id' => $contact->id,
+        'join_date' => '20120315',
+        'start_date' => '20120315',
+        'end_date' => '20130315',
+        'is_override' => 0,
+        'status_id' => 2,
+      );
+      $membershipParams['status-id'] = 1;
+      $membership = $this->createTestObject('CRM_Member_DAO_Membership', $membershipParams);
+      $actionScheduleParams = $this->fixtures['sched_on_membership_end_date_repeat_interval'];
+      $actionScheduleParams['entity_value'] = $membershipType->id;
+      $actionScheduleParams['repetition_frequency_unit'] = $interval_unit;
+      $actionScheduleParams['repetition_frequency_interval'] = 2;
+      $actionSchedule = CRM_Core_BAO_ActionSchedule::add($actionScheduleParams);
+      $this->assertTrue(is_numeric($actionSchedule->id));
+      $beforeEndDate = $this->createModifiedDateTime($membershipEndDate, '-1 day');
+      $beforeFirstUnit = $this->createModifiedDateTime($membershipEndDate, "+1 $interval_unit");
+      $afterFirstUnit = $this->createModifiedDateTime($membershipEndDate, "+2 $interval_unit");
+      $cronRuns = array(
+        array(
+          'time' => $beforeEndDate->format('Y-m-d H:i:s'),
+          'recipients' => array(),
+        ),
+        array(
+          'time' => $membershipEndDate->format('Y-m-d H:i:s'),
+          'recipients' => array(array("test-member-{$interval_unit}@example.com")),
+        ),
+        array(
+          'time' => $beforeFirstUnit->format('Y-m-d H:i:s'),
+          'recipients' => array(),
+        ),
+        array(
+          'time' => $afterFirstUnit->format('Y-m-d H:i:s'),
+          'recipients' => array(array("test-member-{$interval_unit}@example.com")),
+        ),
+      );
+      $this->assertCronRuns($cronRuns);
+      $actionSchedule->delete();
+      $membership->delete();
+    }
+  }
+
+  public function createModifiedDateTime($origDateTime, $modifyRule) {
+    $newDateTime = clone($origDateTime);
+    $newDateTime->modify($modifyRule);
+    return $newDateTime;
   }
 
 }

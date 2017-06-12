@@ -23,6 +23,7 @@ class CRM_Core_Payment_AuthorizeNet extends CRM_Core_Payment {
   const AUTH_APPROVED = 1;
   const AUTH_DECLINED = 2;
   const AUTH_ERROR = 3;
+  const AUTH_REVIEW = 4;
   const TIMEZONE = 'America/Denver';
 
   protected $_mode = NULL;
@@ -57,7 +58,6 @@ class CRM_Core_Payment_AuthorizeNet extends CRM_Core_Payment {
     $this->_setParam('paymentType', 'AIM');
     $this->_setParam('md5Hash', CRM_Utils_Array::value('signature', $paymentProcessor));
 
-    $this->_setParam('emailCustomer', 'TRUE');
     $this->_setParam('timestamp', time());
     srand(time());
     $this->_setParam('sequence', rand(1, 1000));
@@ -168,38 +168,54 @@ class CRM_Core_Payment_AuthorizeNet extends CRM_Core_Payment {
 
     $response_fields = $this->explode_csv($response);
 
+    // fetch available contribution statuses
+    $contributionStatus = CRM_Contribute_PseudoConstant::contributionStatus(NULL, 'name');
+
     // check gateway MD5 response
     if (!$this->checkMD5($response_fields[37], $response_fields[6], $response_fields[9])) {
+      $params['payment_status_id'] = array_search('Failed', $contributionStatus);
       return self::error(9003, 'MD5 Verification failed');
     }
 
     // check for application errors
     // TODO:
     // AVS, CVV2, CAVV, and other verification results
-    if ($response_fields[0] != self::AUTH_APPROVED) {
-      $errormsg = $response_fields[2] . ' ' . $response_fields[3];
-      return self::error($response_fields[1], $errormsg);
-    }
+    switch ($response_fields[0]) {
+      case self::AUTH_REVIEW:
+        $params['payment_status_id'] = array_search('Pending', $contributionStatus);
+        break;
 
-    // Success
+      case self::AUTH_ERROR:
+        $params['payment_status_id'] = array_search('Failed', $contributionStatus);
+        $errormsg = $response_fields[2] . ' ' . $response_fields[3];
+        return self::error($response_fields[1], $errormsg);
 
-    // test mode always returns trxn_id = 0
-    // also live mode in CiviCRM with test mode set in
-    // Authorize.Net return $response_fields[6] = 0
-    // hence treat that also as test mode transaction
-    // fix for CRM-2566
-    if (($this->_mode == 'test') || $response_fields[6] == 0) {
-      $query = "SELECT MAX(trxn_id) FROM civicrm_contribution WHERE trxn_id RLIKE 'test[0-9]+'";
-      $p = array();
-      $trxn_id = strval(CRM_Core_DAO::singleValueQuery($query, $p));
-      $trxn_id = str_replace('test', '', $trxn_id);
-      $trxn_id = intval($trxn_id) + 1;
-      $params['trxn_id'] = sprintf('test%08d', $trxn_id);
+      case self::AUTH_DECLINED:
+        $errormsg = $response_fields[2] . ' ' . $response_fields[3];
+        return self::error($response_fields[1], $errormsg);
+
+      default:
+        // Success
+
+        // test mode always returns trxn_id = 0
+        // also live mode in CiviCRM with test mode set in
+        // Authorize.Net return $response_fields[6] = 0
+        // hence treat that also as test mode transaction
+        // fix for CRM-2566
+        if (($this->_mode == 'test') || $response_fields[6] == 0) {
+          $query = "SELECT MAX(trxn_id) FROM civicrm_contribution WHERE trxn_id RLIKE 'test[0-9]+'";
+          $p = array();
+          $trxn_id = strval(CRM_Core_DAO::singleValueQuery($query, $p));
+          $trxn_id = str_replace('test', '', $trxn_id);
+          $trxn_id = intval($trxn_id) + 1;
+          $params['trxn_id'] = sprintf('test%08d', $trxn_id);
+        }
+        else {
+          $params['trxn_id'] = $response_fields[6];
+        }
+        $params['gross_amount'] = $response_fields[9];
+        break;
     }
-    else {
-      $params['trxn_id'] = $response_fields[6];
-    }
-    $params['gross_amount'] = $response_fields[9];
     // TODO: include authorization code?
 
     return $params;
@@ -362,7 +378,7 @@ class CRM_Core_Payment_AuthorizeNet extends CRM_Core_Payment {
     $fields['x_country'] = $this->_getParam('country');
     $fields['x_customer_ip'] = $this->_getParam('ip_address');
     $fields['x_email'] = $this->_getParam('email');
-    $fields['x_invoice_num'] = substr($this->_getParam('invoiceID'), 0, 20);
+    $fields['x_invoice_num'] = $this->_getParam('invoiceID');
     $fields['x_amount'] = $amount;
     $fields['x_currency_code'] = $this->_getParam('currencyID');
     $fields['x_description'] = $this->_getParam('description');
@@ -801,7 +817,7 @@ class CRM_Core_Payment_AuthorizeNet extends CRM_Core_Payment {
 
     curl_close($submit);
 
-    $responseFields = $this->_ParseArbReturn($response);
+    $responseFields = $this->_parseArbReturn($response);
     $message = "{$responseFields['code']}: {$responseFields['text']}";
 
     if ($responseFields['resultCode'] == 'Error') {

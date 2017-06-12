@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -44,14 +44,17 @@ class WebTest_Contribute_UpdateBatchPendingContributionTest extends CiviSelenium
     $this->openCiviPage("contribute/search", "reset=1", "contribution_date_low");
 
     $this->type("sort_name", "Individual");
+    $this->waitForElementPresent("contribution_status_id");
     $this->multiselect2('contribution_status_id', array("Pending"));
     $this->clickLink("_qf_Search_refresh");
 
     $this->click('radio_ts', 'ts_all');
-
+    $this->waitForAjaxContent();
     $this->select('task', "label=Update pending contribution status");
-    $this->click("_qf_Search_next_action");
+    $this->waitForAjaxContent();
+    $this->waitForElementPresent("contribution_status_id");
     $this->select('contribution_status_id', 'label=Completed');
+    $this->waitForAjaxContent();
     $this->click('_qf_Status_next');
     $this->waitForElementPresent("_qf_Result_done");
     $this->click("_qf_Result_done");
@@ -59,11 +62,12 @@ class WebTest_Contribute_UpdateBatchPendingContributionTest extends CiviSelenium
     $this->waitForElementPresent("contribution_date_low");
 
     $this->type("sort_name", "Individual");
+    $this->waitForElementPresent("contribution_status_id");
     $this->multiselect2('contribution_status_id', array("Completed"));
     $this->click("_qf_Search_refresh");
 
     $this->waitForPageToLoad($this->getTimeoutMsec());
-    $this->click("xpath=//div[@id='contributionSearch']/table[@class='selector row-highlight']/tbody/tr[1]/td[11]/span/a[text()='View']");
+    $this->click("xpath=//table[@class='selector row-highlight']/tbody/tr[1]/td[10]/span//a[text()='View']");
     $this->waitForElementPresent("_qf_ContributionView_cancel-bottom");
     $expected = array(
       'Received Into' => "Deposit Bank Account",
@@ -92,8 +96,8 @@ class WebTest_Contribute_UpdateBatchPendingContributionTest extends CiviSelenium
     // Search the participants
     $this->openCiviPage("event/search", "reset=1", '_qf_Search_refresh');
 
-    $eventName = 'Rain';
-    $this->select2("event_id", $eventName);
+    $eventName = 'Rain-forest Cup Youth Soccer Tournament';
+    $this->select2("event_id", $eventName, TRUE);
     $this->click('_qf_Search_refresh');
 
     $this->openCiviPage("contribute/search", "reset=1", "contribution_date_low");
@@ -121,7 +125,7 @@ class WebTest_Contribute_UpdateBatchPendingContributionTest extends CiviSelenium
     $this->click("_qf_Search_refresh");
 
     $this->waitForPageToLoad($this->getTimeoutMsec());
-    $this->click("xpath=//div[@id='contributionSearch']/table[@class='selector row-highlight']/tbody/tr[1]/td[11]/span/a[text()='View']");
+    $this->click("xpath=//table[@class='selector row-highlight']/tbody/tr[1]/td[10]/span//a[text()='View']");
     $this->waitForElementPresent("_qf_ContributionView_cancel-bottom");
     $expected = array(
       'Received Into' => "Deposit Bank Account",
@@ -199,6 +203,7 @@ class WebTest_Contribute_UpdateBatchPendingContributionTest extends CiviSelenium
     $this->select("financial_type_id", "value=1");
 
     //Contribution status
+    $this->waitForElementPresent("contribution_status_id");
     $this->select("contribution_status_id", "label=Pending");
 
     // total amount
@@ -224,7 +229,7 @@ class WebTest_Contribute_UpdateBatchPendingContributionTest extends CiviSelenium
       'Contribution Status' => 'Pending',
     );
     foreach ($expected as $label => $value) {
-      $this->verifyText("xpath=id('ContributionView')/div[2]/table[1]/tbody//tr/td[1][text()='$label']/../td[2]", preg_quote($value));
+      $this->assertElementContainsText("xpath=id('ContributionView')/div[2]/table[1]/tbody//tr/td[1][text()='$label']/../td[2]", $value);
     }
   }
 

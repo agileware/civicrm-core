@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -102,7 +102,7 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
     ) {
       $session = CRM_Core_Session::singleton();
       $allCases = CRM_Case_BAO_Case::getCases(TRUE, $session->get('userID'), 'any');
-      if (!array_key_exists($this->_caseId, $allCases)) {
+      if (count(array_intersect($this->_caseId, array_keys($allCases))) == 0) {
         CRM_Core_Error::fatal(ts('You are not authorized to access this page.'));
       }
     }
@@ -307,7 +307,9 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
     if (!empty($this->_relatedContacts)) {
       $checkBoxes = array();
       foreach ($this->_relatedContacts as $id => $row) {
-        $checkBoxes[$id] = $this->addElement('checkbox', $id, NULL, NULL, array('class' => 'select-row'));
+        foreach ($row as $key => $value) {
+          $checkBoxes[$key] = $this->addElement('checkbox', $key, NULL, NULL, array('class' => 'select-row'));
+        }
       }
 
       $this->addGroup($checkBoxes, 'contact_check');
@@ -339,7 +341,7 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
       return TRUE;
     }
 
-    return parent::formrule($fields, $files, $self);
+    return parent::formRule($fields, $files, $self);
   }
 
   /**
@@ -413,6 +415,10 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
     // format activity custom data
     if (!empty($params['hidden_custom'])) {
       if ($this->_activityId) {
+        // retrieve and include the custom data of old Activity
+        $oldActivity = civicrm_api3('Activity', 'getsingle', array('id' => $this->_activityId));
+        $params = array_merge($oldActivity, $params);
+
         // unset custom fields-id from params since we want custom
         // fields to be saved for new activity.
         foreach ($params as $key => $value) {
@@ -504,8 +510,8 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
       else {
         $newActParams['original_id'] = $activity->id;
       }
-      //is_current_revision will be set to 1 by default.
 
+      //is_current_revision will be set to 1 by default.
       // add attachments if any
       CRM_Core_BAO_File::formatAttachment($newActParams,
         $newActParams,
@@ -591,7 +597,7 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
 
     foreach ($vvalue as $vkey => $vval) {
       foreach ($selectedContacts as $dnt => $val) {
-        if (array_key_exists($val, $params) && !CRM_Utils_array::crmIsEmptyArray($params[$val])) {
+        if (array_key_exists($val, $params) && !CRM_Utils_Array::crmIsEmptyArray($params[$val])) {
           if ($val == 'contact_check') {
             $mailStatus = ts("A copy of the activity has also been sent to selected contacts(s).");
           }

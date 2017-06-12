@@ -3,13 +3,12 @@
  *  File for the CRM11793 issue
  *  Include class definitions
  */
-require_once 'CiviTest/CiviUnitTestCase.php';
-
 
 /**
  *  Test APIv3 civicrm_activity_* functions
  *
  * @package   CiviCRM
+ * @group headless
  */
 class api_v3_CRM11793Test extends CiviUnitTestCase {
 
@@ -20,15 +19,11 @@ class api_v3_CRM11793Test extends CiviUnitTestCase {
    * and redirect stdin to a temporary file
    */
   public function setUp() {
-    //  Connect to the database
     parent::setUp();
 
-    require_once 'CiviTest/Contact.php';
-
-    // lets create one contact of each type
-    Contact::createIndividual();
-    Contact::createHousehold();
-    Contact::createOrganisation();
+    $this->individualCreate();
+    $this->householdCreate();
+    $this->organizationCreate();
   }
 
   public function tearDown() {

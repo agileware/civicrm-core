@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -56,12 +56,10 @@ class CRM_Admin_Form_Setting extends CRM_Core_Form {
 
       // we can handle all the ones defined in the metadata here. Others to be converted
       foreach ($this->_settings as $setting => $group) {
-        $settingMetaData = civicrm_api('setting', 'getfields', array('version' => 3, 'name' => $setting));
         $this->_defaults[$setting] = civicrm_api('setting', 'getvalue', array(
             'version' => 3,
             'name' => $setting,
             'group' => $group,
-            'default_value' => CRM_Utils_Array::value('default', $settingMetaData['values'][$setting]),
           )
         );
       }
@@ -97,6 +95,7 @@ class CRM_Admin_Form_Setting extends CRM_Core_Form {
       )
     );
 
+    $descriptions = array();
     foreach ($this->_settings as $setting => $group) {
       $settingMetaData = civicrm_api('setting', 'getfields', array('version' => 3, 'name' => $setting));
       $props = $settingMetaData['values'][$setting];
@@ -131,9 +130,14 @@ class CRM_Admin_Form_Setting extends CRM_Core_Form {
             'label' => ts($props['title']),
           ));
         }
+        elseif ($add == 'addMonthDay') {
+          $this->add('date', $setting, ts($props['title']), CRM_Core_SelectValues::date(NULL, 'M d'));
+        }
         else {
           $this->$add($setting, ts($props['title']));
         }
+        // Migrate to using an array as easier in smart...
+        $descriptions[$setting] = ts($props['description']);
         $this->assign("{$setting}_description", ts($props['description']));
         if ($setting == 'max_attachments') {
           //temp hack @todo fix to get from metadata
@@ -146,6 +150,7 @@ class CRM_Admin_Form_Setting extends CRM_Core_Form {
 
       }
     }
+    $this->assign('setting_descriptions', $descriptions);
   }
 
   /**
@@ -198,22 +203,11 @@ class CRM_Admin_Form_Setting extends CRM_Core_Form {
       unset($params['enableComponents']);
     }
 
-    // verify ssl peer option
-    if (isset($params['verifySSL'])) {
-      CRM_Core_BAO_Setting::setItem($params['verifySSL'],
-        CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME,
-        'verifySSL'
-      );
-      unset($params['verifySSL']);
-    }
-
-    // force secure URLs
-    if (isset($params['enableSSL'])) {
-      CRM_Core_BAO_Setting::setItem($params['enableSSL'],
-        CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME,
-        'enableSSL'
-      );
-      unset($params['enableSSL']);
+    foreach (array('verifySSL', 'enableSSL') as $name) {
+      if (isset($params[$name])) {
+        Civi::settings()->set($name, $params[$name]);
+        unset($params[$name]);
+      }
     }
     $settings = array_intersect_key($params, $this->_settings);
     $result = civicrm_api('setting', 'create', $settings + array('version' => 3));

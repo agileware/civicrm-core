@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
 | CiviCRM version 4.7                                                |
 +--------------------------------------------------------------------+
-| Copyright CiviCRM LLC (c) 2004-2015                                |
+| Copyright CiviCRM LLC (c) 2004-2017                                |
 +--------------------------------------------------------------------+
 | This file is a part of CiviCRM.                                    |
 |                                                                    |
@@ -26,15 +26,10 @@
  */
 
 /**
- *  Include class definitions
- */
-require_once 'tests/phpunit/CiviTest/CiviUnitTestCase.php';
-
-
-/**
  *  Test APIv3 civicrm_create_custom_group
  *
  * @package   CiviCRM
+ * @group headless
  */
 class api_v3_CustomFieldTest extends CiviUnitTestCase {
   protected $_apiversion;
@@ -210,7 +205,6 @@ class api_v3_CustomFieldTest extends CiviUnitTestCase {
   /*function testCustomFieldCreateExample( )
   {
 
-
   $customGroup = $this->customGroupCreate('Individual','date_test_group',3);
   require_once 'api/v3/examples/CustomField/Create.php';
   $result = custom_field_create_example();
@@ -253,6 +247,28 @@ class api_v3_CustomFieldTest extends CiviUnitTestCase {
   }
 
   /**
+   * Check with non-ascii labels
+   */
+  public function testCustomFieldCreateWithNonAsciiLabel() {
+    $customGroup = $this->customGroupCreate(array('extends' => 'Contact', 'title' => 'select_test_group'));
+    $params = array(
+      'custom_group_id' => $customGroup['id'],
+      'label' => 'ôôôô',
+      'html_type' => 'Select',
+      'data_type' => 'String',
+      'weight' => 4,
+      'is_required' => 1,
+      'is_searchable' => 0,
+      'is_active' => 1,
+    );
+    $customField = $this->callAPISuccess('custom_field', 'create', $params);
+    $this->assertNotNull($customField['id']);
+    $params['label'] = 'ààà';
+    $customField = $this->callAPISuccess('custom_field', 'create', $params);
+    $this->assertNotNull($customField['id']);
+  }
+
+  /**
    * Test custom field with existing option group.
    */
   public function testCustomFieldExistingOptionGroup() {
@@ -280,7 +296,6 @@ class api_v3_CustomFieldTest extends CiviUnitTestCase {
 
     $this->assertEquals($optionGroupID, 3);
   }
-
 
   /**
    * Test custom field get works & return param works

@@ -61,16 +61,14 @@
       <condition>parent_id IS NOT NULL</condition>
     </pseudoconstant>
     <html>
-      <type>Multi-Select</type>
+      <type>Select</type>
+      <multiple>1</multiple>
     </html>
     <add>1.5</add>
   </field>
   <index>
     <name>index_contact_sub_type</name>
     <fieldName>contact_sub_type</fieldName>
-    <html>
-      <type>Multi-Select</type>
-    </html>
     <add>2.1</add>
   </index>
   <field>
@@ -266,8 +264,7 @@
   </field>
   <field>
     <name>image_URL</name>
-    <type>varchar</type>
-    <length>255</length>
+    <type>text</type>
     <import>true</import>
     <comment>optional URL for preferred image (photo, logo, etc.) to display for this contact.</comment>
     <add>1.1</add>
@@ -479,6 +476,9 @@
     <type>varchar</type>
     <length>64</length>
     <import>true</import>
+    <html>
+      <type>Text</type>
+    </html>
     <headerPattern>/^title/i</headerPattern>
     <comment>Formal (academic or similar) title in front of name. (Prof., Dr. etc.)</comment>
     <add>4.5</add>
@@ -668,6 +668,7 @@
     <add>1.1</add>
     <html>
       <type>Select Date</type>
+      <formatType>birth</formatType>
     </html>
   </field>
   <field>
@@ -693,6 +694,7 @@
     <add>1.5</add>
     <html>
       <type>Select Date</type>
+      <formatType>birth</formatType>
     </html>
   </field>
   <field>
@@ -805,7 +807,7 @@
     <export>true</export>
     <add>2.1</add>
     <html>
-      <type>Autocomplete-Select</type>
+      <type>EntityRef</type>
     </html>
   </field>
   <foreignKey>

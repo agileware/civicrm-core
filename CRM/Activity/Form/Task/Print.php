@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -72,18 +72,17 @@ class CRM_Activity_Form_Task_Print extends CRM_Activity_Form_Task {
 
     // just need to add a javacript to popup the window for printing
     $this->addButtons(array(
-        array(
-          'type' => 'next',
-          'name' => ts('Print Activities'),
-          'js' => array('onclick' => 'window.print()'),
-          'isDefault' => TRUE,
-        ),
-        array(
-          'type' => 'back',
-          'name' => ts('Done'),
-        ),
-      )
-    );
+      array(
+        'type' => 'next',
+        'name' => ts('Print Activities'),
+        'js' => array('onclick' => 'window.print()'),
+        'isDefault' => TRUE,
+      ),
+      array(
+        'type' => 'back',
+        'name' => ts('Done'),
+      ),
+    ));
   }
 
 }

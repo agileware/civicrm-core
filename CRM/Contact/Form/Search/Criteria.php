@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 class CRM_Contact_Form_Search_Criteria {
   /**
@@ -111,7 +111,7 @@ class CRM_Contact_Form_Search_Criteria {
     $form->addElement('text', 'job_title', ts('Job Title'), CRM_Core_DAO::getAttribute('CRM_Contact_DAO_Contact', 'job_title'));
 
     //added internal ID
-    $form->addElement('text', 'contact_id', ts('Contact ID'), CRM_Core_DAO::getAttribute('CRM_Contact_DAO_Contact', 'id'));
+    $form->add('number', 'contact_id', ts('Contact ID'), CRM_Core_DAO::getAttribute('CRM_Contact_DAO_Contact', 'id') + array('min' => 1));
     $form->addRule('contact_id', ts('Please enter valid Contact ID'), 'positiveInteger');
 
     //added external ID
@@ -149,7 +149,7 @@ class CRM_Contact_Form_Search_Criteria {
 
     $form->add('select',
       'uf_group_id',
-      ts('Search Views'),
+      ts('Views For Display Contacts'),
       array(
         '0' => ts('- default view -'),
       ) + $searchProfiles,
@@ -158,6 +158,13 @@ class CRM_Contact_Form_Search_Criteria {
     );
 
     $componentModes = CRM_Contact_Form_Search::getModeSelect();
+    $enabledComponents = CRM_Core_Component::getEnabledComponents();
+
+    // unset disabled components that must should have been enabled
+    // to the option be viable
+    if (!array_key_exists('CiviMail', $enabledComponents)) {
+      unset($componentModes['8']);
+    }
 
     // unset contributions or participants if user does not have
     // permission on them
@@ -290,6 +297,9 @@ class CRM_Contact_Form_Search_Criteria {
 
     $elements = array(
       'street_address' => array(ts('Street Address'), $attributes['street_address'], NULL, NULL),
+      'supplemental_address_1' => array(ts('Supplemental Address 1'), $attributes['supplemental_address_1'], NULL, NULL),
+      'supplemental_address_2' => array(ts('Supplemental Address 2'), $attributes['supplemental_address_2'], NULL, NULL),
+      'supplemental_address_3' => array(ts('Supplemental Address 3'), $attributes['supplemental_address_3'], NULL, NULL),
       'city' => array(ts('City'), $attributes['city'], NULL, NULL),
       'postal_code' => array(ts('Postal Code'), $attributes['postal_code'], NULL, NULL),
       'country' => array(ts('Country'), $attributes['country_id'], 'country', FALSE),
@@ -364,22 +374,8 @@ class CRM_Contact_Form_Search_Criteria {
       'placeholder' => ts('Primary'),
     ));
 
-    // custom data extending addresses -
-    $extends = array('Address');
-    $groupDetails = CRM_Core_BAO_CustomGroup::getGroupDetail(NULL, TRUE, $extends);
-    if ($groupDetails) {
-      $form->assign('addressGroupTree', $groupDetails);
-      foreach ($groupDetails as $group) {
-        foreach ($group['fields'] as $field) {
-          $elementName = 'custom_' . $field['id'];
-          CRM_Core_BAO_CustomField::addQuickFormElement($form,
-            $elementName,
-            $field['id'],
-            FALSE, FALSE, TRUE
-          );
-        }
-      }
-    }
+    // custom data extending addresses
+    CRM_Core_BAO_Query::addCustomFormFields($form, array('Address'));
   }
 
   /**
@@ -444,22 +440,7 @@ class CRM_Contact_Form_Search_Criteria {
     CRM_Core_Form_Date::buildDateRange($form, 'relation_date', 1, '_low', '_high', ts('From:'), FALSE, FALSE);
 
     // add all the custom  searchable fields
-    $relationship = array('Relationship');
-    $groupDetails = CRM_Core_BAO_CustomGroup::getGroupDetail(NULL, TRUE, $relationship);
-    if ($groupDetails) {
-      $form->assign('relationshipGroupTree', $groupDetails);
-      foreach ($groupDetails as $group) {
-        foreach ($group['fields'] as $field) {
-          $fieldId = $field['id'];
-          $elementName = 'custom_' . $fieldId;
-          CRM_Core_BAO_CustomField::addQuickFormElement($form,
-            $elementName,
-            $fieldId,
-            FALSE, FALSE, TRUE
-          );
-        }
-      }
-    }
+    CRM_Core_BAO_Query::addCustomFormFields($form, array('Relationship'));
   }
 
   /**
@@ -537,11 +518,7 @@ class CRM_Contact_Form_Search_Criteria {
           CRM_Core_Form_Date::buildDateRange($form, $elementName, 1, '_from', '_to', ts('From:'), FALSE);
         }
         else {
-          CRM_Core_BAO_CustomField::addQuickFormElement($form,
-            $elementName,
-            $fieldId,
-            FALSE, FALSE, TRUE
-          );
+          CRM_Core_BAO_CustomField::addQuickFormElement($form, $elementName, $fieldId, FALSE, TRUE);
         }
       }
     }

@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -113,6 +113,9 @@ class CRM_Financial_Form_FinancialAccount extends CRM_Contribute_Form {
         $elementAccounting->freeze();
         $elementActive->freeze();
       }
+      elseif ($this->_id && CRM_Financial_BAO_FinancialAccount::validateFinancialAccount($this->_id)) {
+        $element->freeze();
+      }
     }
 
     if ($this->_action == CRM_Core_Action::UPDATE &&
@@ -183,20 +186,23 @@ class CRM_Financial_Form_FinancialAccount extends CRM_Contribute_Form {
    */
   public function postProcess() {
     if ($this->_action & CRM_Core_Action::DELETE) {
-      CRM_Financial_BAO_FinancialAccount::del($this->_id);
-      CRM_Core_Session::setStatus(ts('Selected Financial Account has been deleted.'));
+      if (CRM_Financial_BAO_FinancialAccount::del($this->_id)) {
+        CRM_Core_Session::setStatus(ts('Selected Financial Account has been deleted.'));
+      }
+      else {
+        CRM_Utils_System::redirect(CRM_Utils_System::url('civicrm/admin/financial/financialAccount', "reset=1&action=browse"));
+      }
     }
     else {
-      $ids = array();
       // store the submitted values in an array
       $params = $this->exportValues();
 
       if ($this->_action & CRM_Core_Action::UPDATE) {
-        $ids['contributionType'] = $this->_id;
+        $params['id'] = $this->_id;
       }
 
-      $contributionType = CRM_Financial_BAO_FinancialAccount::add($params, $ids);
-      CRM_Core_Session::setStatus(ts('The Financial Account \'%1\' has been saved.', array(1 => $contributionType->name)));
+      $financialAccount = CRM_Financial_BAO_FinancialAccount::add($params);
+      CRM_Core_Session::setStatus(ts('The Financial Account \'%1\' has been saved.', array(1 => $financialAccount->name)), ts('Saved'), 'success');
     }
   }
 

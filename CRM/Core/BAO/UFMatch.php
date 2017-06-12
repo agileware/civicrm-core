@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -205,9 +205,7 @@ class CRM_Core_BAO_UFMatch extends CRM_Core_DAO_UFMatch {
         $params = $_POST;
         $params['email'] = $uniqId;
 
-        $dedupeParams = CRM_Dedupe_Finder::formatParams($params, 'Individual');
-        $dedupeParams['check_permission'] = FALSE;
-        $ids = CRM_Dedupe_Finder::dupesByParams($dedupeParams, 'Individual');
+        $ids = CRM_Contact_BAO_Contact::getDuplicateContacts($params, 'Individual', 'Unsupervised', array(), FALSE);
 
         if (!empty($ids) && Civi::settings()->get('uniq_email_per_site')) {
           // restrict dupeIds to ones that belong to current domain/site.
@@ -254,18 +252,19 @@ AND    domain_id = %2
       }
 
       if (!$found) {
-        if ($config->userSystem->is_drupal) {
-          $mail = 'mail';
-        }
-        elseif ($uf == 'WordPress') {
-          $mail = 'user_email';
-        }
-        else {
-          $mail = 'email';
-        }
-
+        // Not sure why we're testing for this. Is there ever a case
+        // in which $user is not an object?
         if (is_object($user)) {
-          $params = array('email-Primary' => $user->$mail);
+          if ($config->userSystem->is_drupal) {
+            $primary_email = $uniqId;
+          }
+          elseif ($uf == 'WordPress') {
+            $primary_email = $user->user_email;
+          }
+          else {
+            $primary_email = $user->email;
+          }
+          $params = array('email-Primary' => $primary_email);
         }
 
         if ($ctype == 'Organization') {
@@ -355,9 +354,10 @@ AND    domain_id    = %4
    *   Id of the contact to update.
    */
   public static function updateUFName($contactId) {
-    if (!$contactId) {
+    if (!Civi::settings()->get('syncCMSEmail') || !$contactId) {
       return;
     }
+
     $config = CRM_Core_Config::singleton();
     $ufName = CRM_Contact_BAO_Contact::getPrimaryEmail($contactId);
 
@@ -418,6 +418,11 @@ AND    domain_id    = %4
       // Save the email in UF Match table
       $ufmatch->uf_name = $emailAddress;
       CRM_Core_BAO_UFMatch::create((array) $ufmatch);
+
+      // If CMS integration is disabled skip Civi email update if CMS user email is changed
+      if (Civi::settings()->get('syncCMSEmail') == FALSE) {
+        return;
+      }
 
       //check if the primary email for the contact exists
       //$contactDetails[1] - email
@@ -631,6 +636,16 @@ AND    domain_id    = %4
       }
     }
     return $ufValues[$ufID];
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public function addSelectWhereClause() {
+    // Prevent default behavior of joining ACLs onto the contact_id field
+    $clauses = array();
+    CRM_Utils_Hook::selectWhereClause($this, $clauses);
+    return $clauses;
   }
 
 }

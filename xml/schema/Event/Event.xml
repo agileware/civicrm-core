@@ -328,7 +328,7 @@
   <field>
     <name>default_role_id</name>
     <uniqueName>default_role_id</uniqueName>
-    <title>Default Role ID</title>
+    <title>Default Role</title>
     <import>true</import>
     <type>int unsigned</type>
     <default>1</default>
@@ -615,6 +615,14 @@
     </html>
   </field>
   <field>
+    <name>max_additional_participants</name>
+    <type>int unsigned</type>
+    <title>Maximum number of additional participants per registration</title>
+    <default>0</default>
+    <comment>Maximum number of additional participants that can be registered on a single booking</comment>
+    <add>4.7</add>
+  </field>
+  <field>
     <name>allow_same_participant_emails</name>
     <type>boolean</type>
     <title>Does Event allow multiple registrations from same email address?</title>
@@ -760,7 +768,7 @@
       <table>civicrm_currency</table>
       <keyColumn>name</keyColumn>
       <labelColumn>full_name</labelColumn>
-      <nameColumn>numeric_code</nameColumn>
+      <nameColumn>name</nameColumn>
     </pseudoconstant>
     <html>
       <type>Select</type>
@@ -778,7 +786,7 @@
     </pseudoconstant>
     <add>3.4</add>
     <html>
-       <type>Autocomplete-Select</type>
+       <type>EntityRef</type>
      </html>
   </field>
   <foreignKey>
@@ -816,7 +824,7 @@
     <default>NULL</default>
     <comment>Implicit FK to civicrm_event: parent event</comment>
     <html>
-       <type>Autocomplete-Select</type>
+       <type>EntityRef</type>
      </html>
     <add>4.1</add>
   </field>

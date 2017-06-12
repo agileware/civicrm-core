@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -133,6 +133,10 @@ class CRM_Activity_Form_Activity extends CRM_Contact_Form_Task {
    * form fields based on their requirement
    */
   public function setFields() {
+    // Remove print document activity type
+    $unwanted = CRM_Core_OptionGroup::values('activity_type', FALSE, FALSE, FALSE, "AND v.name = 'Print PDF Letter'");
+    $activityTypes = array_diff_key(CRM_Core_PseudoConstant::ActivityType(FALSE), $unwanted);
+
     $this->_fields = array(
       'subject' => array(
         'type' => 'text',
@@ -198,7 +202,7 @@ class CRM_Activity_Form_Activity extends CRM_Contact_Form_Task {
       'followup_activity_type_id' => array(
         'type' => 'select',
         'label' => ts('Followup Activity'),
-        'attributes' => array('' => '- ' . ts('select activity') . ' -') + CRM_Core_PseudoConstant::ActivityType(FALSE),
+        'attributes' => array('' => '- ' . ts('select activity') . ' -') + $activityTypes,
         'extra' => array('class' => 'crm-select2'),
       ),
       // Add optional 'Subject' field for the Follow-up Activiity, CRM-4491
@@ -210,12 +214,6 @@ class CRM_Activity_Form_Activity extends CRM_Contact_Form_Task {
         ),
       ),
     );
-
-    if (($this->_context == 'standalone') &&
-      ($printPDF = CRM_Utils_Array::key('Print PDF Letter', $this->_fields['followup_activity_type_id']['attributes']))
-    ) {
-      unset($this->_fields['followup_activity_type_id']['attributes'][$printPDF]);
-    }
   }
 
   /**
@@ -230,7 +228,7 @@ class CRM_Activity_Form_Activity extends CRM_Contact_Form_Task {
     }
 
     $session = CRM_Core_Session::singleton();
-    $this->_currentUserId = $session->get('userID');
+    $this->_currentUserId = CRM_Core_Session::getLoggedInContactID();
 
     $this->_currentlyViewedContactId = $this->get('contactId');
     if (!$this->_currentlyViewedContactId) {
@@ -379,7 +377,7 @@ class CRM_Activity_Form_Activity extends CRM_Contact_Form_Task {
 
     if ($this->_action & CRM_Core_Action::VIEW) {
       // Get the tree of custom fields.
-      $this->_groupTree = &CRM_Core_BAO_CustomGroup::getTree('Activity', $this,
+      $this->_groupTree = CRM_Core_BAO_CustomGroup::getTree('Activity', NULL,
         $this->_activityId, 0, $this->_activityTypeId
       );
     }
@@ -546,7 +544,7 @@ class CRM_Activity_Form_Activity extends CRM_Contact_Form_Task {
       $defaults['assignee_contact_id'] = CRM_Utils_Array::value('assignee_contact', $defaults);
 
       // set default tags if exists
-      $defaults['tag'] = CRM_Core_BAO_EntityTag::getTag($this->_activityId, 'civicrm_activity');
+      $defaults['tag'] = implode(',', CRM_Core_BAO_EntityTag::getTag($this->_activityId, 'civicrm_activity'));
     }
     else {
       // if it's a new activity, we need to set default values for associated contact fields
@@ -569,7 +567,7 @@ class CRM_Activity_Form_Activity extends CRM_Contact_Form_Task {
     }
 
     // CRM-15472 - 50 is around the practical limit of how many items a select2 entityRef can handle
-    if (!empty($defaults['target_contact_id'])) {
+    if ($this->_action == 2 && !empty($defaults['target_contact_id'])) {
       $count = count(is_array($defaults['target_contact_id']) ? $defaults['target_contact_id'] : explode(',', $defaults['target_contact_id']));
       if ($count > 50) {
         $this->freeze(array('target_contact_id'));
@@ -727,13 +725,10 @@ class CRM_Activity_Form_Activity extends CRM_Contact_Form_Task {
     $this->assign('customDataSubType', $this->_activityTypeId);
     $this->assign('entityID', $this->_activityId);
 
-    CRM_Core_BAO_Tag::getTags('civicrm_activity', $tags, NULL,
-      '&nbsp;&nbsp;', TRUE);
+    $tags = CRM_Core_BAO_Tag::getColorTags('civicrm_activity');
 
     if (!empty($tags)) {
-      $this->add('select', 'tag', ts('Tags'), $tags, FALSE,
-        array('id' => 'tags', 'multiple' => 'multiple', 'class' => 'crm-select2 huge')
-      );
+      $this->add('select2', 'tag', ts('Tags'), $tags, FALSE, array('class' => 'huge', 'placeholder' => ts('- select -'), 'multiple' => TRUE));
     }
 
     // we need to hide activity tagset for special activities
@@ -748,7 +743,7 @@ class CRM_Activity_Form_Activity extends CRM_Contact_Form_Task {
     // if we're viewing, we're assigning different buttons than for adding/editing
     if ($this->_action & CRM_Core_Action::VIEW) {
       if (isset($this->_groupTree)) {
-        CRM_Core_BAO_CustomGroup::buildCustomDataView($this, $this->_groupTree);
+        CRM_Core_BAO_CustomGroup::buildCustomDataView($this, $this->_groupTree, FALSE, NULL, NULL, NULL, $this->_activityId);
       }
       // form should be frozen for view mode
       $this->freeze();
@@ -767,18 +762,17 @@ class CRM_Activity_Form_Activity extends CRM_Contact_Form_Task {
       );
       $js = array('onclick' => "return activityStatus(" . json_encode($message) . ");");
       $this->addButtons(array(
-          array(
-            'type' => 'upload',
-            'name' => ts('Save'),
-            'js' => $js,
-            'isDefault' => TRUE,
-          ),
-          array(
-            'type' => 'cancel',
-            'name' => ts('Cancel'),
-          ),
-        )
-      );
+        array(
+          'type' => 'upload',
+          'name' => ts('Save'),
+          'js' => $js,
+          'isDefault' => TRUE,
+        ),
+        array(
+          'type' => 'cancel',
+          'name' => ts('Cancel'),
+        ),
+      ));
     }
 
     if ($this->_activityTypeFile) {
@@ -1014,6 +1008,9 @@ class CRM_Activity_Form_Activity extends CRM_Contact_Form_Task {
     // add tags if exists
     $tagParams = array();
     if (!empty($params['tag'])) {
+      if (!is_array($params['tag'])) {
+        $params['tag'] = explode(',', $params['tag']);
+      }
       foreach ($params['tag'] as $tag) {
         $tagParams[$tag] = 1;
       }

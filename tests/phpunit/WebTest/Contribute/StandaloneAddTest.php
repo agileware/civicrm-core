@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -77,15 +77,16 @@ class WebTest_Contribute_StandaloneAddTest extends CiviSeleniumTestCase {
     $this->addeditFinancialType($financialType);
 
     // Assign the created Financial Account $financialAccountTitle to $financialType
-    $this->click("xpath=id('ltype')/div/table/tbody/tr/td[1]/div[text()='$financialType[name]']/../../td[7]/span/a[text()='Accounts']");
-    $this->waitForElementPresent("xpath=//div[@class='ui-dialog-buttonset']//button/span[contains(text(), 'Assign Account')]");
-    $this->click("xpath=//div[@class='ui-dialog-buttonset']//button/span[contains(text(), 'Assign Account')]");
+    $this->waitForElementPresent("xpath=id('ltype')");
+    $this->click("xpath=id('ltype')/div/table/tbody/tr/td[1]/div[text()='$financialType[name]']/../../td[7]//span//a[text()='Accounts']");
+    $this->waitForElementPresent("xpath=//div[@class='ui-dialog-buttonset']//button//span[contains(text(), 'Assign Account')]");
+    $this->click("xpath=//div[@class='ui-dialog-buttonset']//button//span[contains(text(), 'Assign Account')]");
     $this->waitForElementPresent("xpath=//div[@class='ui-dialog-buttonset']/button/span[text()='Save']");
     $this->select('account_relationship', "label=Sales Tax Account is");
     $this->waitForAjaxContent();
     $this->select('financial_account_id', "label=" . $financialAccountTitle);
     $this->click("xpath=//div[@class='ui-dialog-buttonset']/button/span[text()='Save']");
-    $this->waitForElementPresent("xpath=//div[@class='ui-dialog-buttonset']//button/span[contains(text(), 'Assign Account')]");
+    $this->waitForElementPresent("xpath=//div[@class='ui-dialog-buttonset']//button//span[contains(text(), 'Assign Account')]");
 
     $this->openCiviPage("contribute/add", "reset=1&context=standalone", "_qf_Contribution_upload");
 
@@ -142,13 +143,13 @@ class WebTest_Contribute_StandaloneAddTest extends CiviSeleniumTestCase {
     $this->waitForText("crm-notification-container", "The contribution record has been saved.");
 
     // verify if Membership is created
-    $this->waitForElementPresent("xpath=//div[@class='view-content']//table[@class='selector row-highlight']//tbody/tr[1]/td[8]/span/a[text()='View']");
+    $this->waitForElementPresent("xpath=//form[@class='CRM_Contribute_Form_Search crm-search-form']//div[2]/table[@class='selector row-highlight']//tbody/tr[1]/td[8]/span//a[text()='View']");
 
-    $contriID = $this->urlArg('id', $this->getAttribute("xpath=//div[@class='view-content']//table[@class='selector row-highlight']//tbody/tr[1]/td[8]/span/a[text()='Edit']@href"));
-    $contactID = $this->urlArg('cid', $this->getAttribute("xpath=//div[@class='view-content']//table[@class='selector row-highlight']//tbody/tr[1]/td[8]/span/a[text()='Edit']@href"));
+    $contriID = $this->urlArg('id', $this->getAttribute("xpath=//table[@class='selector row-highlight']//tbody/tr[1]/td[8]/span//a[text()='Edit']@href"));
+    $contactID = $this->urlArg('cid', $this->getAttribute("xpath=//table[@class='selector row-highlight']//tbody/tr[1]/td[8]/span//a[text()='Edit']@href"));
 
     //click through to the Membership view screen
-    $this->click("xpath=//div[@class='view-content']//table[@class='selector row-highlight']//tbody/tr[1]/td[8]/span/a[text()='View']");
+    $this->click("xpath=//form[@class='CRM_Contribute_Form_Search crm-search-form']//div[2]/table[@class='selector row-highlight']//tbody/tr[1]/td[8]/span//a[text()='View']");
     $this->waitForElementPresent("_qf_ContributionView_cancel-bottom");
 
     $expected = array(
@@ -160,7 +161,7 @@ class WebTest_Contribute_StandaloneAddTest extends CiviSeleniumTestCase {
     );
 
     foreach ($expected as $label => $value) {
-      $this->verifyText("xpath=id('ContributionView')/div[2]/table[1]/tbody//tr/td[1][text()='$label']/../td[2]", preg_quote($value));
+      $this->assertElementContainsText("xpath=id('ContributionView')/div[2]/table[1]/tbody//tr/td[1][text()='$label']/../td[2]", $value);
     }
 
     // verify if soft credit was created successfully
@@ -170,7 +171,7 @@ class WebTest_Contribute_StandaloneAddTest extends CiviSeleniumTestCase {
     );
 
     foreach ($expected as $value) {
-      $this->verifyText("css=table.crm-soft-credit-listing", preg_quote($value));
+      $this->assertElementContainsText("css=table.crm-soft-credit-listing", $value);
     }
 
     // go to first soft creditor contact view page
@@ -180,7 +181,7 @@ class WebTest_Contribute_StandaloneAddTest extends CiviSeleniumTestCase {
     $this->waitForElementPresent("css=li#tab_contribute a");
     $this->click("css=li#tab_contribute a");
     $this->waitForElementPresent("link=Record Contribution (Check, Cash, EFT ...)");
-    $this->verifyText("xpath=id('Search')/div[2]/table[2]/tbody/tr[2]/td[1]/a", preg_quote($contact['display_name']));
+    $this->assertElementContainsText("xpath=id('Search')/div[2]/table[2]/tbody/tr[2]/td[1]/a", $contact['display_name']);
     // verify soft credit details
     $expected = array(
       4 => $financialType['name'],
@@ -188,7 +189,7 @@ class WebTest_Contribute_StandaloneAddTest extends CiviSeleniumTestCase {
       6 => 'Completed',
     );
     foreach ($expected as $value => $label) {
-      $this->verifyText("xpath=id('Search')/div[2]/table[2]/tbody/tr[2]/td[$value]", preg_quote($label));
+      $this->assertElementContainsText("xpath=id('Search')/div[2]/table[2]/tbody/tr[2]/td[$value]", $label);
     }
 
     // CRM-17418 fix: Now cancel the contribution
@@ -224,8 +225,8 @@ class WebTest_Contribute_StandaloneAddTest extends CiviSeleniumTestCase {
     // select group
     $this->select("financial_type_id", "label={$financialType['name']}");
     $this->clickLink("_qf_Search_refresh");
-    $this->assertElementContainsText("xpath=//div[@id='search-status']/table/tbody/tr[1]/td[1]", "2 Result");
-    $this->assertElementContainsText("xpath=//div[@id='search-status']/table/tbody/tr[1]/td[2]", "Financial Type ID In {$financialType['name']}");
+    $this->assertElementContainsText("xpath=//div[@class='crm-content-block']//div[@id='search-status']/table/tbody/tr[1]/td[1]", "2 Result");
+    $this->assertElementContainsText("xpath=//div[@class='crm-content-block']//div[@id='search-status']/table/tbody/tr[1]/td[2]", "Financial Type In {$financialType['name']}");
 
     $this->openCiviPage("contact/search/advanced", "reset=1", "_qf_Advanced_refresh-top");
     $this->clickAjaxLink('CiviContribute', "financial_type_id");
@@ -233,8 +234,8 @@ class WebTest_Contribute_StandaloneAddTest extends CiviSeleniumTestCase {
     // select group
     $this->select("financial_type_id", "label={$financialType['name']}");
     $this->clickLink("_qf_Advanced_refresh-top");
-    $this->assertElementContainsText("xpath=//div[@id='search-status']//table/tbody/tr[1]/td[1]", "2 Contacts");
-    $this->assertElementContainsText("xpath=//div[@id='search-status']//table/tbody/tr[1]/td[2]", "Financial Type ID In {$financialType['name']}");
+    $this->assertElementContainsText("xpath=//div[@class='crm-content-block']//div[@id='search-status']//table/tbody/tr[1]/td[1]", "2 Contacts");
+    $this->assertElementContainsText("xpath=//div[@class='crm-content-block']//div[@id='search-status']//table/tbody/tr[1]/td[2]", "Financial Type In {$financialType['name']}");
   }
 
   /**
@@ -271,6 +272,7 @@ class WebTest_Contribute_StandaloneAddTest extends CiviSeleniumTestCase {
     $this->waitForElementPresent("thankyou_date");
 
     $this->type("note", "This is a test note.");
+    $this->waitForElementPresent("non_deductible_amount");
     $this->type("non_deductible_amount", "10");
     $this->type("fee_amount", "0");
     $this->type("net_amount", "0");
@@ -278,16 +280,16 @@ class WebTest_Contribute_StandaloneAddTest extends CiviSeleniumTestCase {
     $this->webtestFillDate('thankyou_date');
 
     // Clicking save.
-    $this->clickLink("_qf_Contribution_upload");
+    $this->click("_qf_Contribution_upload");
 
     // Is status message correct?
     $this->checkCRMAlert("The contribution record has been saved.");
 
     // verify if Membership is created
-    $this->waitForElementPresent("xpath=//div[@class='view-content']//table[@class='selector row-highlight']//tbody/tr[1]/td[8]/span/a[text()='View']");
+    $this->waitForElementPresent("xpath=//table[@class='selector row-highlight']//tbody/tr[1]/td[8]/span//a[text()='View']");
 
     //click through to the Membership view screen
-    $this->click("xpath=//div[@class='view-content']//table[@class='selector row-highlight']//tbody/tr[1]/td[8]/span/a[text()='View']");
+    $this->click("xpath=//table[@class='selector row-highlight']//tbody/tr[1]/td[8]/span//a[text()='View']");
     $this->waitForElementPresent("_qf_ContributionView_cancel-bottom");
 
     $expected = array(
@@ -299,7 +301,7 @@ class WebTest_Contribute_StandaloneAddTest extends CiviSeleniumTestCase {
     );
 
     foreach ($expected as $label => $value) {
-      $this->verifyText("xpath=id('ContributionView')/div[2]/table[1]/tbody//tr/td[1][text()='$label']/../td[2]", preg_quote($value));
+      $this->assertElementContainsText("xpath=id('ContributionView')/div[2]/table[1]/tbody//tr/td[1][text()='$label']/../td[2]", $value);
     }
   }
 

@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -25,14 +25,12 @@
  +--------------------------------------------------------------------+
  */
 
-require_once 'CiviTest/CiviUnitTestCase.php';
-
-
 /**
  *  Test APIv3 civicrm_grant* functions
  *
  * @package CiviCRM_APIv3
  * @subpackage API_Grant
+ * @group headless
  */
 class api_v3_GrantTest extends CiviUnitTestCase {
   protected $_apiversion = 3;
@@ -143,6 +141,29 @@ class api_v3_GrantTest extends CiviUnitTestCase {
     $this->assertAPISuccess($result);
     $checkDeleted = $this->callAPISuccess($this->_entity, 'get', array());
     $this->assertEquals(0, $checkDeleted['count']);
+  }
+
+  /**
+   * Test Grant status with `0` value.
+   */
+  public function testGrantWithZeroStatus() {
+    $params = array(
+      'action' => 'create',
+      'grant_type_id' => "Emergency",
+      'amount_total' => 100,
+      'contact_id' => "1",
+      'status_id' => 0,
+      'id' => 1,
+    );
+    $validation = $this->callAPISuccess('Grant', 'validate', $params);
+
+    $expectedOut = array(
+      'status_id' => array(
+        'message' => "'0' is not a valid option for field status_id",
+        'code' => "incorrect_value",
+      ),
+    );
+    $this->assertEquals($validation['values'][0], $expectedOut);
   }
 
 }

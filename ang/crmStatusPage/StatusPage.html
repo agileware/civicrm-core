@@ -26,10 +26,13 @@
         <a
           ng-if="status.help"
           class="helpicon"
-          ng-click="alert(status.help, status.title, 'info');"
+          ng-click="help(status.title, status.help);"
           href="javascript:void(0)"
           >
         </a>
+        <div ng-if="status.actions" class="crm-status-item-actions">
+          <button ng-repeat="action in status.actions" ng-click="doAction(action)">{{ action.title }}</button>
+        </div>
       </div>
     </div>
   </div>

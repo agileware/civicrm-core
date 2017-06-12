@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,12 +23,12 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*/
+ */
 
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  * $Id$
  *
  */
@@ -45,7 +45,7 @@ $config = CRM_Core_Config::singleton();
 
 $prefix = 'Automated Generated Group: ';
 $query = "DELETE FROM civicrm_group where name like '%{$prefix}%'";
-CRM_Core_DAO::executeQuery($query, CRM_Core_DAO::$_nullArray);
+CRM_Core_DAO::executeQuery($query);
 
 $numGroups = 100;
 
@@ -66,5 +66,5 @@ for ($i = 1; $i <= $numGroups; $i++) {
   $group->group_type = $groupType[$t];
 
   $group->save();
-}
 
+}

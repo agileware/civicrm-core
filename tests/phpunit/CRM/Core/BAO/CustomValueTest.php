@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,14 +28,12 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
-
-require_once 'CiviTest/CiviUnitTestCase.php';
-require_once 'CiviTest/Custom.php';
 
 /**
  * Class CRM_Core_BAO_CustomValueTest
+ * @group headless
  */
 class CRM_Core_BAO_CustomValueTest extends CiviUnitTestCase {
   public function testTypeCheckWithValidInput() {
@@ -115,17 +113,18 @@ class CRM_Core_BAO_CustomValueTest extends CiviUnitTestCase {
   }
 
   public function fixCustomFieldValue() {
-    $customGroup = Custom::createGroup(array(), 'Individual');
+    $customGroup = $this->customGroupCreate(array('extends' => 'Individual'));
 
     $fields = array(
-      'groupId' => $customGroup->id,
-      'dataType' => 'Memo',
-      'htmlType' => 'TextArea',
+      'custom_group_id' => $customGroup['id'],
+      'data_type' => 'Memo',
+      'html_type' => 'TextArea',
+      'default_value' => '',
     );
 
-    $customField = Custom::createField(array(), $fields);
+    $customField = $this->customFieldCreate($fields);
 
-    $custom = 'custom_' . $customField->id;
+    $custom = 'custom_' . $customField['id'];
     $params = array(
       'email' => 'abc@webaccess.co.in',
       $custom => 'note',
@@ -134,8 +133,8 @@ class CRM_Core_BAO_CustomValueTest extends CiviUnitTestCase {
     CRM_Core_BAO_CustomValue::fixCustomFieldValue($params);
     $this->assertEquals($params[$custom], '%note%', 'Checking the returned value of type Memo.');
 
-    Custom::deleteField($customField);
-    Custom::deleteGroup($customGroup);
+    $this->customFieldDelete($customField['id']);
+    $this->customGroupDelete($customGroup['id']);
   }
 
   public function testFixCustomFieldValueWithEmptyParams() {

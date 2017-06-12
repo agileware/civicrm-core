@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -83,13 +83,14 @@ function civicrm_api3_generic_getList($apiRequest) {
  * @param array $fields
  */
 function _civicrm_api3_generic_getList_defaults($entity, &$request, $apiDefaults, $fields) {
-  $config = CRM_Core_Config::singleton();
   $defaults = array(
     'page_num' => 1,
     'input' => '',
     'image_field' => NULL,
+    'color_field' => isset($fields['color']) ? 'color' : NULL,
     'id_field' => $entity == 'option_value' ? 'value' : 'id',
     'description_field' => array(),
+    'add_wildcard' => Civi::settings()->get('includeWildCardInName'),
     'params' => array(),
     'extra' => array(),
   );
@@ -113,18 +114,12 @@ function _civicrm_api3_generic_getList_defaults($entity, &$request, $apiDefaults
   $request += $apiDefaults + $defaults;
   // Default api params
   $params = array(
-    'options' => array(
-      // Adding one extra result allows us to see if there are any more
-      'limit' => $resultsPerPage + 1,
-      // Because sql is zero-based
-      'offset' => ($request['page_num'] - 1) * $resultsPerPage,
-      'sort' => $request['label_field'],
-    ),
     'sequential' => 1,
+    'options' => array(),
   );
   // When searching e.g. autocomplete
   if ($request['input']) {
-    $params[$request['search_field']] = array('LIKE' => ($config->includeWildCardInName ? '%' : '') . $request['input'] . '%');
+    $params[$request['search_field']] = array('LIKE' => ($request['add_wildcard'] ? '%' : '') . $request['input'] . '%');
   }
   // When looking up a field e.g. displaying existing record
   if (!empty($request['id'])) {
@@ -137,6 +132,15 @@ function _civicrm_api3_generic_getList_defaults($entity, &$request, $apiDefaults
     $params[$request['id_field']] = is_array($request['id']) ? array('IN' => $request['id']) : $request['id'];
   }
   $request['params'] += $params;
+
+  $request['params']['options'] += array(
+    // Add pagination parameters
+    'sort' => $request['label_field'],
+    // Adding one extra result allows us to see if there are any more
+    'limit' => $resultsPerPage + 1,
+    // Because sql is zero-based
+    'offset' => ($request['page_num'] - 1) * $resultsPerPage,
+  );
 }
 
 /**
@@ -148,6 +152,9 @@ function _civicrm_api3_generic_getlist_params(&$request) {
   $fieldsToReturn = array($request['id_field'], $request['label_field']);
   if (!empty($request['image_field'])) {
     $fieldsToReturn[] = $request['image_field'];
+  }
+  if (!empty($request['color_field'])) {
+    $fieldsToReturn[] = $request['color_field'];
   }
   if (!empty($request['description_field'])) {
     $fieldsToReturn = array_merge($fieldsToReturn, (array) $request['description_field']);
@@ -192,6 +199,9 @@ function _civicrm_api3_generic_getlist_output($result, $request, $entity, $field
       };
       if (!empty($request['image_field'])) {
         $data['image'] = isset($row[$request['image_field']]) ? $row[$request['image_field']] : '';
+      }
+      if (isset($row[$request['color_field']])) {
+        $data['color'] = $row[$request['color_field']];
       }
       $output[] = $data;
     }
@@ -267,7 +277,7 @@ function _civicrm_api3_generic_getlist_spec(&$params, $apiRequest) {
       'type' => CRM_Utils_Type::T_TEXT,
     ),
     'label_field' => array(
-      'title' => 'Search Field',
+      'title' => 'Label Field',
       'description' => "Field to display as title of results (usually automatic)",
       'type' => CRM_Utils_Type::T_TEXT,
     ),

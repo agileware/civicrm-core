@@ -240,6 +240,10 @@
       if (this.options.crmForm) $('form', this.element).ajaxFormUnbind();
       if (this.options.block) this.element.block();
       $.getJSON(url, function(data) {
+        if (data.status === 'redirect') {
+          that.options.url = data.userContext;
+          return that.refresh();
+        }
         if (that.options.block) that.element.unblock();
         if (!$.isPlainObject(data)) {
           that._onFailure(data);
@@ -275,13 +279,6 @@
       if (this._originalContent === null) {
         $('.blockUI', this.element).remove();
         this._originalContent = this.element.contents().detach();
-      }
-      if (window.tinyMCE && tinyMCE.editors) {
-        $.each(tinyMCE.editors, function(k) {
-          if ($.contains(that.element[0], this.getElement())) {
-            this.remove();
-          }
-        });
       }
       if (this.options.crmForm) $('form', this.element).ajaxFormUnbind();
     },
@@ -442,7 +439,7 @@
       }, settings.ajaxForm));
       if (settings.openInline) {
         settings.autoClose = $el.crmSnippet('isOriginalUrl');
-        $(this).on('click', settings.openInline, function(e) {
+        $(this).off('.openInline').on('click.openInline', settings.openInline, function(e) {
           if ($(this).is(exclude + ', .crm-popup')) {
             return;
           }
@@ -464,7 +461,7 @@
             label = $el.is('input') ? $el.attr('value') : $el.text(),
             identifier = $el.attr('name') || $el.attr('href');
           if (!identifier || identifier === '#' || $.inArray(identifier, added) < 0) {
-            var $icon = $el.find('.icon'),
+            var $icon = $el.find('.icon, .crm-i'),
               button = {'data-identifier': identifier, text: label, click: function() {
                 $el[0].click();
               }};
@@ -499,7 +496,7 @@
       url = $el.attr('href'),
       popup = $el.data('popup-type') === 'page' ? CRM.loadPage : CRM.loadForm,
       settings = $el.data('popup-settings') || {},
-      formSuccess = false;
+      formData = false;
     settings.dialog = settings.dialog || {};
     if (e.isDefaultPrevented() || !CRM.config.ajaxPopupsEnabled || !url || $el.is(exclude)) {
       return;
@@ -516,12 +513,12 @@
     // Trigger events from the dialog on the original link element
     $el.trigger('crmPopupOpen', [dialog]);
     // Listen for success events and buffer them so we only trigger once
-    dialog.on('crmFormSuccess.crmPopup crmPopupFormSuccess.crmPopup', function() {
-      formSuccess = true;
+    dialog.on('crmFormSuccess.crmPopup crmPopupFormSuccess.crmPopup', function(e, data) {
+      formData = data;
     });
     dialog.on('dialogclose.crmPopup', function(e, data) {
-      if (formSuccess) {
-        $el.trigger('crmPopupFormSuccess', [dialog, data]);
+      if (formData) {
+        $el.trigger('crmPopupFormSuccess', [dialog, formData]);
       }
       $el.trigger('crmPopupClose', [dialog, data]);
     });

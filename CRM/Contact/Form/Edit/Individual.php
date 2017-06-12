@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -55,6 +55,10 @@ class CRM_Contact_Form_Edit_Individual {
         'contact_edit_options', TRUE, NULL,
         FALSE, 'name', TRUE, 'AND v.filter = 2'
       );
+
+      // Use names instead of labels to build form.
+      $nameFields = array_keys($nameFields);
+
       // Fixme: dear god why? these come out in a format that is NOT the name of the fields.
       foreach ($nameFields as &$fix) {
         $fix = str_replace(' ', '_', strtolower($fix));
@@ -67,11 +71,7 @@ class CRM_Contact_Form_Edit_Individual {
       foreach ($nameFields as $name) {
         $props = array();
         if ($name == 'prefix_id' || $name == 'suffix_id') {
-          $options = CRM_Core_PseudoConstant::get('CRM_Contact_DAO_Contact', $name);
-          // Skip if we have no options available
-          if (!CRM_Core_PseudoConstant::get('CRM_Contact_DAO_Contact', $name)) {
-            //continue;
-          }
+          //override prefix/suffix label name as Prefix/Suffix respectively and adjust select size
           $props = array('class' => 'eight', 'placeholder' => ' ', 'label' => $name == 'prefix_id' ? ts('Prefix') : ts('Suffix'));
         }
         $form->addField($name, $props);

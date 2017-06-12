@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -66,122 +66,6 @@ class WebTest_Contribute_AddPricesetTest extends CiviSeleniumTestCase {
 
     // load the Price Set Preview and check for expected values
     $this->_testVerifyPriceSet($validateStrings, $sid);
-  }
-
-  /**
-   * @param $setTitle
-   * @param $usedFor
-   * @param $setHelp
-   * @param null $financialType
-   */
-  public function _testAddSet($setTitle, $usedFor, $setHelp, $financialType = NULL) {
-    $this->openCiviPage("admin/price", "reset=1&action=add", '_qf_Set_next-bottom');
-
-    // Enter Priceset fields (Title, Used For ...)
-    $this->type('title', $setTitle);
-    if ($usedFor == 'Event') {
-      $this->check('extends_1');
-    }
-    elseif ($usedFor == 'Contribution') {
-      $this->check('extends_2');
-    }
-
-    if ($financialType) {
-      $this->select("financial_type_id", "label={$financialType}");
-    }
-    $this->type('help_pre', $setHelp);
-
-    $this->assertChecked('is_active', 'Verify that Is Active checkbox is set.');
-    $this->clickLink('_qf_Set_next-bottom');
-  }
-
-  /**
-   * @param $fields
-   * @param $validateString
-   * @param $financialType
-   * @param bool $dateSpecificFields
-   */
-  public function _testAddPriceFields(&$fields, &$validateString, $financialType, $dateSpecificFields = FALSE) {
-    $validateStrings[] = $financialType;
-    $sid = $this->urlArg('sid');
-    $this->openCiviPage('admin/price/field', "reset=1&action=add&sid=$sid", 'label');
-    foreach ($fields as $label => $type) {
-      $validateStrings[] = $label;
-
-      $this->type('label', $label);
-      $this->select('html_type', "value={$type}");
-
-      switch ($type) {
-        case 'Text':
-          $validateStrings[] = '525.00';
-          $this->type('price', '525.00');
-          if ($dateSpecificFields == TRUE) {
-            $this->webtestFillDateTime('active_on', '+1 week');
-          }
-          else {
-            $this->check('is_required');
-          }
-          break;
-
-        case 'Select':
-          $options = array(
-            1 => array(
-              'label' => 'Chicken',
-              'amount' => '30.00',
-            ),
-            2 => array(
-              'label' => 'Vegetarian',
-              'amount' => '25.00',
-            ),
-          );
-          $this->addMultipleChoiceOptions($options, $validateStrings);
-          if ($dateSpecificFields == TRUE) {
-            $this->webtestFillDateTime('expire_on', '-1 week');
-          }
-          break;
-
-        case 'Radio':
-          $options = array(
-            1 => array(
-              'label' => 'Yes',
-              'amount' => '50.00',
-            ),
-            2 => array(
-              'label' => 'No',
-              'amount' => '0',
-            ),
-          );
-          $this->addMultipleChoiceOptions($options, $validateStrings);
-          $this->check('is_required');
-          if ($dateSpecificFields == TRUE) {
-            $this->webtestFillDateTime('active_on', '-1 week');
-          }
-          break;
-
-        case 'CheckBox':
-          $options = array(
-            1 => array(
-              'label' => 'First Night',
-              'amount' => '15.00',
-            ),
-            2 => array(
-              'label' => 'Second Night',
-              'amount' => '15.00',
-            ),
-          );
-          $this->addMultipleChoiceOptions($options, $validateStrings);
-          if ($dateSpecificFields == TRUE) {
-            $this->webtestFillDateTime('expire_on', '+1 week');
-          }
-          break;
-
-        default:
-          break;
-      }
-      $this->select('financial_type_id', "label={$financialType}");
-      $this->clickLink('_qf_Field_next_new-bottom', '_qf_Field_next-bottom', FALSE);
-      $this->waitForText('crm-notification-container', "Price Field '$label' has been saved.");
-    }
   }
 
   /**
@@ -282,10 +166,10 @@ class WebTest_Contribute_AddPricesetTest extends CiviSeleniumTestCase {
 
     // Is status message correct?
     $this->assertTrue($this->isTextPresent('The contribution record has been saved.'), "Status message didn't show up after saving!");
-    $this->waitForElementPresent("xpath=//table[@class='selector row-highlight']/tbody/tr[1]/td[8]/span/a[text()='View']");
+    $this->waitForElementPresent("xpath=//table[@class='selector row-highlight']/tbody/tr[1]/td[8]/span//a[text()='View']");
 
     //click through to the Membership view screen
-    $this->click("xpath=//table[@class='selector row-highlight']//tbody/tr[1]/td[8]/span//a[text()='View']");
+    $this->click("xpath=//table[@class='selector row-highlight']/tbody/tr[1]/td[8]/span//a[text()='View']");
     $this->waitForElementPresent('_qf_ContributionView_cancel-bottom');
     $expected = array(
       2 => $financialType,
@@ -295,7 +179,7 @@ class WebTest_Contribute_AddPricesetTest extends CiviSeleniumTestCase {
       11 => 'check #1041',
     );
     foreach ($expected as $label => $value) {
-      $this->verifyText("xpath=id('ContributionView')/div[2]/table[1]/tbody/tr[$label]/td[2]", preg_quote($value));
+      $this->assertElementContainsText("xpath=id('ContributionView')/div[2]/table[1]/tbody/tr[$label]/td[2]", $value);
     }
 
     $exp = array(
@@ -305,9 +189,7 @@ class WebTest_Contribute_AddPricesetTest extends CiviSeleniumTestCase {
     );
 
     foreach ($exp as $lab => $val) {
-      $this->verifyText("xpath=id('ContributionView')/div[2]/table[1]/tbody/tr[3]/td[2]/table/tbody/tr[$lab]/td[3]",
-        preg_quote($val)
-      );
+      $this->assertElementContainsText("xpath=id('ContributionView')/div[2]/table[1]/tbody/tr[3]/td[2]/table/tbody/tr[$lab]/td[3]", $val);
     }
   }
 
@@ -388,6 +270,7 @@ class WebTest_Contribute_AddPricesetTest extends CiviSeleniumTestCase {
     $this->type('billing_street_address-5', $streetAddress);
     $this->type('billing_city-5', 'San Francisco');
     $this->type('billing_postal_code-5', '94117');
+    $this->waitForAjaxContent();
     $this->select('billing_country_id-5', 'value=1228');
     $this->select('billing_state_province_id-5', 'value=1001');
 
@@ -423,8 +306,8 @@ class WebTest_Contribute_AddPricesetTest extends CiviSeleniumTestCase {
     $this->type("sort_name", "$email");
     $this->waitForAjaxContent();
     $this->click("xpath=//div[@class='crm-accordion-wrapper crm-contribution_search_form-accordion ']/div[2]/table/tbody/tr[8]/td[1]/table/tbody/tr[3]/td[2]/label[1]");
-    $this->clickLink('_qf_Search_refresh', "xpath=//div[@id='contributionSearch']//table//tbody/tr[1]/td[11]/span/a[text()='View']");
-    $this->clickLink("xpath=//div[@id='contributionSearch']//table//tbody/tr[1]/td[11]/span/a[text()='View']", "_qf_ContributionView_cancel-bottom", FALSE);
+    $this->clickLink('_qf_Search_refresh', "xpath=//table[@class='selector row-highlight']/tbody/tr[1]/td[10]/span//a[text()='View']");
+    $this->clickLink("xpath=//table[@class='selector row-highlight']/tbody/tr[1]/td[10]/span//a[text()='View']", "_qf_ContributionView_cancel-bottom", FALSE);
 
     // View Contribution Record and test for expected values
     $expected = array(
@@ -545,8 +428,8 @@ class WebTest_Contribute_AddPricesetTest extends CiviSeleniumTestCase {
     $this->type("sort_name", "$email");
     $this->waitForAjaxContent();
     $this->click("xpath=//div[@class='crm-accordion-wrapper crm-contribution_search_form-accordion ']/div[2]/table/tbody/tr[8]/td[1]/table/tbody/tr[3]/td[2]/label[1]");
-    $this->clickLink('_qf_Search_refresh', "xpath=//div[@id='contributionSearch']//table//tbody/tr[1]/td[11]/span/a[text()='View']", FALSE);
-    $this->clickLink("xpath=//div[@id='contributionSearch']//table//tbody/tr[1]/td[11]/span/a[text()='View']", '_qf_ContributionView_cancel-bottom', FALSE);
+    $this->clickLink('_qf_Search_refresh', "xpath=//table[@class='selector row-highlight']/tbody/tr[1]/td[10]/span//a[text()='View']", FALSE);
+    $this->clickLink("xpath=//table[@class='selector row-highlight']/tbody/tr[1]/td[10]/span//a[text()='View']", '_qf_ContributionView_cancel-bottom', FALSE);
 
     // View Contribution Record and test for expected values
     $expected = array(
@@ -633,7 +516,7 @@ class WebTest_Contribute_AddPricesetTest extends CiviSeleniumTestCase {
     $this->webtestFillDate('thankyou_date');
 
     // Clicking save.
-    $this->clickLink('_qf_Contribution_upload', "xpath=//div[@class='view-content']//table[@class='selector row-highlight']//tbody/tr[1]/td[8]/span/a[text()='View']", FALSE);
+    $this->clickLink('_qf_Contribution_upload', "xpath=//table[@class='selector row-highlight']//tbody/tr[1]/td[8]/span//a[text()='View']", FALSE);
     $this->assertTrue($this->isTextPresent('The contribution record has been saved.'), "Status message didn't show up after saving!");
 
     //click through to the Contribution view screen
@@ -658,9 +541,7 @@ class WebTest_Contribute_AddPricesetTest extends CiviSeleniumTestCase {
     );
 
     foreach ($exp as $lab => $val) {
-      $this->verifyText("xpath=id('ContributionView')/div[2]/table[1]/tbody/tr[3]/td[2]/table/tbody/tr[$lab]/td[3]",
-        preg_quote($val)
-      );
+      $this->assertElementContainsText("xpath=id('ContributionView')/div[2]/table[1]/tbody/tr[3]/td[2]/table/tbody/tr[$lab]/td[3]", $val);
     }
 
     // verify if soft credit was created successfully
@@ -670,7 +551,7 @@ class WebTest_Contribute_AddPricesetTest extends CiviSeleniumTestCase {
     );
 
     foreach ($softCreditValues as $value) {
-      $this->verifyText("css=table.crm-soft-credit-listing", preg_quote($value));
+      $this->assertElementContainsText("css=table.crm-soft-credit-listing", $value);
     }
 
     // Check for Soft contact created
@@ -723,7 +604,7 @@ class WebTest_Contribute_AddPricesetTest extends CiviSeleniumTestCase {
     );
 
     foreach ($softCreditValues as $value) {
-      $this->verifyText("css=table.crm-soft-credit-listing", preg_quote($value));
+      $this->assertElementContainsText("css=table.crm-soft-credit-listing", $value);
     }
   }
 

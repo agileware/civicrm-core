@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -27,7 +27,7 @@
 
 /**
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -57,6 +57,11 @@ abstract class CRM_Import_Form_DataSource extends CRM_Core_Form {
     $config = CRM_Core_Config::singleton();
 
     $uploadFileSize = CRM_Utils_Number::formatUnitSize($config->maxFileSize . 'm', TRUE);
+
+    //Fetch uploadFileSize from php_ini when $config->maxFileSize is set to "no limit".
+    if (empty($uploadFileSize)) {
+      $uploadFileSize = CRM_Utils_Number::formatUnitSize(ini_get('upload_max_filesize'), TRUE);
+    }
     $uploadSize = round(($uploadFileSize / (1024 * 1024)), 2);
 
     $this->assign('uploadSize', $uploadSize);
@@ -152,8 +157,11 @@ abstract class CRM_Import_Form_DataSource extends CRM_Core_Form {
    * Common form postProcess.
    *
    * @param string $parserClassName
+   *
+   * @param string|null $entity
+   *   Entity to set for paraser currently only for custom import
    */
-  protected function submitFileForMapping($parserClassName) {
+  protected function submitFileForMapping($parserClassName, $entity = NULL) {
     $this->controller->resetPage('MapField');
 
     $fileName = $this->controller->exportValue($this->_name, 'uploadFile');
@@ -167,6 +175,9 @@ abstract class CRM_Import_Form_DataSource extends CRM_Core_Form {
     $mapper = array();
 
     $parser = new $parserClassName($mapper);
+    if ($entity) {
+      $parser->setEntity($this->get($entity));
+    }
     $parser->setMaxLinesToProcess(100);
     $parser->run($fileName,
       $separator,

@@ -2,7 +2,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -48,14 +48,14 @@
       }
 
       {/literal}
-      {if $urlPathVar}
-        dataUrl += '&' + '{$urlPathVar}';
-      {/if}
       {if $groupID}
         dataUrl += '&groupID=' + '{$groupID}';
       {/if}
       {if $entityID}
         dataUrl += '&entityID=' + '{$entityID}';
+      {/if}
+      {if $qfKey}
+        dataUrl += '&qf=' + '{$qfKey}';
       {/if}
       {literal}
 
@@ -83,7 +83,7 @@
         fname += subName;
       }
 
-      CRM.loadPage(dataUrl, {target: fname});
+      return CRM.loadPage(dataUrl, {target: fname});
     };
   })(CRM.$);
 </script>

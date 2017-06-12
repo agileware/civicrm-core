@@ -3,7 +3,7 @@
   +--------------------------------------------------------------------+
   | CiviCRM version 4.7                                                |
   +--------------------------------------------------------------------+
-  | Copyright CiviCRM LLC (c) 2004-2015                                |
+  | Copyright CiviCRM LLC (c) 2004-2017                                |
   +--------------------------------------------------------------------+
   | This file is a part of CiviCRM.                                    |
   |                                                                    |
@@ -37,7 +37,7 @@
  * should incorporte services for aggregation, minimization, etc.
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  * $Id$
  *
  */
@@ -500,7 +500,7 @@ class CRM_Core_Resources {
       $file = '';
     }
     if ($addCacheCode) {
-      $file .= '?r=' . $this->getCacheCode();
+      $file = $this->addCacheCode($file);
     }
     // TODO consider caching results
     $base = $this->paths->hasVariable($ext)
@@ -557,7 +557,7 @@ class CRM_Core_Resources {
   public function setCacheCode($value) {
     $this->cacheCode = $value;
     if ($this->cacheCodeKey) {
-      CRM_Core_BAO_Setting::setItem($value, CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME, $this->cacheCodeKey);
+      Civi::settings()->set($this->cacheCodeKey, $value);
     }
     return $this;
   }
@@ -603,8 +603,9 @@ class CRM_Core_Resources {
         }
       }
 
+      $tsLocale = CRM_Core_I18n::getLocale();
       // Dynamic localization script
-      $this->addScriptUrl(CRM_Utils_System::url('civicrm/ajax/l10n-js/' . $config->lcMessages, array('r' => $this->getCacheCode())), $jsWeight++, $region);
+      $this->addScriptUrl(CRM_Utils_System::url('civicrm/ajax/l10n-js/' . $tsLocale, array('r' => $this->getCacheCode())), $jsWeight++, $region);
 
       // Add global settings
       $settings = array(
@@ -642,7 +643,8 @@ class CRM_Core_Resources {
       // Load custom or core css
       $config = CRM_Core_Config::singleton();
       if (!empty($config->customCSSURL)) {
-        $this->addStyleUrl($config->customCSSURL, 99, $region);
+        $customCSSURL = $this->addCacheCode($config->customCSSURL);
+        $this->addStyleUrl($customCSSURL, 99, $region);
       }
       if (!Civi::settings()->get('disable_core_css')) {
         $this->addStyleFile('civicrm', 'css/civicrm.css', -99, $region);
@@ -711,7 +713,6 @@ class CRM_Core_Resources {
       "bower_components/select2/select2.min.js",
       "bower_components/select2/select2.min.css",
       "bower_components/font-awesome/css/font-awesome.min.css",
-      "packages/jquery/plugins/jquery.tableHeader.js",
       "packages/jquery/plugins/jquery.form.min.js",
       "packages/jquery/plugins/jquery.timeentry.min.js",
       "packages/jquery/plugins/jquery.blockUI.min.js",
@@ -726,20 +727,21 @@ class CRM_Core_Resources {
     // add wysiwyg editor
     $editor = Civi::settings()->get('editor_id');
     if ($editor == "CKEditor") {
-      $items[] = "js/wysiwyg/crm.ckeditor.js";
-      $ckConfig = CRM_Admin_Page_CKEditorConfig::getConfigUrl();
-      if ($ckConfig) {
-        $items[] = array('config' => array('CKEditorCustomConfig' => $ckConfig));
-      }
+      CRM_Admin_Page_CKEditorConfig::setConfigDefault();
+      $items[] = array(
+        'config' => array(
+          'wysisygScriptLocation' => Civi::paths()->getUrl("[civicrm.root]/js/wysiwyg/crm.ckeditor.js"),
+          'CKEditorCustomConfig' => CRM_Admin_Page_CKEditorConfig::getConfigUrl(),
+        ),
+      );
     }
 
     // These scripts are only needed by back-office users
     if (CRM_Core_Permission::check('access CiviCRM')) {
+      $items[] = "packages/jquery/plugins/jquery.tableHeader.js";
       $items[] = "packages/jquery/plugins/jquery.menu.min.js";
       $items[] = "css/civicrmNavigation.css";
-      $items[] = "packages/jquery/plugins/jquery.jeditable.min.js";
       $items[] = "packages/jquery/plugins/jquery.notify.min.js";
-      $items[] = "js/jquery/jquery.crmeditable.js";
     }
 
     // JS for multilingual installations
@@ -752,12 +754,13 @@ class CRM_Core_Resources {
       $items[] = "js/crm.optionEdit.js";
     }
 
+    $tsLocale = CRM_Core_I18n::getLocale();
     // Add localized jQuery UI files
-    if ($config->lcMessages && $config->lcMessages != 'en_US') {
+    if ($tsLocale && $tsLocale != 'en_US') {
       // Search for i18n file in order of specificity (try fr-CA, then fr)
-      list($lang) = explode('_', $config->lcMessages);
+      list($lang) = explode('_', $tsLocale);
       $path = "bower_components/jquery-ui/ui/i18n";
-      foreach (array(str_replace('_', '-', $config->lcMessages), $lang) as $language) {
+      foreach (array(str_replace('_', '-', $tsLocale), $lang) as $language) {
         $localizationFile = "$path/datepicker-{$language}.js";
         if ($this->getPath('civicrm', $localizationFile)) {
           $items[] = $localizationFile;
@@ -777,35 +780,51 @@ class CRM_Core_Resources {
    *   is this page request an ajax snippet?
    */
   public static function isAjaxMode() {
-    return in_array(CRM_Utils_Array::value('snippet', $_REQUEST), array(
+    if (in_array(CRM_Utils_Array::value('snippet', $_REQUEST), array(
         CRM_Core_Smarty::PRINT_SNIPPET,
         CRM_Core_Smarty::PRINT_NOFORM,
         CRM_Core_Smarty::PRINT_JSON,
-      ));
+      ))
+    ) {
+      return TRUE;
+    }
+    return strpos(CRM_Utils_System::getUrlPath(), 'civicrm/ajax') === 0;
   }
 
   /**
    * Provide a list of available entityRef filters.
-   * FIXME: This function doesn't really belong in this class
-   * @TODO: Provide a sane way to extend this list for other entities - a hook or??
+   * @todo: move component filters into their respective components (e.g. CiviEvent)
+   *
    * @return array
    */
   public static function getEntityRefFilters() {
     $filters = array();
+    $config = CRM_Core_Config::singleton();
 
-    $filters['event'] = array(
-      array('key' => 'event_type_id', 'value' => ts('Event Type')),
-      array(
-        'key' => 'start_date',
-        'value' => ts('Start Date'),
-        'options' => array(
-          array('key' => '{">":"now"}', 'value' => ts('Upcoming')),
-          array('key' => '{"BETWEEN":["now - 3 month","now"]}', 'value' => ts('Past 3 Months')),
-          array('key' => '{"BETWEEN":["now - 6 month","now"]}', 'value' => ts('Past 6 Months')),
-          array('key' => '{"BETWEEN":["now - 1 year","now"]}', 'value' => ts('Past Year')),
+    if (in_array('CiviEvent', $config->enableComponents)) {
+      $filters['event'] = array(
+        array('key' => 'event_type_id', 'value' => ts('Event Type')),
+        array(
+          'key' => 'start_date',
+          'value' => ts('Start Date'),
+          'options' => array(
+            array('key' => '{">":"now"}', 'value' => ts('Upcoming')),
+            array(
+              'key' => '{"BETWEEN":["now - 3 month","now"]}',
+              'value' => ts('Past 3 Months'),
+            ),
+            array(
+              'key' => '{"BETWEEN":["now - 6 month","now"]}',
+              'value' => ts('Past 6 Months'),
+            ),
+            array(
+              'key' => '{"BETWEEN":["now - 1 year","now"]}',
+              'value' => ts('Past Year'),
+            ),
+          ),
         ),
-      ),
-    );
+      );
+    }
 
     $filters['activity'] = array(
       array('key' => 'activity_type_id', 'value' => ts('Activity Type')),
@@ -820,7 +839,30 @@ class CRM_Core_Resources {
       array('key' => 'country', 'value' => ts('Country'), 'entity' => 'address'),
       array('key' => 'gender_id', 'value' => ts('Gender')),
       array('key' => 'is_deceased', 'value' => ts('Deceased')),
+      array('key' => 'source', 'value' => ts('Contact Source'), 'type' => 'text'),
     );
+
+    if (in_array('CiviCase', $config->enableComponents)) {
+      $filters['case'] = array(
+        array(
+          'key' => 'case_id.case_type_id',
+          'value' => ts('Case Type'),
+          'entity' => 'Case',
+        ),
+        array(
+          'key' => 'case_id.status_id',
+          'value' => ts('Case Status'),
+          'entity' => 'Case',
+        ),
+      );
+      foreach ($filters['contact'] as $filter) {
+        $filter += array('entity' => 'contact');
+        $filter['key'] = 'contact_id.' . $filter['key'];
+        $filters['case'][] = $filter;
+      }
+    }
+
+    CRM_Utils_Hook::entityRefFilters($filters);
 
     return $filters;
   }
@@ -838,6 +880,17 @@ class CRM_Core_Resources {
         $fileName = $nonMiniFile;
       }
     }
+  }
+
+  /**
+   * @param string $url
+   * @return string
+   */
+  public function addCacheCode($url) {
+    $hasQuery = strpos($url, '?') !== FALSE;
+    $operator = $hasQuery ? '&' : '?';
+
+    return $url . $operator . 'r=' . $this->cacheCode;
   }
 
 }

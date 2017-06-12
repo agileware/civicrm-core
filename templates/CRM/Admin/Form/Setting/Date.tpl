@@ -2,7 +2,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -50,6 +50,14 @@
        <tr class="crm-date-form-block-dateformatTime">
           <td class="label">{$form.dateformatTime.label}</td>
           <td>{$form.dateformatTime.html}</td>
+       </tr>
+       <tr class="crm-date-form-block-dateformatTime">
+          <td class="label">{$form.dateformatFinancialBatch.label}</td>
+          <td>{$form.dateformatFinancialBatch.html}</td>
+       </tr>
+       <tr class="crm-date-form-block-dateformatTime">
+          <td class="label">{$form.dateformatshortdate.label}</td>
+          <td>{$form.dateformatshortdate.html}</td>
        </tr>
      </table>
 </fieldset>

@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -25,14 +25,12 @@
  +--------------------------------------------------------------------+
  */
 
-
-require_once 'CiviTest/CiviUnitTestCase.php';
-
 /**
  * Test class for UFGroup API - civicrm_uf_*
  * @todo Split UFGroup and UFJoin tests
  *
  * @package   CiviCRM
+ * @group headless
  */
 class api_v3_UFJoinTest extends CiviUnitTestCase {
   // ids from the uf_group_test.xml fixture
@@ -158,6 +156,25 @@ class api_v3_UFJoinTest extends CiviUnitTestCase {
     $this->assertEquals($ufJoinUpdated['values'][0]['is_active'], $params['is_active']);
   }
 
+  /**
+   * Ensure we can create a survey join which is less common than event or contribution
+   * joins.
+   */
+  public function testCreateSurveyUFJoin() {
+    $params = array(
+      'module' => 'CiviCampaign',
+      'entity_table' => 'civicrm_survey',
+      'entity_id' => 1,
+      'weight' => 1,
+      'uf_group_id' => $this->_ufGroupId,
+      'is_active' => 1,
+      'sequential' => 1,
+    );
+    $ufJoin = $this->callAPIAndDocument('uf_join', 'create', $params, __FUNCTION__, __FILE__);
+    $this->assertEquals($ufJoin['values'][0]['module'], $params['module']);
+    $this->assertEquals($ufJoin['values'][0]['uf_group_id'], $params['uf_group_id']);
+    $this->assertEquals($ufJoin['values'][0]['is_active'], $params['is_active']);
+  }
 
   public function testFindUFJoinWrongParamsType() {
     $params = 'a string';

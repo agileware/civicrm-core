@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -31,7 +31,7 @@ use Civi\Cxn\Rpc\DefaultCertificateValidator;
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -140,7 +140,9 @@ class CRM_Cxn_BAO_Cxn extends CRM_Cxn_DAO_Cxn {
    */
   public static function createRegistrationClient() {
     $cxnStore = new \CRM_Cxn_CiviCxnStore();
-    $client = new \Civi\Cxn\Rpc\RegistrationClient($cxnStore, \CRM_Cxn_BAO_Cxn::getSiteCallbackUrl());
+    $viaPort = defined('CIVICRM_CXN_VIA') ? CIVICRM_CXN_VIA : NULL;
+    $client = new \Civi\Cxn\Rpc\RegistrationClient(
+      $cxnStore, \CRM_Cxn_BAO_Cxn::getSiteCallbackUrl(), $viaPort);
     $client->setLog(new \CRM_Utils_SystemLogger());
     $client->setCertValidator(self::createCertificateValidator());
     $client->setHttp(CRM_Cxn_CiviCxnHttp::singleton());

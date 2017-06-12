@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -27,6 +27,10 @@
 
 namespace Civi\ActionSchedule;
 
+/**
+ * Interface MappingInterface
+ * @package Civi\ActionSchedule
+ */
 interface MappingInterface {
 
   /**

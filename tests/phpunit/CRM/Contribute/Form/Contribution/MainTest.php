@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -25,15 +25,12 @@
  +--------------------------------------------------------------------+
  */
 
-require_once 'CiviTest/CiviUnitTestCase.php';
-require_once 'CiviTest/CiviMailUtils.php';
-
-
 /**
  *  Test APIv3 civicrm_contribute_* functions
  *
  * @package CiviCRM_APIv3
  * @subpackage API_Contribution
+ * @group headless
  */
 class CRM_Contribute_Form_Contribution_MainTest extends CiviUnitTestCase {
 

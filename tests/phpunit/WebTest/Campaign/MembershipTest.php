@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -104,8 +104,8 @@ class WebTest_Campaign_MembershipTest extends CiviSeleniumTestCase {
     $this->waitForPageToLoad($this->getTimeoutMsec());
 
     $this->waitForText('crm-notification-container', "Campaign $title");
-    $this->waitForElementPresent("//div[@id='campaignList']/div/table[@class='campaigns dataTable no-footer']/tbody//tr//td/div[contains(text(),'{$campaignTitle}')]/../../td[1]");
-    $id = (int) $this->getText("//div[@id='campaignList']/div/table[@class='campaigns dataTable no-footer']/tbody//tr//td/div[contains(text(),'{$campaignTitle}')]/../../td[1]");
+    $this->waitForElementPresent("//table[@class='campaigns dataTable no-footer']/tbody//tr//td/div[contains(text(),'{$campaignTitle}')]/../../td[1]");
+    $id = (int) $this->getText("//table[@class='campaigns dataTable no-footer']/tbody//tr//td/div[contains(text(),'{$campaignTitle}')]/../../td[1]");
     $this->memberAddTest($campaignTitle, $id);
   }
 

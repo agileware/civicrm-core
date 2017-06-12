@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 class CRM_Core_BAO_Mapping extends CRM_Core_DAO_Mapping {
 
@@ -72,18 +72,16 @@ class CRM_Core_BAO_Mapping extends CRM_Core_DAO_Mapping {
     // delete from mapping_field table
     $mappingField = new CRM_Core_DAO_MappingField();
     $mappingField->mapping_id = $id;
-    $mappingField->find();
-    while ($mappingField->fetch()) {
-      $mappingField->delete();
-    }
+    $mappingField->delete();
 
     // delete from mapping table
     $mapping = new CRM_Core_DAO_Mapping();
     $mapping->id = $id;
-    $mapping->delete();
-    CRM_Core_Session::setStatus(ts('Selected mapping has been deleted successfully.'), ts('Deleted'), 'success');
-
-    return TRUE;
+    if ($mapping->find(TRUE)) {
+      $result = $mapping->delete();
+      return $result;
+    }
+    return FALSE;
   }
 
   /**
@@ -315,7 +313,7 @@ class CRM_Core_BAO_Mapping extends CRM_Core_DAO_Mapping {
       ksort($fields[$value]);
       if ($mappingType == 'Export') {
         $relationships = array();
-        $relationshipTypes = CRM_Contact_BAO_Relationship::getContactRelationshipType(NULL, NULL, NULL, $value);
+        $relationshipTypes = CRM_Contact_BAO_Relationship::getContactRelationshipType(NULL, NULL, NULL, $value, TRUE);
         asort($relationshipTypes);
 
         foreach ($relationshipTypes as $key => $var) {
@@ -340,7 +338,7 @@ class CRM_Core_BAO_Mapping extends CRM_Core_DAO_Mapping {
 
     //get the current employer for mapping.
     if ($mappingType == 'Export') {
-      $fields['Individual']['current_employer']['title'] = ts('Current Employer');
+      $fields['Individual']['current_employer_id']['title'] = ts('Current Employer ID');
     }
 
     // add component fields
@@ -383,7 +381,7 @@ class CRM_Core_BAO_Mapping extends CRM_Core_DAO_Mapping {
 
     if (($mappingType == 'Search Builder') || ($exportMode == CRM_Export_Form_Select::CONTRIBUTE_EXPORT)) {
       if (CRM_Core_Permission::access('CiviContribute')) {
-        $fields['Contribution'] = CRM_Contribute_BAO_Contribution::exportableFields();
+        $fields['Contribution'] = CRM_Contribute_BAO_Contribution::getExportableFieldsWithPseudoConstants();
         unset($fields['Contribution']['contribution_contact_id']);
         $compArray['Contribution'] = ts('Contribution');
       }
@@ -592,15 +590,16 @@ class CRM_Core_BAO_Mapping extends CRM_Core_DAO_Mapping {
               //$relationshipCustomFields    = self::getRelationTypeCustomGroupData( $id );
               //asort($relationshipCustomFields);
 
+              $relatedFields = array();
               $relationshipType = new CRM_Contact_BAO_RelationshipType();
               $relationshipType->id = $id;
               if ($relationshipType->find(TRUE)) {
                 $direction = "contact_sub_type_$second";
+                $target_type = 'contact_type_' . $second;
                 if (isset($relationshipType->$direction)) {
                   $relatedFields = array_merge((array) $relatedMapperFields[$relationshipType->$direction], (array) $relationshipCustomFields);
                 }
-                else {
-                  $target_type = 'contact_type_' . $second;
+                elseif (isset($relationshipType->$target_type)) {
                   $relatedFields = array_merge((array) $relatedMapperFields[$relationshipType->$target_type], (array) $relationshipCustomFields);
                 }
               }
@@ -646,6 +645,7 @@ class CRM_Core_BAO_Mapping extends CRM_Core_DAO_Mapping {
       'street_address',
       'supplemental_address_1',
       'supplemental_address_2',
+      'supplemental_address_3',
       'city',
       'postal_code',
       'postal_code_suffix',
@@ -1006,6 +1006,12 @@ class CRM_Core_BAO_Mapping extends CRM_Core_DAO_Mapping {
             $value = explode(',', $value);
             $value = array($params['operator'][$key][$k] => $value);
           }
+          // CRM-19081 Fix legacy StateProvince Field Values.
+          // These derive from smart groups created using search builder under older
+          // CiviCRM versions.
+          if (!is_numeric($value) && $fldName == 'state_province') {
+            $value = CRM_Core_PseudoConstant::getKey('CRM_Core_BAO_Address', 'state_province_id', $value);
+          }
 
           if ($row) {
             $fields[] = array(
@@ -1121,7 +1127,7 @@ class CRM_Core_BAO_Mapping extends CRM_Core_DAO_Mapping {
    * @return NULL
    */
   public static function saveMappingFields(&$params, $mappingId) {
-    //delete mapping fields records for exixting mapping
+    //delete mapping fields records for existing mapping
     $mappingFields = new CRM_Core_DAO_MappingField();
     $mappingFields->mapping_id = $mappingId;
     $mappingFields->delete();

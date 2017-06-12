@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 class CRM_Contact_BAO_Contact_Utils {
 
@@ -49,7 +49,7 @@ class CRM_Contact_BAO_Contact_Utils {
   public static function getImage($contactType, $urlOnly = FALSE, $contactId = NULL, $addProfileOverlay = TRUE) {
     static $imageInfo = array();
 
-    $contactType = explode(CRM_Core_DAO::VALUE_SEPARATOR, trim($contactType, CRM_Core_DAO::VALUE_SEPARATOR));
+    $contactType = CRM_Utils_Array::explodePadded($contactType);
     $contactType = $contactType[0];
 
     if (!array_key_exists($contactType, $imageInfo)) {
@@ -266,7 +266,7 @@ UNION
 UNION
 ( SELECT location_type_id FROM civicrm_address WHERE contact_id = {$contactId} )
 ";
-    $dao = CRM_Core_DAO::executeQuery($query, CRM_Core_DAO::$_nullArray);
+    $dao = CRM_Core_DAO::executeQuery($query);
     return $dao->N;
   }
 
@@ -284,11 +284,7 @@ UNION
   public static function createCurrentEmployerRelationship($contactID, $organization, $previousEmployerID = NULL, $newContact = FALSE) {
     //if organization name is passed. CRM-15368,CRM-15547
     if ($organization && !is_numeric($organization)) {
-      $organizationParams['organization_name'] = $organization;
-      $dedupeParams = CRM_Dedupe_Finder::formatParams($organizationParams, 'Organization');
-
-      $dedupeParams['check_permission'] = FALSE;
-      $dupeIDs = CRM_Dedupe_Finder::dupesByParams($dedupeParams, 'Organization', 'Unsupervised');
+      $dupeIDs = CRM_Contact_BAO_Contact::getDuplicateContacts(array('organization_name' => $organization), 'Organization', 'Unsupervised', array(), FALSE);
 
       if (is_array($dupeIDs) && !empty($dupeIDs)) {
         // we should create relationship only w/ first org CRM-4193
@@ -555,7 +551,7 @@ UPDATE civicrm_contact
    SET organization_name=NULL, employer_id = NULL
  WHERE employer_id={$employerId}; ";
 
-    $dao = CRM_Core_DAO::executeQuery($query, CRM_Core_DAO::$_nullArray);
+    $dao = CRM_Core_DAO::executeQuery($query);
   }
 
   /**
@@ -717,6 +713,7 @@ LEFT JOIN  civicrm_email ce ON ( ce.contact_id=c.id AND ce.is_primary = 1 )
       $value = (in_array($property, array(
         'city',
         'street_address',
+        'postal_code',
       ))) ? 'address' : $property;
       switch ($property) {
         case 'sort_name':
@@ -745,6 +742,7 @@ INNER JOIN civicrm_contact contact_target ON ( contact_target.id = act.contact_i
         case 'phone':
         case 'city':
         case 'street_address':
+        case 'postal_code':
           $select[] = "$property as $property";
           // Grab target contact properties if this is for activity
           if ($componentName == 'Activity') {
@@ -777,12 +775,13 @@ INNER JOIN civicrm_contact contact_target ON ( contact_target.id = act.contact_i
       $fromClause = implode(' ', $from);
       $selectClause = implode(', ', $select);
       $whereClause = "{$compTable}.id IN (" . implode(',', $componentIds) . ')';
+      $groupBy = CRM_Contact_BAO_Query::getGroupByFromSelectColumns($select, array("{$compTable}.id", 'contact.id'));
 
       $query = "
   SELECT  contact.id as contactId, $compTable.id as componentId, $selectClause
     FROM  $compTable as $compTable $fromClause
    WHERE  $whereClause
-Group By  componentId";
+   {$groupBy}";
 
       $contact = CRM_Core_DAO::executeQuery($query);
       while ($contact->fetch()) {
@@ -910,8 +909,7 @@ Group By  componentId";
       CRM_Core_BAO_PrevNextCache::deleteItem();
     }
 
-    // reset the group contact cache for this group
-    CRM_Contact_BAO_GroupContactCache::remove();
+    CRM_Contact_BAO_GroupContactCache::opportunisticCacheFlush();
   }
 
   /**

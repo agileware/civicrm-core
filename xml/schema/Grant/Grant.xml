@@ -30,7 +30,7 @@
     <comment>Contact ID of contact record given grant belongs to.</comment>
     <add>1.8</add>
     <html>
-       <type>Autocomplete-Select</type>
+       <type>EntityRef</type>
      </html>
   </field>
   <foreignKey>
@@ -160,7 +160,7 @@
         <table>civicrm_currency</table>
         <keyColumn>name</keyColumn>
         <labelColumn>full_name</labelColumn>
-        <nameColumn>numeric_code</nameColumn>
+        <nameColumn>name</nameColumn>
       </pseudoconstant>
       <html>
         <type>Select</type>

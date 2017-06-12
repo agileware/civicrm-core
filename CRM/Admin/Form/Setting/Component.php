@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -115,15 +115,14 @@ class CRM_Admin_Form_Setting_Component extends CRM_Admin_Form_Setting {
   }
 
   /**
-   * @param $dsn
+   * Load case sample data.
+   *
    * @param string $fileName
    * @param bool $lineMode
    */
-  public static function loadCaseSampleData($dsn, $fileName, $lineMode = FALSE) {
-    $db = &DB::connect($dsn);
-    if (PEAR::isError($db)) {
-      die("Cannot open $dsn: " . $db->getMessage());
-    }
+  public static function loadCaseSampleData($fileName, $lineMode = FALSE) {
+    $dao = new CRM_Core_DAO();
+    $db = $dao->getDatabaseConnection();
 
     $domain = new CRM_Core_DAO_Domain();
     $domain->find(TRUE);

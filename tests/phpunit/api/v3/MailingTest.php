@@ -23,13 +23,12 @@
  *   <http://www.gnu.org/licenses/>.
  */
 
-require_once 'CiviTest/CiviUnitTestCase.php';
-
 
 /**
  *  Test APIv3 civicrm_mailing_* functions
  *
  * @package   CiviCRM
+ * @group headless
  */
 class api_v3_MailingTest extends CiviUnitTestCase {
   protected $_groupID;
@@ -54,8 +53,8 @@ class api_v3_MailingTest extends CiviUnitTestCase {
     $this->_email = 'test@test.test';
     $this->_params = array(
       'subject' => 'Hello {contact.display_name}',
-      'body_text' => "This is {contact.display_name}.\n{domain.address}{action.optOutUrl}",
-      'body_html' => "<p>This is {contact.display_name}.</p><p>{domain.address}{action.optOutUrl}</p>",
+      'body_text' => "This is {contact.display_name}.\nhttps://civicrm.org\n{domain.address}{action.optOutUrl}",
+      'body_html' => "<p>This is {contact.display_name}.</p><p><a href='https://civicrm.org/'>CiviCRM.org</a></p><p>{domain.address}{action.optOutUrl}</p>",
       'name' => 'mailing name',
       'created_id' => $this->_contactID,
       'header_id' => '',
@@ -63,6 +62,8 @@ class api_v3_MailingTest extends CiviUnitTestCase {
     );
 
     $this->footer = civicrm_api3('MailingComponent', 'create', array(
+      'name' => 'test domain footer',
+      'component_type' => 'footer',
       'body_html' => '<p>From {domain.address}. To opt out, go to {action.optOutUrl}.</p>',
       'body_text' => 'From {domain.address}. To opt out, go to {action.optOutUrl}.',
     ));
@@ -82,6 +83,61 @@ class api_v3_MailingTest extends CiviUnitTestCase {
     $this->assertEquals(1, $jobs['count']);
     unset($this->_params['created_id']); // return isn't working on this in getAndCheck so lets not check it for now
     $this->getAndCheck($this->_params, $result['id'], 'mailing');
+  }
+
+  /**
+   * Per CRM-20316 the mailing should still create without created_id (not mandatory).
+   */
+  public function testMailerCreateSuccessNoCreatedID() {
+    unset($this->_params['created_id']);
+    $result = $this->callAPIAndDocument('mailing', 'create', $this->_params + array('scheduled_date' => 'now'), __FUNCTION__, __FILE__);
+    $this->getAndCheck($this->_params, $result['id'], 'mailing');
+  }
+
+  /**
+   *
+   */
+  public function testTemplateTypeOptions() {
+    $types = $this->callAPISuccess('Mailing', 'getoptions', array('field' => 'template_type'));
+    $this->assertTrue(isset($types['values']['traditional']));
+  }
+
+  /**
+   * The `template_options` field should be treated a JSON object.
+   *
+   * This test will create, read, and update the field.
+   */
+  public function testMailerCreateTemplateOptions() {
+    // 1. Create mailing with template_options.
+    $params = $this->_params;
+    $params['template_options'] = json_encode(array('foo' => 'bar_1'));
+    $createResult = $this->callAPISuccess('mailing', 'create', $params);
+    $id = $createResult['id'];
+    $this->assertDBQuery('{"foo":"bar_1"}', 'SELECT template_options FROM civicrm_mailing WHERE id = %1', array(
+      1 => array($id, 'Int'),
+    ));
+    $this->assertEquals('bar_1', $createResult['values'][$id]['template_options']['foo']);
+
+    // 2. Get mailing with template_options.
+    $getResult = $this->callAPISuccess('mailing', 'get', array(
+      'id' => $id,
+    ));
+    $this->assertEquals('bar_1', $getResult['values'][$id]['template_options']['foo']);
+    $getValueResult = $this->callAPISuccess('mailing', 'getvalue', array(
+      'id' => $id,
+      'return' => 'template_options',
+    ));
+    $this->assertEquals('bar_1', $getValueResult['foo']);
+
+    // 3. Update mailing with template_options.
+    $updateResult = $this->callAPISuccess('mailing', 'create', array(
+      'id' => $id,
+      'template_options' => array('foo' => 'bar_2'),
+    ));
+    $this->assertDBQuery('{"foo":"bar_2"}', 'SELECT template_options FROM civicrm_mailing WHERE id = %1', array(
+      1 => array($id, 'Int'),
+    ));
+    $this->assertEquals('bar_2', $updateResult['values'][$id]['template_options']['foo']);
   }
 
   /**
@@ -247,6 +303,53 @@ class api_v3_MailingTest extends CiviUnitTestCase {
     $this->assertEquals(array('include.me@example.org'), $previewEmails);
     $previewNames = array_values(CRM_Utils_Array::collect('api.contact.getvalue', $preview['values']));
     $this->assertTrue((bool) preg_match('/Includer Person/', $previewNames[0]), "Name 'Includer Person' should appear in '" . $previewNames[0] . '"');
+  }
+
+  public function testMailerPreviewRecipientsDeduplicate() {
+    // BEGIN SAMPLE DATA
+    $groupIDs['grp'] = $this->groupCreate(array('name' => 'Example group', 'title' => 'Example group'));
+    $contactIDs['include_me'] = $this->individualCreate(array(
+        'email' => 'include.me@example.org',
+        'first_name' => 'Includer',
+        'last_name' => 'Person',
+      ));
+    $contactIDs['include_me_duplicate'] = $this->individualCreate(array(
+        'email' => 'include.me@example.org',
+        'first_name' => 'IncluderDuplicate',
+        'last_name' => 'Person',
+      ));
+    $this->callAPISuccess('GroupContact', 'create', array(
+        'group_id' => $groupIDs['grp'],
+        'contact_id' => $contactIDs['include_me'],
+      ));
+    $this->callAPISuccess('GroupContact', 'create', array(
+        'group_id' => $groupIDs['grp'],
+        'contact_id' => $contactIDs['include_me_duplicate'],
+      ));
+
+    $params = $this->_params;
+    $params['groups']['include'] = array($groupIDs['grp']);
+    $params['mailings']['include'] = array();
+    $params['options']['force_rollback'] = 1;
+    $params['dedupe_email'] = 1;
+    $params['api.mailing_job.create'] = 1;
+    $params['api.MailingRecipients.get'] = array(
+      'mailing_id' => '$value.id',
+      'api.contact.getvalue' => array(
+        'return' => 'display_name',
+      ),
+      'api.email.getvalue' => array(
+        'return' => 'email',
+      ),
+    );
+    // END SAMPLE DATA
+
+    $create = $this->callAPISuccess('Mailing', 'create', $params);
+
+    $preview = $create['values'][$create['id']]['api.MailingRecipients.get'];
+    $this->assertEquals(1, $preview['count']);
+    $previewEmails = array_values(CRM_Utils_Array::collect('api.email.getvalue', $preview['values']));
+    $this->assertEquals(array('include.me@example.org'), $previewEmails);
   }
 
   /**
@@ -436,6 +539,60 @@ class api_v3_MailingTest extends CiviUnitTestCase {
   }
 
   /**
+   * Test unsubscribe list contains correct groups
+   * when include = 'previous mailing'
+   */
+  public function testUnsubscribeGroupList() {
+    // Create set of groups and add a contact to both of them.
+    $groupID2 = $this->groupCreate(array('name' => 'Test group 2', 'title' => 'group title 2'));
+    $groupID3 = $this->groupCreate(array('name' => 'Test group 3', 'title' => 'group title 3'));
+    $contactId = $this->individualCreate();
+    foreach (array($groupID2, $groupID3) as $grp) {
+      $params = array(
+        'contact_id' => $contactId,
+        'group_id' => $grp,
+      );
+      $this->callAPISuccess('GroupContact', 'create', $params);
+    }
+
+    //Send mail to groupID3
+    $mail = $this->callAPISuccess('mailing', 'create', $this->_params);
+    $params = array('mailing_id' => $mail['id'], 'test_email' => NULL, 'test_group' => $groupID3);
+    $this->callAPISuccess($this->_entity, 'send_test', $params);
+
+    $mgParams = array(
+      'mailing_id' => $mail['id'],
+      'entity_table' => 'civicrm_group',
+      'entity_id' => $groupID3,
+      'group_type' => 'Include',
+    );
+    $mailingGroup = $this->callAPISuccess('MailingGroup', 'create', $mgParams);
+
+    //Include previous mail in the mailing group.
+    $mail2 = $this->callAPISuccess('mailing', 'create', $this->_params);
+    $params = array('mailing_id' => $mail2['id'], 'test_email' => NULL, 'test_group' => $groupID3);
+    $this->callAPISuccess($this->_entity, 'send_test', $params);
+
+    $mgParams = array(
+      'mailing_id' => $mail2['id'],
+      'entity_table' => 'civicrm_mailing',
+      'entity_id' => $mail['id'],
+      'group_type' => 'Include',
+    );
+    $mailingGroup = $this->callAPISuccess('MailingGroup', 'create', $mgParams);
+    //CRM-20431 - Delete group id that matches first mailing id.
+    $this->callAPISuccess('Group', 'delete', array('id' => $this->_groupID));
+    $jobId = CRM_Core_DAO::getFieldValue('CRM_Mailing_DAO_MailingJob', $mail2['id'], 'id', 'mailing_id');
+    $hash = CRM_Core_DAO::getFieldValue('CRM_Mailing_Event_DAO_Queue', $jobId, 'hash', 'job_id');
+    $queueId = CRM_Core_DAO::getFieldValue('CRM_Mailing_Event_DAO_Queue', $jobId, 'id', 'job_id');
+
+    $group = CRM_Mailing_Event_BAO_Unsubscribe::unsub_from_mailing($jobId, $queueId, $hash, TRUE);
+    //Assert only one group returns in the unsubscribe list.
+    $this->assertCount(1, $group);
+    $this->assertEquals($groupID3, key($group));
+  }
+
+  /**
    *
    */
   public function testMailerStats() {
@@ -595,7 +752,7 @@ SELECT event_queue_id, time_stamp FROM mail_{$type}_temp";
       'time_stamp' => '20111111010101',
     );
     $this->callAPIFailure('mailing_event', 'confirm', $params,
-      'Confirmation failed'
+      'contact_id is not a valid integer'
     );
   }
 
@@ -659,6 +816,67 @@ SELECT event_queue_id, time_stamp FROM mail_{$type}_temp";
     return $createResult['id'];
   }
 
-  //----------- civicrm_mailing_create ----------
+  /**
+   * Test to make sure that if the event queue hashes have been archived,
+   * we can still have working click-trough URLs working (CRM-17959).
+   */
+  public function testUrlWithMissingTrackingHash() {
+    $mail = $this->callAPISuccess('mailing', 'create', $this->_params + array('scheduled_date' => 'now'), __FUNCTION__, __FILE__);
+    $jobs = $this->callAPISuccess('mailing_job', 'get', array('mailing_id' => $mail['id']));
+    $this->assertEquals(1, $jobs['count']);
+
+    $params = array('mailing_id' => $mail['id'], 'test_email' => 'alice@example.org', 'test_group' => NULL);
+    $deliveredInfo = $this->callAPISuccess($this->_entity, 'send_test', $params);
+
+    $sql = "SELECT turl.id as url_id, turl.url, q.id as queue_id
+      FROM civicrm_mailing_trackable_url as turl
+      INNER JOIN civicrm_mailing_job as j ON turl.mailing_id = j.mailing_id
+      INNER JOIN civicrm_mailing_event_queue q ON j.id = q.job_id
+      ORDER BY turl.id DESC LIMIT 1";
+
+    $dao = CRM_Core_DAO::executeQuery($sql);
+    $this->assertTrue($dao->fetch());
+
+    $url = CRM_Mailing_Event_BAO_TrackableURLOpen::track($dao->queue_id, $dao->url_id);
+    $this->assertContains('https://civicrm.org', $url);
+
+    // Now delete the event queue hashes and see if the tracking still works.
+    CRM_Core_DAO::executeQuery('DELETE FROM civicrm_mailing_event_queue');
+
+    $url = CRM_Mailing_Event_BAO_TrackableURLOpen::track($dao->queue_id, $dao->url_id);
+    $this->assertContains('https://civicrm.org', $url);
+  }
+
+  /**
+   * Test Trackable URL with unicode character
+   */
+  public function testTrackableURLWithUnicodeSign() {
+    $unicodeURL = "https://civińcrm.org";
+    $this->_params['body_text'] = str_replace("https://civicrm.org", $unicodeURL, $this->_params['body_text']);
+    $this->_params['body_html'] = str_replace("https://civicrm.org", $unicodeURL, $this->_params['body_html']);
+
+    $mail = $this->callAPISuccess('mailing', 'create', $this->_params + array('scheduled_date' => 'now'));
+
+    $params = array('mailing_id' => $mail['id'], 'test_email' => 'alice@example.org', 'test_group' => NULL);
+    $this->callAPISuccess($this->_entity, 'send_test', $params);
+
+    $sql = "SELECT turl.id as url_id, turl.url, q.id as queue_id
+      FROM civicrm_mailing_trackable_url as turl
+      INNER JOIN civicrm_mailing_job as j ON turl.mailing_id = j.mailing_id
+      INNER JOIN civicrm_mailing_event_queue q ON j.id = q.job_id
+      ORDER BY turl.id DESC LIMIT 1";
+
+    $dao = CRM_Core_DAO::executeQuery($sql);
+    $this->assertTrue($dao->fetch());
+
+    $url = CRM_Mailing_Event_BAO_TrackableURLOpen::track($dao->queue_id, $dao->url_id);
+    $this->assertContains($unicodeURL, $url);
+
+    // Now delete the event queue hashes and see if the tracking still works.
+    CRM_Core_DAO::executeQuery('DELETE FROM civicrm_mailing_event_queue');
+
+    $url = CRM_Mailing_Event_BAO_TrackableURLOpen::track($dao->queue_id, $dao->url_id);
+    $this->assertContains($unicodeURL, $url);
+  }
 
 }

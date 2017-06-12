@@ -2,7 +2,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -23,9 +23,6 @@
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
 *}
-{if $showBestResult }
-    <span class="font-red">{ts}For best results, the Country field should precede the State-Province field in your Profile form. You can use the up and down arrows on field listing page for this profile to change the order of these fields or manually edit weight for Country/State-Province Field.{/ts}</span>
-{/if}
 
 {if $action eq 1 or $action eq 2 or $action eq 4 or $action eq 8 }
     {include file="CRM/UF/Form/Field.tpl"}
@@ -51,7 +48,7 @@
                 {if in_array("Profile",$otherModules) or in_array("Search Profile",$otherModules) }
                 <th>{ts}Visibility{/ts}</th>
                 <th>{ts}Searchable?{/ts}</th>
-                <th>{ts}In Selector?{/ts}</th>
+                <th>{ts}Results Column?{/ts}</th>
                 {/if}
                 <th>{ts}Order{/ts}</th>
                 <th>{ts}Required{/ts}</th>

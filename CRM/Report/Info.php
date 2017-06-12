@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -30,8 +30,7 @@
  * information about it. It needs to extend CRM_Core_Component_Info
  * abstract class.
  *
- * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  * $Id$
  *
  */
@@ -51,14 +50,11 @@ class CRM_Report_Info extends CRM_Core_Component_Info {
    * @return array
    *   collection of required component settings
    */
-  /**
-   * @return array
-   */
   public function getInfo() {
     return array(
       'name' => 'CiviReport',
       'translatedName' => ts('CiviReport'),
-      'title' => 'CiviCRM Report Engine',
+      'title' => ts('CiviCRM Report Engine'),
       'search' => 0,
       'showActivitiesInCore' => 1,
     );
@@ -90,6 +86,10 @@ class CRM_Report_Info extends CRM_Core_Component_Info {
       'access Report Criteria' => array(
         ts('access Report Criteria'),
         ts('Change report search criteria'),
+      ),
+      'administer private reports' => array(
+        ts('administer private reports'),
+        ts('Edit all private reports'),
       ),
       'administer reserved reports' => array(
         ts('administer reserved reports'),
@@ -123,9 +123,6 @@ class CRM_Report_Info extends CRM_Core_Component_Info {
    * @return array|null
    *   collection of required dashboard settings,
    *                    null if no element offered
-   */
-  /**
-   * @return array|null
    */
   public function getUserDashboardElement() {
     // no dashboard element for this component

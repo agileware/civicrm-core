@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -76,7 +76,7 @@ class CRM_Case_Form_Activity_ChangeCaseType {
     $form->removeElement('priority_id');
 
     $caseId = CRM_Utils_Array::first($form->_caseId);
-    $form->_caseType = CRM_Case_PseudoConstant::caseType();
+    $form->_caseType = CRM_Case_BAO_Case::buildOptions('case_type_id', 'create');
     $form->_caseTypeId = CRM_Core_DAO::getFieldValue('CRM_Case_DAO_Case',
       $caseId,
       'case_type_id'
@@ -85,9 +85,7 @@ class CRM_Case_Form_Activity_ChangeCaseType {
       $form->_caseType[$form->_caseTypeId] = CRM_Core_DAO::getFieldValue('CRM_Case_DAO_CaseType', $form->_caseTypeId, 'title');
     }
 
-    $form->add('select', 'case_type_id', ts('New Case Type'),
-      $form->_caseType, TRUE
-    );
+    $form->addField('case_type_id', array('context' => 'create', 'entity' => 'Case'));
 
     // timeline
     $form->addYesNo('is_reset_timeline', ts('Reset Case Timeline?'), NULL, TRUE, array('onclick' => "return showHideByValue('is_reset_timeline','','resetTimeline','table-row','radio',false);"));

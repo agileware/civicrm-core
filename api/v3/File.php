@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -116,7 +116,8 @@ function civicrm_api3_file_update($params) {
     $fileDAO->save();
   }
   $file = array();
-  _civicrm_api3_object_to_array(clone($fileDAO), $file);
+  $cloneDAO = clone($fileDAO);
+  _civicrm_api3_object_to_array($cloneDAO, $file);
   return $file;
 }
 
@@ -125,9 +126,8 @@ function civicrm_api3_file_update($params) {
  *
  * @param array $params
  *   Array per getfields metadata.
- *
- * @return array
- *   API Result Array
+ * @return array API Result Array
+ * @throws API_Exception
  */
 function civicrm_api3_file_delete($params) {
 

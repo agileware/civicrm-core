@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 class CRM_Utils_ReCAPTCHA {
 
@@ -94,7 +94,7 @@ class CRM_Utils_ReCAPTCHA {
     if ($form->isSubmitted() && empty($form->_submitValues['g-recaptcha-response'])) {
       $form->setElementError(
         'g-recaptcha-response',
-        ts('Input text must match the phrase in the image. Please review the image and re-enter matching text.')
+        ts('Please go back and complete the CAPTCHA at the bottom of this form.')
       );
     }
   }

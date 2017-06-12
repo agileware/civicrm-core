@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -53,16 +53,7 @@ class CRM_Financial_Page_AJAX {
       $result = CRM_Contribute_PseudoConstant::financialAccount();
     }
     else {
-      $financialAccountType = array(
-        '5' => 5, // expense
-        '3' => 1, // AR relation
-        '1' => 3, // revenue
-        '6' => 1, // asset
-        '7' => 4, // cost of sales
-        '8' => 1, // premium inventory
-        '9' => 3, // discount account is
-        '10' => 2, // sales tax liability
-      );
+      $financialAccountType = CRM_Financial_BAO_FinancialAccount::getfinancialAccountRelations();
       $financialAccountType = CRM_Utils_Array::value($_GET['_value'], $financialAccountType);
       $result = CRM_Contribute_PseudoConstant::financialAccount(NULL, $financialAccountType);
       if ($financialAccountType) {
@@ -101,20 +92,13 @@ class CRM_Financial_Page_AJAX {
       CRM_Utils_System::civiExit();
     }
 
-    if ($_GET['_value'] == 'select') {
-      $result = CRM_Core_PseudoConstant::get('CRM_Financial_DAO_EntityFinancialAccount', 'account_relationship');
-    }
-    else {
-      $financialAccountType = array(
-        '5' => array(5), //expense
-        '1' => array(3, 6, 8), //Asset
-        '3' => array(1, 9), //revenue
-        '4' => array(7), //cost of sales
-      );
-      $financialAccountId = CRM_Utils_Request::retrieve('_value', 'Positive', CRM_Core_DAO::$_nullObject);
+    if ($_GET['_value'] != 'select') {
+      $financialAccountType = CRM_Financial_BAO_FinancialAccount::getfinancialAccountRelations(TRUE);
+      $financialAccountId = CRM_Utils_Request::retrieve('_value', 'Positive');
       $financialAccountTypeId = CRM_Core_DAO::getFieldValue('CRM_Financial_DAO_FinancialAccount', $financialAccountId, 'financial_account_type_id');
-      $result = CRM_Core_PseudoConstant::get('CRM_Financial_DAO_EntityFinancialAccount', 'account_relationship');
     }
+    $params['orderColumn'] = 'label';
+    $result = CRM_Core_PseudoConstant::get('CRM_Financial_DAO_EntityFinancialAccount', 'account_relationship', $params);
 
     $elements = array(
       array(
@@ -161,7 +145,7 @@ class CRM_Financial_Page_AJAX {
     ) {
       CRM_Utils_System::civiExit();
     }
-    $productId = CRM_Utils_Request::retrieve('_value', 'Positive', CRM_Core_DAO::$_nullObject);
+    $productId = CRM_Utils_Request::retrieve('_value', 'Positive');
     $elements = CRM_Core_DAO::getFieldValue('CRM_Contribute_DAO_Product', $productId, 'financial_type_id');
     CRM_Utils_JSON::output($elements);
   }
@@ -181,8 +165,8 @@ class CRM_Financial_Page_AJAX {
 
     $entityID = CRM_Utils_Request::retrieve('entityID', 'Positive', CRM_Core_DAO::$_nullObject, FALSE, NULL, 'POST');
     $methods = array(
-      'assign' => 'addBatchEntity',
-      'remove' => 'removeBatchEntity',
+      'assign' => 'create',
+      'remove' => 'del',
       'reopen' => 'create',
       'close' => 'create',
       'delete' => 'deleteBatch',
@@ -199,7 +183,6 @@ class CRM_Financial_Page_AJAX {
     if ($recordClass[0] == 'CRM' && count($recordClass) >= 3) {
       foreach ($records as $recordID) {
         $params = array();
-        $ids = NULL;
         switch ($op) {
           case 'assign':
           case 'remove':
@@ -223,14 +206,12 @@ class CRM_Financial_Page_AJAX {
             $params = $totals[$recordID];
           case 'reopen':
             $status = $op == 'close' ? 'Closed' : 'Reopened';
-            $ids['batchID'] = $recordID;
             $batchStatus = CRM_Core_PseudoConstant::get('CRM_Batch_DAO_Batch', 'status_id', array('labelColumn' => 'name'));
             $params['status_id'] = CRM_Utils_Array::key($status, $batchStatus);
             $session = CRM_Core_Session::singleton();
             $params['modified_date'] = date('YmdHis');
             $params['modified_id'] = $session->get('userID');
             $params['id'] = $recordID;
-            $context = "financialBatch";
             break;
 
           case 'export':
@@ -239,19 +220,20 @@ class CRM_Financial_Page_AJAX {
 
           case 'delete':
             $params = $recordID;
-            $context = "financialBatch";
             break;
         }
 
         if (method_exists($recordBAO, $methods[$op]) & !empty($params)) {
-          if (isset($context)) {
-            $updated = call_user_func_array(array($recordBAO, $methods[$op]), array(&$params, $ids, $context));
-          }
-          else {
-            $updated = call_user_func_array(array($recordBAO, $methods[$op]), array(&$params, $ids));
-          }
+          $updated = call_user_func_array(array($recordBAO, $methods[$op]), array(&$params));
           if ($updated) {
-            $response = array('status' => 'record-updated-success');
+            $redirectStatus = $updated->status_id;
+            if ($batchStatus[$updated->status_id] == "Reopened") {
+              $redirectStatus = array_search("Open", $batchStatus);
+            }
+            $response = array(
+              'status' => 'record-updated-success',
+              'status_id' => $redirectStatus,
+            );
           }
         }
       }
@@ -260,9 +242,10 @@ class CRM_Financial_Page_AJAX {
   }
 
   /**
-   * Get output of financial transactions.
+   * This function uses the deprecated v1 datatable api and needs updating. See CRM-16353.
+   * @deprecated
    *
-   * @return string
+   * @return string|wtf??
    */
   public static function getFinancialTransactionsList() {
     $sortMapper = array(
@@ -304,8 +287,8 @@ class CRM_Financial_Page_AJAX {
       'contact_a.contact_type',
       'contact_a.contact_sub_type',
       'civicrm_financial_trxn.trxn_date as transaction_date',
-      'name',
-      'civicrm_contribution.currency as currency',
+      'civicrm_financial_type.name',
+      'civicrm_financial_trxn.currency as currency',
       'civicrm_financial_trxn.status_id as status',
       'civicrm_financial_trxn.check_number as check_number',
     );
@@ -362,6 +345,10 @@ class CRM_Financial_Page_AJAX {
       }
     }
     $financialitems = array();
+    if ($statusID) {
+      $batchStatuses = CRM_Core_PseudoConstant::get('CRM_Batch_DAO_Batch', 'status_id', array('labelColumn' => 'name', 'condition' => " v.value={$statusID}"));
+      $batchStatus = $batchStatuses[$statusID];
+    }
     while ($financialItem->fetch()) {
       $row[$financialItem->id] = array();
       foreach ($columnHeader as $columnKey => $columnValue) {
@@ -370,7 +357,7 @@ class CRM_Financial_Page_AJAX {
           continue;
         }
         $row[$financialItem->id][$columnKey] = $financialItem->$columnKey;
-        if ($columnKey == 'sort_name' && $financialItem->$columnKey) {
+        if ($columnKey == 'sort_name' && $financialItem->$columnKey && $financialItem->contact_id) {
           $url = CRM_Utils_System::url('civicrm/contact/view', "reset=1&cid=" . $financialItem->contact_id);
           $row[$financialItem->id][$columnKey] = '<a href=' . $url . '>' . $financialItem->$columnKey . '</a>';
         }
@@ -391,7 +378,7 @@ class CRM_Financial_Page_AJAX {
           $row[$financialItem->id][$columnKey] = CRM_Core_PseudoConstant::getLabel('CRM_Contribute_BAO_Contribution', 'contribution_status_id', $financialItem->$columnKey);
         }
       }
-      if ($statusID == CRM_Core_OptionGroup::getValue('batch_status', 'Open')) {
+      if (isset($batchStatus) && in_array($batchStatus, array('Open', 'Reopened'))) {
         if (isset($notPresent)) {
           $js = "enableActions('x')";
           $row[$financialItem->id]['check'] = "<input type='checkbox' id='mark_x_" . $financialItem->id . "' name='mark_x_" . $financialItem->id . "' value='1' onclick={$js}></input>";
@@ -449,7 +436,9 @@ class CRM_Financial_Page_AJAX {
           $financialItem->id
         );
       }
-      $row[$financialItem->id]['contact_type'] = CRM_Contact_BAO_Contact_Utils::getImage(CRM_Utils_Array::value('contact_sub_type', $row[$financialItem->id]) ? CRM_Utils_Array::value('contact_sub_type', $row[$financialItem->id]) : CRM_Utils_Array::value('contact_type', $row[$financialItem->id]), FALSE, $financialItem->contact_id);
+      if ($financialItem->contact_id) {
+        $row[$financialItem->id]['contact_type'] = CRM_Contact_BAO_Contact_Utils::getImage(CRM_Utils_Array::value('contact_sub_type', $row[$financialItem->id]) ? $row[$financialItem->id]['contact_sub_type'] : CRM_Utils_Array::value('contact_type', $row[$financialItem->id]), FALSE, $financialItem->contact_id);
+      }
       $financialitems = $row;
     }
 
@@ -497,10 +486,10 @@ class CRM_Financial_Page_AJAX {
           'batch_id' => $entityID,
         );
         if ($action == 'Assign') {
-          $updated = CRM_Batch_BAO_Batch::addBatchEntity($params);
+          $updated = CRM_Batch_BAO_EntityBatch::create($params);
         }
         else {
-          $updated = CRM_Batch_BAO_Batch::removeBatchEntity($params);
+          $updated = CRM_Batch_BAO_EntityBatch::del($params);
         }
       }
     }

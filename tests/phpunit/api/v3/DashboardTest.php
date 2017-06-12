@@ -20,15 +20,11 @@
  */
 
 /**
- *  Include class definitions
- */
-require_once 'CiviTest/CiviUnitTestCase.php';
-
-/**
  *  Test APIv3 civicrm_action_schedule functions
  *
  * @package CiviCRM_APIv3
  * @subpackage API_ActionSchedule
+ * @group headless
  */
 class api_v3_DashboardTest extends CiviUnitTestCase {
   protected $_params;
@@ -51,11 +47,10 @@ class api_v3_DashboardTest extends CiviUnitTestCase {
   public function testDashboardCreate() {
     $oldCount = CRM_Core_DAO::singleValueQuery('select count(*) from civicrm_dashboard');
     $params = array(
-      'version' => 3,
       'label' => 'New Dashlet element',
       'name' => 'New Dashlet element',
-      'url' => 'civicrm/report/list&reset=1&compid=99&snippet=5',
-      'fullscreen_url' => 'civicrm/report/list&compid=99&reset=1&snippet=5&context=dashletFullscreen',
+      'url' => 'civicrm/report/list&reset=1&compid=99',
+      'fullscreen_url' => 'civicrm/report/list&compid=99&reset=1&context=dashletFullscreen',
     );
     $dashboard = $this->callAPISuccess('dashboard', 'create', $params);
     $this->assertTrue(is_numeric($dashboard['id']), "In line " . __LINE__);
@@ -63,6 +58,46 @@ class api_v3_DashboardTest extends CiviUnitTestCase {
     $newCount = CRM_Core_DAO::singleValueQuery('select count(*) from civicrm_dashboard');
     $this->assertEquals($oldCount + 1, $newCount);
     $this->DashboardDelete($dashboard['id'], $oldCount);
+    $this->assertEquals($dashboard['values'][$dashboard['id']]['is_active'], 1);
+  }
+
+  /**
+   * CRM-19534.
+   *
+   * Ensure that Dashboard create works fine for non admins
+   */
+  public function testDashboardCreateByNonAdmins() {
+    $loggedInContactID = $this->createLoggedInUser();
+    CRM_Core_Config::singleton()->userPermissionClass->permissions = array();
+    $params = array(
+      'label' => 'New Dashlet element',
+      'name' => 'New Dashlet element',
+      'url' => 'civicrm/report/list&reset=1&compid=99',
+      'fullscreen_url' => 'civicrm/report/list&compid=99&reset=1&context=dashletFullscreen',
+    );
+    $dashboard = $this->callAPISuccess('dashboard', 'create', $params);
+    $this->assertTrue(is_numeric($dashboard['id']), "In line " . __LINE__);
+    $this->assertTrue($dashboard['id'] > 0, "In line " . __LINE__);
+
+    $this->callAPISuccess('dashboard', 'create', $params);
+    $this->assertEquals($dashboard['values'][$dashboard['id']]['is_active'], 1);
+  }
+
+  /**
+   * CRM-19217.
+   *
+   * Ensure that where is_active is specifically set to 0 is_active returns 0.
+   */
+  public function testDashboardCreateNotActive() {
+    $params = array(
+      'label' => 'New Dashlet element',
+      'name' => 'New Dashlet element',
+      'url' => 'civicrm/report/list&reset=1&compid=99&snippet=5',
+      'fullscreen_url' => 'civicrm/report/list&compid=99&reset=1&snippet=5&context=dashletFullscreen',
+      'is_active' => 0,
+    );
+    $dashboard = $this->callAPISuccess('dashboard', 'create', $params);
+    $this->assertEquals($dashboard['values'][$dashboard['id']]['is_active'], 0);
   }
 
   /**
@@ -71,7 +106,6 @@ class api_v3_DashboardTest extends CiviUnitTestCase {
    */
   public function DashboardDelete($id, $oldCount) {
     $params = array(
-      'version' => 3,
       'id' => $id,
     );
     $dashboardget = $this->callAPISuccess('dashboard', 'get', $params);

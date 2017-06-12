@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,6 @@
 /**
  *  Include parent class definition
  */
-require_once 'CiviTest/CiviUnitTestCase.php';
 
 /**
  *  Include class under test
@@ -50,6 +49,7 @@ require_once 'CiviTest/CiviUnitTestCase.php';
  *  Test contact custom search functions
  *
  * @package CiviCRM
+ * @group headless
  */
 class CRM_Contact_Form_Search_Custom_SampleTest extends CiviUnitTestCase {
   protected $_tablesToTruncate = array(
@@ -84,8 +84,6 @@ class CRM_Contact_Form_Search_Custom_SampleTest extends CiviUnitTestCase {
    * @throws \Exception
    */
   public function testCount($fv, $count, $ids, $full) {
-    $this->foreignKeyChecksOff();
-
     $this->quickCleanup($this->_tablesToTruncate);
 
     // echo "testCount\n";
@@ -124,7 +122,7 @@ class CRM_Contact_Form_Search_Custom_SampleTest extends CiviUnitTestCase {
       )
     );
     $obj = new CRM_Contact_Form_Search_Custom_Sample($fv);
-    $sql = $obj->all();
+    $sql = $obj->all(0, 0, 'contact_id');
     $this->assertTrue(is_string($sql));
     $dao = CRM_Core_DAO::executeQuery($sql);
     $all = array();

@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -25,10 +25,9 @@
  +--------------------------------------------------------------------+
  */
 
-require_once 'tests/phpunit/CiviTest/CiviUnitTestCase.php';
-
 /**
  * Class contains api test cases for "civicrm_note"
+ * @group headless
  */
 class api_v3_NoteTest extends CiviUnitTestCase {
 
@@ -138,10 +137,6 @@ class api_v3_NoteTest extends CiviUnitTestCase {
     $this->assertEquals(date('Y-m-d', strtotime($this->_params['modified_date'])), date('Y-m-d', strtotime($result['values'][$result['id']]['modified_date'])));
 
     $this->assertArrayHasKey('id', $result);
-    $note = array(
-      'id' => $result['id'],
-    );
-    $this->noteDelete($note);
   }
 
   public function testCreateWithApostropheInString() {
@@ -159,12 +154,6 @@ class api_v3_NoteTest extends CiviUnitTestCase {
     $this->assertEquals($result['values'][0]['note'], "Hello!!! ' testing Note");
     $this->assertEquals($result['values'][0]['subject'], "With a '");
     $this->assertArrayHasKey('id', $result);
-
-    //CleanUP
-    $note = array(
-      'id' => $result['id'],
-    );
-    $this->noteDelete($note);
   }
 
   /**
@@ -175,9 +164,6 @@ class api_v3_NoteTest extends CiviUnitTestCase {
     $apiResult = $this->callAPISuccess('note', 'create', $this->_params);
     $this->assertAPISuccess($apiResult);
     $this->assertEquals(date('Y-m-d'), date('Y-m-d', strtotime($apiResult['values'][$apiResult['id']]['modified_date'])));
-    $this->noteDelete(array(
-      'id' => $apiResult['id'],
-    ));
   }
 
   /**
@@ -242,9 +228,9 @@ class api_v3_NoteTest extends CiviUnitTestCase {
    */
   public function testDeleteWithWrongID() {
     $params = array(
-      'id' => 0,
+      'id' => 99999,
     );
-    $this->callAPIFailure('note', 'delete', $params, 'Mandatory key(s) missing from params array: id');
+    $this->callAPIFailure('note', 'delete', $params, 'Error while deleting Note');
   }
 
   /**
@@ -258,6 +244,32 @@ class api_v3_NoteTest extends CiviUnitTestCase {
     );
 
     $this->callAPIAndDocument('note', 'delete', $params, __FUNCTION__, __FILE__);
+  }
+
+  public function testNoteJoin() {
+    $org = $this->callAPISuccess('Contact', 'create', array(
+      'contact_type' => 'Organization',
+      'organization_name' => 'Org123',
+      'api.Note.create' => array(
+        'note' => 'Hello join',
+      ),
+    ));
+    // Fetch contact info via join
+    $result = $this->callAPISuccessGetSingle('Note', array(
+      'return' => array("entity_id.organization_name", "note"),
+      'entity_id' => $org['id'],
+      'entity_table' => "civicrm_contact",
+    ));
+    $this->assertEquals('Org123', $result['entity_id.organization_name']);
+    $this->assertEquals('Hello join', $result['note']);
+    // This should return no results by restricting contact_type
+    $result = $this->callAPISuccess('Note', 'get', array(
+      'return' => array("entity_id.organization_name"),
+      'entity_id' => $org['id'],
+      'entity_table' => "civicrm_contact",
+      'entity_id.contact_type' => "Individual",
+    ));
+    $this->assertEquals(0, $result['count']);
   }
 
 }

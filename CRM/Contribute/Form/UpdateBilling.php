@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -50,8 +50,6 @@ class CRM_Contribute_Form_UpdateBilling extends CRM_Core_Form {
    */
   public $_paymentProcessor = array();
 
-  public $_paymentProcessorObj = NULL;
-
   /**
    * Set variables up before form is built.
    */
@@ -60,7 +58,7 @@ class CRM_Contribute_Form_UpdateBilling extends CRM_Core_Form {
     $this->_crid = CRM_Utils_Request::retrieve('crid', 'Integer', $this, FALSE);
     if ($this->_crid) {
       $this->_paymentProcessor = CRM_Financial_BAO_PaymentProcessor::getProcessorForEntity($this->_crid, 'recur', 'info');
-      $this->_paymentProcessorObj = CRM_Financial_BAO_PaymentProcessor::getProcessorForEntity($this->_crid, 'recur', 'obj');
+      $this->_paymentProcessor['object'] = CRM_Financial_BAO_PaymentProcessor::getProcessorForEntity($this->_crid, 'recur', 'obj');
       $this->_subscriptionDetails = CRM_Contribute_BAO_ContributionRecur::getSubscriptionDetails($this->_crid);
 
       // Are we cancelling a recurring contribution that is linked to an auto-renew membership?
@@ -86,9 +84,7 @@ class CRM_Contribute_Form_UpdateBilling extends CRM_Core_Form {
       $this->_mode = 'auto_renew';
     }
 
-    if ((!$this->_crid && !$this->_coid && !$this->_mid) ||
-      ($this->_subscriptionDetails == CRM_Core_DAO::$_nullObject)
-    ) {
+    if ((!$this->_crid && !$this->_coid && !$this->_mid) || (!$this->_subscriptionDetails)) {
       CRM_Core_Error::fatal('Required information missing.');
     }
     if (!CRM_Core_Permission::check('edit contributions')) {
@@ -119,16 +115,10 @@ class CRM_Contribute_Form_UpdateBilling extends CRM_Core_Form {
   }
 
   /**
-   * This virtual function is used to set the default values of
-   * various form elements
-   *
-   * access        public
+   * Set the default values of various form elements.
    *
    * @return array
-   *   reference to the array of default values
-   */
-  /**
-   * @return array
+   *   Default values
    */
   public function setDefaultValues() {
     $this->_defaults = array();
@@ -211,7 +201,7 @@ class CRM_Contribute_Form_UpdateBilling extends CRM_Core_Form {
    *   The input form values.
    * @param array $files
    *   The uploaded files if any.
-   * @param $self
+   * @param CRM_Core_Form $self
    *
    *
    * @return bool|array
@@ -252,9 +242,7 @@ class CRM_Contribute_Form_UpdateBilling extends CRM_Core_Form {
     $processorParams['year'] = $processorParams['credit_card_exp_date']['Y'];
     $processorParams['subscriptionId'] = $this->_subscriptionDetails->subscription_id;
     $processorParams['amount'] = $this->_subscriptionDetails->amount;
-
-    $updateSubscription = $this->_paymentProcessorObj->updateSubscriptionBillingInfo($message, $processorParams);
-
+    $updateSubscription = $this->_paymentProcessor['object']->updateSubscriptionBillingInfo($message, $processorParams);
     if (is_a($updateSubscription, 'CRM_Core_Error')) {
       CRM_Core_Error::displaySessionError($updateSubscription);
     }

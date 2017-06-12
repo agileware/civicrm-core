@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,15 +28,14 @@
 /**
  *
  * @package CiviCRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  * $Id: $
  *
  */
 
-require_once 'CiviTest/CiviUnitTestCase.php';
-
 /**
  * Class CRM_Core_Config_MailerTest
+ * @group headless
  */
 class CRM_Core_Config_MailerTest extends CiviUnitTestCase {
 

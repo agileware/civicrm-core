@@ -2,7 +2,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -26,16 +26,15 @@
 
 {assign var='hideTotal' value=$quickConfig+$noCalcValueDisplay}
 <div id="pricesetTotal" class="crm-section section-pricesetTotal">
-  {if !$hideTotal}
-  <div class="label" id="pricelabel">
+  <div class="label
+  {if $hideTotal},  hiddenElement{/if}" id="pricelabel">
     <label>
       {if ( $extends eq 'Contribution' ) || ( $extends eq 'Membership' )}
-        {ts}Total Amount{/ts}{else}{ts}Total Fee(s){/ts}
-         {if $isAdditionalParticipants} {ts}for this participant{/ts}{/if}
+      <span id='amount_sum_label'>{ts}Total Amount{/ts}{else}{ts}Total Fee(s){/ts}</span>
+       {if $isAdditionalParticipants} {ts}for this participant{/ts}{/if}
       {/if}
     </label>
   </div>
-  {/if}
   <div class="content calc-value" {if $hideTotal}style="display:none;"{/if} id="pricevalue" ></div>
 </div>
 
@@ -46,7 +45,7 @@ var thousandMarker = '{/literal}{$config->monetaryThousandSeparator}{literal}';
 var separator      = '{/literal}{$config->monetaryDecimalPoint}{literal}';
 var symbol         = '{/literal}{$currencySymbol}{literal}';
 var optionSep      = '|';
-var priceSet = price = Array();
+
 cj("#priceset [price]").each(function () {
 
     var elementType =  cj(this).attr('type');
@@ -151,7 +150,8 @@ function calculateSelectLineItemValue(priceElement) {
  */
 function calculateText(priceElement) {
   //CRM-16034 - comma acts as decimal in price set text pricing
-  var textval = parseFloat(cj(priceElement).val().replace(thousandMarker, ''));
+  //CRM-19937 - dollar sign easy mistake to make by users.
+  var textval = parseFloat(cj(priceElement).val().replace(thousandMarker, '').replace(symbol, ''));
 
   if (isNaN(textval)) {
     textval = parseFloat(0);
@@ -185,13 +185,14 @@ function display(totalfee) {
     totalfee = Math.round(totalfee*100)/100;
     var totalEventFee  = formatMoney( totalfee, 2, separator, thousandMarker);
     document.getElementById('pricevalue').innerHTML = "<b>"+symbol+"</b> "+totalEventFee;
-    scriptfee   = totalfee;
 
     cj('#total_amount').val( totalfee );
     cj('#pricevalue').data('raw-total', totalfee).trigger('change');
 
     ( totalfee < 0 ) ? cj('table#pricelabel').addClass('disabled') : cj('table#pricelabel').removeClass('disabled');
     if (typeof skipPaymentMethod == 'function') {
+      // Advice to anyone who, like me, feels hatred towards this if construct ... if you remove the if you
+      // get an error on participant 2 of a event that requires approval & permits multiple registrants.
       skipPaymentMethod();
     }
 }

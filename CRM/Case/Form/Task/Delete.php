@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -65,7 +65,7 @@ class CRM_Case_Form_Task_Delete extends CRM_Case_Form_Task {
    * Build the form object.
    */
   public function buildQuickForm() {
-    $this->addDefaultButtons(ts('Delete Cases'), 'done');
+    $this->addDefaultButtons(ts('Delete cases'), 'done');
   }
 
   /**

@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 require_once 'HTML/QuickForm/Rule/Email.php';
@@ -82,6 +82,84 @@ class CRM_Utils_Rule {
     // make sure it includes valid characters, alpha numeric and underscores
     if (!preg_match('/^[\w]+$/i', $str)) {
       return FALSE;
+    }
+
+    return TRUE;
+  }
+
+  /**
+   * Validate that a string is a valid MySQL column name or alias.
+   *
+   * @param $str
+   *
+   * @return bool
+   */
+  public static function mysqlColumnNameOrAlias($str) {
+    // Check not empty.
+    if (empty($str)) {
+      return FALSE;
+    }
+
+    // Ensure $str conforms to expected format. Not a complete expression of
+    // what MySQL permits; this should permit the formats CiviCRM generates.
+    //
+    // * Table name prefix is optional.
+    // * Table & column names & aliases:
+    //   * Composed of alphanumeric chars, underscore and hyphens.
+    //   * Maximum length of 64 chars.
+    //   * Optionally surrounded by backticks, in which case spaces also OK.
+    if (!preg_match('/^((`[\w- ]{1,64}`|[\w-]{1,64})\.)?(`[\w- ]{1,64}`|[\w-]{1,64})$/i', $str)) {
+      return FALSE;
+    }
+
+    return TRUE;
+  }
+
+  /**
+   * Validate that a string is ASC or DESC.
+   *
+   * Empty string should be treated as invalid and ignored => default = ASC.
+   *
+   * @param $str
+   * @return bool
+   */
+  public static function mysqlOrderByDirection($str) {
+    if (!preg_match('/^(asc|desc)$/i', $str)) {
+      return FALSE;
+    }
+
+    return TRUE;
+  }
+
+  /**
+   * Validate that a string is valid order by clause.
+   *
+   * @param $str
+   * @return bool
+   */
+  public static function mysqlOrderBy($str) {
+    $matches = array();
+    // Using the field function in order by is valid.
+    // Look for a string like field(contribution_status_id,3,4,6).
+    // or field(civicrm_contribution.contribution_status_id,3,4,6)
+    if (preg_match('/field\([a-z_.]+,[0-9,]+\)/', $str, $matches)) {
+      // We have checked these. Remove them as they will fail the next lot.
+      // Our check currently only permits numbers & no back ticks. If we get a
+      // need for strings or backticks we can add.
+      $str = str_replace($matches, '', $str);
+    }
+    $str = trim($str);
+    if (!empty($matches) && empty($str)) {
+      // nothing left to check after the field check.
+      return TRUE;
+    }
+    // Making a regex for a comma separated list is quite hard and not readable
+    // at all, so we split and loop over.
+    $parts = explode(',', $str);
+    foreach ($parts as $part) {
+      if (!preg_match('/^((`[\w-]{1,64}`|[\w-]{1,64})\.)?(`[\w-]{1,64}`|[\w-]{1,64})( (asc|desc))?$/i', trim($part))) {
+        return FALSE;
+      }
     }
 
     return TRUE;
@@ -636,7 +714,7 @@ class CRM_Utils_Rule {
    * @param string $value
    *   The value of the field we are checking.
    * @param array $options
-   *   The daoName and fieldName (optional ).
+   *   The daoName, fieldName (optional) and DomainID (optional).
    *
    * @return bool
    *   true if object exists
@@ -647,7 +725,7 @@ class CRM_Utils_Rule {
       $name = $options[2];
     }
 
-    return CRM_Core_DAO::objectExists($value, CRM_Utils_Array::value(0, $options), CRM_Utils_Array::value(1, $options), CRM_Utils_Array::value(2, $options, $name));
+    return CRM_Core_DAO::objectExists($value, CRM_Utils_Array::value(0, $options), CRM_Utils_Array::value(1, $options), CRM_Utils_Array::value(2, $options, $name), CRM_Utils_Array::value(3, $options));
   }
 
   /**
@@ -657,7 +735,7 @@ class CRM_Utils_Rule {
    * @return bool
    */
   public static function optionExists($value, $options) {
-    return CRM_Core_OptionValue::optionExists($value, $options[0], $options[1], $options[2], CRM_Utils_Array::value(3, $options, 'name'));
+    return CRM_Core_OptionValue::optionExists($value, $options[0], $options[1], $options[2], CRM_Utils_Array::value(3, $options, 'name'), CRM_Utils_Array::value(4, $options, FALSE));
   }
 
   /**
@@ -667,7 +745,6 @@ class CRM_Utils_Rule {
    * @return bool
    */
   public static function creditCardNumber($value, $type) {
-    require_once 'Validate/Finance/CreditCard.php';
     return Validate_Finance_CreditCard::number($value, $type);
   }
 
@@ -678,8 +755,6 @@ class CRM_Utils_Rule {
    * @return bool
    */
   public static function cvv($value, $type) {
-    require_once 'Validate/Finance/CreditCard.php';
-
     return Validate_Finance_CreditCard::cvv($value, $type);
   }
 
@@ -735,23 +810,6 @@ class CRM_Utils_Rule {
    */
   public static function settingPath($path) {
     return is_dir(Civi::paths()->getPath($path));
-  }
-
-  /**
-   * @param $value
-   * @param $options
-   *
-   * @return bool
-   */
-  public static function autocomplete($value, $options) {
-    if ($value) {
-      $selectOption = CRM_Core_BAO_CustomOption::valuesByID($options['fieldID'], $options['optionGroupID']);
-
-      if (!in_array($value, $selectOption)) {
-        return FALSE;
-      }
-    }
-    return TRUE;
   }
 
   /**
@@ -827,6 +885,27 @@ class CRM_Utils_Rule {
    */
   public static function qfKey($key) {
     return ($key) ? CRM_Core_Key::valid($key) : FALSE;
+  }
+
+  /**
+   * Check if the values in the date range are in correct chronological order.
+   *
+   * @param array $fields
+   *  Fields of the form.
+   * @param $fieldName
+   *  Name of date range field.
+   * @param $errors
+   *  The error array.
+   * @param $title
+   *  Title of the date range to be displayed in the error message.
+   */
+  public static function validDateRange($fields, $fieldName, &$errors, $title) {
+    $lowDate = strtotime($fields[$fieldName . '_low']);
+    $highDate = strtotime($fields[$fieldName . '_high']);
+
+    if ($lowDate > $highDate) {
+      $errors[$fieldName . '_range_error'] = ts('%1: Please check that your date range is in correct chronological order.', array(1 => $title));
+    }
   }
 
 }

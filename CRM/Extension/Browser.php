@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -30,7 +30,7 @@
  * system.
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 class CRM_Extension_Browser {
 
@@ -52,6 +52,9 @@ class CRM_Extension_Browser {
    * The name of the single JSON extension cache file.
    */
   const CACHE_JSON_FILE = 'extensions.json';
+
+  // timeout for when the connection or the server is slow
+  const CHECK_TIMEOUT = 5;
 
   /**
    * @param string $repoUrl
@@ -194,7 +197,7 @@ class CRM_Extension_Browser {
     }
 
     $this->_remotesDiscovered = array();
-    foreach ($remotes as $id => $xml) {
+    foreach ((array) $remotes as $id => $xml) {
       $ext = CRM_Extension_Info::loadFromString($xml);
       $this->_remotesDiscovered[] = $ext;
     }
@@ -213,8 +216,11 @@ class CRM_Extension_Browser {
    * @return string
    */
   private function grabCachedJson() {
-    $filename = $this->cacheDir . DIRECTORY_SEPARATOR . self::CACHE_JSON_FILE;
-    $json = file_get_contents($filename);
+    $filename = $this->cacheDir . DIRECTORY_SEPARATOR . self::CACHE_JSON_FILE . '.' . md5($this->getRepositoryUrl());
+    $json = NULL;
+    if (file_exists($filename)) {
+      $json = file_get_contents($filename);
+    }
     if (empty($json)) {
       $json = $this->grabRemoteJson();
     }
@@ -230,7 +236,7 @@ class CRM_Extension_Browser {
    */
   private function grabRemoteJson() {
 
-    ini_set('default_socket_timeout', CRM_Utils_VersionCheck::CHECK_TIMEOUT);
+    ini_set('default_socket_timeout', self::CHECK_TIMEOUT);
     set_error_handler(array('CRM_Extension_Browser', 'downloadError'));
 
     if (!ini_get('allow_url_fopen')) {
@@ -243,7 +249,7 @@ class CRM_Extension_Browser {
       return array();
     }
 
-    $filename = $this->cacheDir . DIRECTORY_SEPARATOR . self::CACHE_JSON_FILE;
+    $filename = $this->cacheDir . DIRECTORY_SEPARATOR . self::CACHE_JSON_FILE . '.' . md5($this->getRepositoryUrl());
     $url = $this->getRepositoryUrl() . $this->indexPath;
     $status = CRM_Utils_HttpClient::singleton()->fetch($url, $filename);
 

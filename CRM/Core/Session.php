@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -544,6 +544,21 @@ class CRM_Core_Session {
       return NULL;
     }
     return $session->get('userID');
+  }
+
+  /**
+   * Get display name of the logged in user.
+   *
+   * @return string
+   *
+   * @throws CiviCRM_API3_Exception
+   */
+  public function getLoggedInContactDisplayName() {
+    $userContactID = CRM_Core_Session::getLoggedInContactID();
+    if (!$userContactID) {
+      return '';
+    }
+    return civicrm_api3('Contact', 'getvalue', array('id' => $userContactID, 'return' => 'display_name'));
   }
 
   /**

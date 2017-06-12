@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,9 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
- * $Id$
- *
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -369,7 +367,7 @@ class CRM_Profile_Selector_Listings extends CRM_Core_Selector_Base implements CR
         }
       }
 
-      // if we dont have any valid columns, dont add the implicit ones
+      // if we don't have any valid columns, don't add the implicit ones
       // this allows the template to check on emptiness of column headers
       if ($empty) {
         self::$_columnHeaders = array();
@@ -612,9 +610,8 @@ class CRM_Profile_Selector_Listings extends CRM_Core_Selector_Base implements CR
 
       foreach ($names as $name) {
         if ($cfID = CRM_Core_BAO_CustomField::getKeyID($name)) {
-          $row[] = CRM_Core_BAO_CustomField::getDisplayValue($result->$name,
+          $row[] = CRM_Core_BAO_CustomField::displayValue($result->$name,
             $cfID,
-            $this->_options,
             $result->contact_id
           );
         }
@@ -793,7 +790,7 @@ class CRM_Profile_Selector_Listings extends CRM_Core_Selector_Base implements CR
     }
 
     //if the field is in selector and not a searchable field
-    //get the proper customvalue table name
+    //get the proper custom value table name
     if ($selectorSet) {
       $this->_multiRecordTableName
         = $multiRecordTableName = CRM_Core_DAO::getFieldValue('CRM_Core_DAO_CustomGroup', $customGroupId, 'table_name');

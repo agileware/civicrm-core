@@ -2,7 +2,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -65,6 +65,14 @@
 {htxt id="id-allow_multiple"}
 <p>{ts}Check this box to allow users to register themselves AND additional participants for an event. When this feature is enabled, users have the option to specify the number of additional participants they are registering for. If this is a paid event, they can select a different event fees for each participant - and will be charged the total of those fees. If a profile is included - they will complete the profile information for each participant.{/ts}</p>
 <p>{ts}You can use different profile for the person who is registering than for "Additional Participants". For example, you may want to require an email address from the person entering the registration while not requiring (or even requesting) emails for additional participants (i.e. their "guests").{/ts}</p>
+{/htxt}
+
+{htxt id="id-max_additional-title"}
+  {ts}Maximum Additional Participants{/ts}
+{/htxt}
+{htxt id="id-max_additional"}
+  <p>{ts}Limit the number of additional participants that can be registered in a single booking.{/ts}</p>
+  <p>{ts}Eg: if you choose '2' then the lead booker can bring 2 guests; there would be a limit of 3 participants in total per booking.{/ts}</p>
 {/htxt}
 
 {htxt id="id-allow_same_email-title"}

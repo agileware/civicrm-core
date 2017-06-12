@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  * $Id$
  *
  */
@@ -169,7 +169,6 @@ class CRM_Member_Form_MembershipView extends CRM_Core_Form {
       else {
         $this->assign('noACL', TRUE);
       }
-      $this->assign('financialTypeId', $finType);
       $membershipType = CRM_Member_BAO_MembershipType::getMembershipTypeDetails($values['membership_type_id']);
 
       // Do the action on related Membership if needed
@@ -378,8 +377,8 @@ SELECT r.id, c.id as cid, c.display_name as name, c.job_title as comment,
 
       $memType = CRM_Core_DAO::getFieldValue("CRM_Member_DAO_Membership", $id, "membership_type_id");
 
-      $groupTree = CRM_Core_BAO_CustomGroup::getTree('Membership', $this, $id, 0, $memType);
-      CRM_Core_BAO_CustomGroup::buildCustomDataView($this, $groupTree);
+      $groupTree = CRM_Core_BAO_CustomGroup::getTree('Membership', NULL, $id, 0, $memType);
+      CRM_Core_BAO_CustomGroup::buildCustomDataView($this, $groupTree, FALSE, NULL, NULL, NULL, $id);
 
       $isRecur = CRM_Core_DAO::getFieldValue('CRM_Member_DAO_Membership', $id, 'contribution_recur_id');
 
@@ -409,14 +408,13 @@ SELECT r.id, c.id as cid, c.display_name as name, c.job_title as comment,
    */
   public function buildQuickForm() {
     $this->addButtons(array(
-        array(
-          'type' => 'cancel',
-          'name' => ts('Done'),
-          'spacing' => '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;',
-          'isDefault' => TRUE,
-        ),
-      )
-    );
+      array(
+        'type' => 'cancel',
+        'name' => ts('Done'),
+        'spacing' => '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;',
+        'isDefault' => TRUE,
+      ),
+    ));
   }
 
 }

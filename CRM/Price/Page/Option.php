@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  * $Id$
  *
  */
@@ -79,7 +79,7 @@ class CRM_Price_Page_Option extends CRM_Core_Page {
    * @return array
    *   array of action links that we need to display for the browse screen
    */
-  public function &actionLinks() {
+  public static function &actionLinks() {
     if (!isset(self::$_actionLinks)) {
       self::$_actionLinks = array(
         CRM_Core_Action::UPDATE => array(
@@ -121,8 +121,13 @@ class CRM_Price_Page_Option extends CRM_Core_Page {
    * @return void
    */
   public function browse() {
-    $customOption = array();
-    CRM_Price_BAO_PriceFieldValue::getValues($this->_fid, $customOption);
+    $priceOptions = civicrm_api3('PriceFieldValue', 'get', array(
+        'price_field_id' => $this->_fid,
+         // Explicitly do not check permissions so we are not
+         // restricted by financial type, so we can change them.
+        'check_permissions' => FALSE,
+    ));
+    $customOption = $priceOptions['values'];
 
     // CRM-15378 - check if these price options are in an Event price set
     $isEvent = FALSE;
@@ -134,7 +139,6 @@ class CRM_Price_Page_Option extends CRM_Core_Page {
     }
 
     $config = CRM_Core_Config::singleton();
-    $financialType = CRM_Contribute_PseudoConstant::financialType();
     $taxRate = CRM_Core_PseudoConstant::getTaxRates();
     // display taxTerm for priceFields
     $invoiceSettings = Civi::settings()->get('contribution_invoice_settings');
@@ -142,7 +146,7 @@ class CRM_Price_Page_Option extends CRM_Core_Page {
     $invoicing = CRM_Utils_Array::value('invoicing', $invoiceSettings);
     $getTaxDetails = FALSE;
     foreach ($customOption as $id => $values) {
-      $action = array_sum(array_keys($this->actionLinks()));
+      $action = array_sum(array_keys(self::actionLinks()));
       // Adding the required fields in the array
       if (isset($taxRate[$values['financial_type_id']])) {
         $customOption[$id]['tax_rate'] = $taxRate[$values['financial_type_id']];
@@ -152,7 +156,7 @@ class CRM_Price_Page_Option extends CRM_Core_Page {
         $taxAmount = CRM_Contribute_BAO_Contribution_Utils::calculateTaxAmount($customOption[$id]['amount'], $customOption[$id]['tax_rate']);
         $customOption[$id]['tax_amount'] = $taxAmount['tax_amount'];
       }
-      if (!empty($values['financial_type_id'])) {
+      if (!empty($values['financial_type_id']) && !empty($financialType[$values['financial_type_id']])) {
         $customOption[$id]['financial_type_id'] = $financialType[$values['financial_type_id']];
       }
       // update enable/disable links depending on price_field properties.

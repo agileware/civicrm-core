@@ -287,6 +287,11 @@ abstract class CRM_Utils_System_Base {
     return 'left';
   }
 
+  /**
+   * Get the absolute path to the site's base url.
+   *
+   * @return bool|mixed|string
+   */
   public function getAbsoluteBaseURL() {
     if (!defined('CIVICRM_UF_BASEURL')) {
       return FALSE;
@@ -304,6 +309,11 @@ abstract class CRM_Utils_System_Base {
     return $url;
   }
 
+  /**
+   * Get the relative path to the sites base url.
+   *
+   * @return bool
+   */
   public function getRelativeBaseURL() {
     $absoluteBaseURL = $this->getAbsoluteBaseURL();
     if ($absoluteBaseURL === FALSE) {
@@ -423,6 +433,13 @@ abstract class CRM_Utils_System_Base {
     throw new CRM_Core_Exception("Not implemented: {$className}->getUfId");
   }
 
+  /**
+   * Set the localisation from the user framework.
+   *
+   * @param string $civicrm_language
+   *
+   * @return bool
+   */
   public function setUFLocale($civicrm_language) {
     return TRUE;
   }
@@ -691,7 +708,7 @@ abstract class CRM_Utils_System_Base {
   public function getTimeZoneOffset() {
     $timezone = $this->getTimeZoneString();
     if ($timezone) {
-      if ($timezone == 'UTC') {
+      if ($timezone == 'UTC' || $timezone == 'Etc/UTC') {
         // CRM-17072 Let's short-circuit all the zero handling & return it here!
         return '+00:00';
       }

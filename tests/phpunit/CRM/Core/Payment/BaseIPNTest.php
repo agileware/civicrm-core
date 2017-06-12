@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -25,11 +25,9 @@
  +--------------------------------------------------------------------+
  */
 
-
-require_once 'CiviTest/CiviUnitTestCase.php';
-
 /**
  * Class CRM_Core_Payment_BaseIPNTest
+ * @group headless
  */
 class CRM_Core_Payment_BaseIPNTest extends CiviUnitTestCase {
 
@@ -43,6 +41,19 @@ class CRM_Core_Payment_BaseIPNTest extends CiviUnitTestCase {
   protected $_processorId;
   protected $_contributionRecurParams;
   protected $_paymentProcessor;
+
+  /**
+   * Parameters to create a membership.
+   *
+   * @var array
+   */
+  protected $_membershipParams = array();
+
+  /**
+   * IPN instance.
+   *
+   * @var CRM_Core_Payment_BaseIPN
+   */
   protected $IPN;
   protected $_recurId;
   protected $_membershipId;
@@ -61,6 +72,9 @@ class CRM_Core_Payment_BaseIPNTest extends CiviUnitTestCase {
   protected $_membershipStatusID;
   public $DBResetRequired = FALSE;
 
+  /**
+   * Setup function.
+   */
   public function setUp() {
     parent::setUp();
     $this->_processorId = $this->paymentProcessorAuthorizeNetCreate(array('is_test' => 0));
@@ -90,6 +104,9 @@ class CRM_Core_Payment_BaseIPNTest extends CiviUnitTestCase {
     $this->objects['contribution'] = $contribution;
   }
 
+  /**
+   * Tear down after class.
+   */
   public function tearDown() {
     $this->quickCleanUpFinancialEntities();
     CRM_Member_PseudoConstant::membershipType(NULL, TRUE);
@@ -120,7 +137,11 @@ class CRM_Core_Payment_BaseIPNTest extends CiviUnitTestCase {
     $this->IPN->loadObjects($this->input, $this->ids, $this->objects, FALSE, $this->_processorId);
     $this->assertEquals('Anthony', $this->objects['contact']->first_name);
 
-    $this->ids['contact'] = $this->_contactId = $this->individualCreate(array('first_name' => 'Donald', 'last_name' => 'Duck', 'email' => 'the-don@duckville.com'));
+    $this->ids['contact'] = $this->_contactId = $this->individualCreate(array(
+      'first_name' => 'Donald',
+      'last_name' => 'Duck',
+      'email' => 'the-don@duckville.com,
+    '));
     $contribution = $this->callAPISuccess('contribution', 'create', array_merge($this->_contributionParams, array('invoice_id' => 'abc')));
     $this->_contributionId = $contribution['id'];
     $this->_setUpMembershipObjects();
@@ -248,7 +269,6 @@ class CRM_Core_Payment_BaseIPNTest extends CiviUnitTestCase {
   public function testsendMailParticipantObjectsCheckLog() {
     $this->_setUpParticipantObjects();
     $values = array();
-    require_once 'CiviTest/CiviMailUtils.php';
     $mut = new CiviMailUtils($this, TRUE);
     $this->IPN->loadObjects($this->input, $this->ids, $this->objects, FALSE, $this->_processorId);
     $this->IPN->sendMail($this->input, $this->ids, $this->objects, $values, FALSE, FALSE);
@@ -275,7 +295,6 @@ class CRM_Core_Payment_BaseIPNTest extends CiviUnitTestCase {
       'civicrm_mailing_spool',
     );
     $this->quickCleanup($tablesToTruncate, FALSE);
-    require_once 'CiviTest/CiviMailUtils.php';
     $mut = new CiviMailUtils($this, TRUE);
     $this->IPN->loadObjects($this->input, $this->ids, $this->objects, FALSE, $this->_processorId);
     $this->IPN->sendMail($this->input, $this->ids, $this->objects, $values, FALSE, FALSE);
@@ -340,7 +359,7 @@ class CRM_Core_Payment_BaseIPNTest extends CiviUnitTestCase {
   }
 
   /**
-   * Test that an error is returned if required set & no contribution page
+   * Test that an error is returned if required set & no contribution page.
    */
   public function testRequiredWithoutProcessorID() {
     $this->_setUpPledgeObjects();
@@ -596,8 +615,8 @@ class CRM_Core_Payment_BaseIPNTest extends CiviUnitTestCase {
       'event_id' => $this->_eventId,
       'contact_id' => $this->_contactId,
     ));
-    //we'll create membership payment here because to make setup more re-usable
-    $participantPayment = $this->callAPISuccess('participant_payment', 'create', array(
+
+    $this->callAPISuccess('participant_payment', 'create', array(
       'contribution_id' => $this->_contributionId,
       'participant_id' => $this->_participantId,
     ));
@@ -623,7 +642,7 @@ class CRM_Core_Payment_BaseIPNTest extends CiviUnitTestCase {
    * Set up participant requirements for test.
    */
   public function _setUpPledgeObjects() {
-    $this->_pledgeId = $this->pledgeCreate($this->_contactId);
+    $this->_pledgeId = $this->pledgeCreate(array('contact_id' => $this->_contactId));
     //we'll create membership payment here because to make setup more re-usable
     $pledgePayment = $this->callAPISuccess('pledge_payment', 'create', array(
       'version' => 3,

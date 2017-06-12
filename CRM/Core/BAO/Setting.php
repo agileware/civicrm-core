@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -64,7 +64,7 @@ class CRM_Core_BAO_Setting extends CRM_Core_DAO_Setting {
    * Retrieve the value of a setting from the DB table.
    *
    * @param string $group
-   *   (required) The group name of the item.
+   *   The group name of the item (deprecated).
    * @param string $name
    *   (required) The name under which this item is stored.
    * @param int $componentID
@@ -90,16 +90,14 @@ class CRM_Core_BAO_Setting extends CRM_Core_DAO_Setting {
     /** @var \Civi\Core\SettingsManager $manager */
     $manager = \Civi::service('settings_manager');
     $settings = ($contactID === NULL) ? $manager->getBagByDomain($domainID) : $manager->getBagByContact($domainID, $contactID);
-    if (TRUE) {
-      if ($name === NULL) {
-        CRM_Core_Error::debug_log_message("Deprecated: Group='$group'. Name should be provided.\n");
-      }
-      if ($componentID !== NULL) {
-        CRM_Core_Error::debug_log_message("Deprecated: Group='$group'. Name='$name'. Component should be omitted\n");
-      }
-      if ($defaultValue !== NULL) {
-        CRM_Core_Error::debug_log_message("Deprecated: Group='$group'. Name='$name'. Defaults should come from metadata\n");
-      }
+    if ($name === NULL) {
+      CRM_Core_Error::debug_log_message("Deprecated: Group='$group'. Name should be provided.\n");
+    }
+    if ($componentID !== NULL) {
+      CRM_Core_Error::debug_log_message("Deprecated: Group='$group'. Name='$name'. Component should be omitted\n");
+    }
+    if ($defaultValue !== NULL) {
+      CRM_Core_Error::debug_log_message("Deprecated: Group='$group'. Name='$name'. Defaults should come from metadata\n");
     }
     return $name ? $settings->get($name) : $settings->all();
   }
@@ -122,16 +120,10 @@ class CRM_Core_BAO_Setting extends CRM_Core_DAO_Setting {
     if (!empty($settingsToReturn) && !is_array($settingsToReturn)) {
       $settingsToReturn = array($settingsToReturn);
     }
-    $reloadConfig = FALSE;
 
     $fields = $result = array();
     $fieldsToGet = self::validateSettingsInput(array_flip($settingsToReturn), $fields, FALSE);
     foreach ($domains as $domainID) {
-      if ($domainID != CRM_Core_Config::domainID()) {
-        $reloadConfig = TRUE;
-        CRM_Core_BAO_Domain::setDomain($domainID);
-      }
-      $config = CRM_Core_Config::singleton($reloadConfig, $reloadConfig);
       $result[$domainID] = array();
       foreach ($fieldsToGet as $name => $value) {
         $contactID = CRM_Utils_Array::value('contact_id', $params);
@@ -142,7 +134,6 @@ class CRM_Core_BAO_Setting extends CRM_Core_DAO_Setting {
           $result[$domainID][$name] = $setting;
         }
       }
-      CRM_Core_BAO_Domain::resetDomain();
     }
     return $result;
   }
@@ -155,7 +146,7 @@ class CRM_Core_BAO_Setting extends CRM_Core_DAO_Setting {
    * @param object $value
    *   (required) The value that will be serialized and stored.
    * @param string $group
-   *   (required) The group name of the item.
+   *   The group name of the item (deprecated).
    * @param string $name
    *   (required) The name of the setting.
    * @param int $componentID
@@ -235,8 +226,6 @@ class CRM_Core_BAO_Setting extends CRM_Core_DAO_Setting {
    *   name => value array of the fields to be set (with extraneous removed)
    */
   public static function validateSettingsInput($params, &$fields, $createMode = TRUE) {
-    $group = CRM_Utils_Array::value('group', $params);
-
     $ignoredParams = array(
       'version',
       'id',
@@ -255,6 +244,14 @@ class CRM_Core_BAO_Setting extends CRM_Core_DAO_Setting {
       'check_permissions',
       'options',
       'prettyprint',
+      // CRM-18347: ignore params unintentionally passed by API explorer on WP
+      'page',
+      'noheader',
+      // CRM-18347: ignore params unintentionally passed by wp CLI tool
+      '',
+      // CRM-19877: ignore params extraneously passed by Joomla
+      'option',
+      'task',
     );
     $settingParams = array_diff_key($params, array_fill_keys($ignoredParams, TRUE));
     $getFieldsParams = array('version' => 3);
@@ -430,7 +427,7 @@ class CRM_Core_BAO_Setting extends CRM_Core_DAO_Setting {
   }
 
   /**
-   * @param $group
+   * @param $group (deprecated)
    * @param string $name
    * @param $value
    * @param bool $system

@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -55,7 +55,7 @@ class CRM_Contribute_Form_SoftCredit {
 
       //check if any honree profile is enabled if yes then assign its profile type to $_honoreeProfileType
       // which will be used to constraint soft-credit contact type in formRule, CRM-13981
-      if ($profileId[0]) {
+      if (!empty($profileId[0]) && !empty($profileId[2])) {
         $form->_honoreeProfileType = CRM_Core_BAO_UFGroup::getContactType($profileId[0]);
       }
     }
@@ -232,7 +232,7 @@ class CRM_Contribute_Form_SoftCredit {
       foreach ($fields['soft_credit_amount'] as $key => $val) {
         if (!empty($fields['soft_credit_contact_id'][$key])) {
           if ($repeat[$fields['soft_credit_contact_id'][$key]] > 1) {
-            $errors["soft_credit_contact[$key]"] = ts('You cannot enter multiple soft credits for the same contact.');
+            $errors["soft_credit_contact_id[$key]"] = ts('You cannot enter multiple soft credits for the same contact.');
           }
           if ($self->_action == CRM_Core_Action::ADD && $fields['soft_credit_amount'][$key]
             && (CRM_Utils_Rule::cleanMoney($fields['soft_credit_amount'][$key]) > CRM_Utils_Rule::cleanMoney($fields['total_amount']))
@@ -244,7 +244,7 @@ class CRM_Contribute_Form_SoftCredit {
           }
           $contactType = CRM_Contact_BAO_Contact::getContactType($fields['soft_credit_contact_id'][$key]);
           if ($self->_honoreeProfileType && $self->_honoreeProfileType != $contactType) {
-            $errors["soft_credit_contact[$key]"] = ts('Please choose a contact of type %1', array(1 => $self->_honoreeProfileType));
+            $errors["soft_credit_contact_id[$key]"] = ts('Please choose a contact of type %1', array(1 => $self->_honoreeProfileType));
           }
         }
       }

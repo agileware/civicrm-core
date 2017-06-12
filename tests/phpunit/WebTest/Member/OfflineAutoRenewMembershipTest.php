@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -110,6 +110,40 @@ class WebTest_Member_OfflineAutoRenewMembershipTest extends CiviSeleniumTestCase
         preg_quote($value)
       );
     }
+  }
+
+  /**
+   * CRM-18050: create price set with auto-renewing memberships.
+   */
+  public function testCreatePriceSetWithAutoRenewMembershipType() {
+    $this->webtestLogin();
+
+    // Create a membership type to use for this test
+    $periodType = 'rolling';
+    $duration_interval = 1;
+    $duration_unit = 'year';
+    $auto_renew = "required";
+    $priceSetTitle = 'Membership PriceSet' . substr(sha1(rand()), 0, 7);
+    $memTypeParams = $this->webtestAddMembershipType($periodType, $duration_interval, $duration_unit, $auto_renew);
+
+    // Create a price set with membership type.
+    $this->openCiviPage("admin/price", "reset=1&action=add", '_qf_Set_cancel-bottom');
+    $this->type('title', $priceSetTitle);
+    $this->click("xpath=//table[@class='form-layout']/tbody//tr/td[2]/label[text()='Membership']");
+    $this->select('financial_type_id', "value=2");
+    $this->click("_qf_Set_next-bottom");
+    $this->waitForAjaxContent();
+    $this->waitForElementPresent('is_active');
+    $fieldLablel = 'Field Label' . substr(sha1(rand()), 0, 7);
+    $this->type('label', $fieldLablel);
+    $this->select('html_type', "value=Radio");
+    $this->waitForAjaxContent();
+    $this->waitForElementPresent('membership_type_id[1]');
+    $this->select('membership_type_id[1]', "label={$memTypeParams['membership_type']}");
+    $this->waitForAjaxContent();
+    $this->click("xpath=//div[@class='ui-dialog-buttonset']//button//span[text()='Save']");
+    $this->waitForElementPresent('field_page');
+    $this->assertElementContainsText("xpath=//div[@id='crm-main-content-wrapper']/div[@id='field_page']/table/tbody/tr/td[1]/div", "{$fieldLablel}");
   }
 
 }

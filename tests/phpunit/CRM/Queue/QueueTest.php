@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -25,11 +25,9 @@
  +--------------------------------------------------------------------+
  */
 
-
-require_once 'CiviTest/CiviUnitTestCase.php';
-
 /**
  * Ensure that various queue implementations comply with the interface
+ * @group headless
  */
 class CRM_Queue_QueueTest extends CiviUnitTestCase {
 
@@ -192,7 +190,6 @@ class CRM_Queue_QueueTest extends CiviUnitTestCase {
     $this->queue = $this->queueService->create($queueSpec);
     $this->assertTrue($this->queue instanceof CRM_Queue_Queue);
 
-    require_once 'CRM/Utils/Time.php';
     CRM_Utils_Time::setTime('2012-04-01 1:00:00');
     $this->queue->createItem(array(
       'test-key' => 'a',

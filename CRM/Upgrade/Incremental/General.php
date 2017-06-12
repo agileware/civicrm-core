@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  * $Id$
  *
  */
@@ -37,7 +37,24 @@
  * This class contains generic upgrade logic which runs regardless of version.
  */
 class CRM_Upgrade_Incremental_General {
+
+  /**
+   * The recommended PHP version.
+   */
   const MIN_RECOMMENDED_PHP_VER = '5.5';
+
+  /**
+   * The minimum PHP version required to install Civi.
+   *
+   * @see install/index.php
+   */
+  const MIN_INSTALL_PHP_VER = '5.3.4';
+
+  /**
+   * The minimum PHP version required to avoid known
+   * limits or defects.
+   */
+  const MIN_DEFECT_PHP_VER = '5.3.23';
 
   /**
    * Compute any messages which should be displayed before upgrade.
@@ -49,16 +66,12 @@ class CRM_Upgrade_Incremental_General {
    */
   public static function setPreUpgradeMessage(&$preUpgradeMessage, $currentVer, $latestVer) {
     if (version_compare(phpversion(), self::MIN_RECOMMENDED_PHP_VER) < 0) {
-      $preUpgradeMessage .= '<br />' .
-        ts('This webserver is running an outdated version of PHP (%1). The recommended version is %2 or later.', array(
+      $preUpgradeMessage .= '<p>' .
+        ts('This webserver is running an outdated version of PHP (%1). It is strongly recommended to upgrade to PHP %2 or later, as older versions can present a security risk.', array(
           1 => phpversion(),
           2 => self::MIN_RECOMMENDED_PHP_VER,
         )) .
-        '<br />' .
-        ts('You may proceed with the upgrade and CiviCRM %1 will continue working normally, but future releases will require PHP %2.', array(
-          1 => $latestVer,
-          2 => self::MIN_RECOMMENDED_PHP_VER,
-        ));
+        '</p>';
     }
 
     // http://issues.civicrm.org/jira/browse/CRM-13572

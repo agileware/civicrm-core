@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -77,18 +77,19 @@ class WebTest_Contribute_OnlineMultiplePaymentProcessorTest extends CiviSelenium
     $this->type("first_name", $firstName);
     $this->type("last_name", $lastName);
 
-    $this->type("xpath=//div[@class='crm-section other_amount-section']//div[2]/input", 100);
+    $this->type("xpath=//div[@class='crm-section other_amount-section']//div/input", 100);
 
     $streetAddress = "100 Main Street";
     $this->type("street_address-1", $streetAddress);
     $this->type("city-1", "San Francisco");
     $this->type("postal_code-1", "94117");
     $this->select("country-1", "value=1228");
+    $this->waitForElementPresent("state_province-1");
     $this->select("state_province-1", "value=1001");
 
     $this->assertTrue($this->isTextPresent("Payment Method"));
-    $xpath = "xpath=//label[text() = '{$proProcessorName}']/preceding-sibling::input[1]";
-    $this->click($xpath);
+    $this->waitForElementPresent("xpath=//label[text() = '{$proProcessorName}']/preceding-sibling::input[1]");
+    $this->click("xpath=//label[text() = '{$proProcessorName}']/preceding-sibling::input[1]");
 
     $this->waitForElementPresent("credit_card_type");
 
@@ -160,13 +161,14 @@ class WebTest_Contribute_OnlineMultiplePaymentProcessorTest extends CiviSelenium
     $this->type("first_name", $firstName);
     $this->type("last_name", $lastName);
 
-    $this->type("xpath=//div[@class='crm-section other_amount-section']//div[2]/input", 100);
+    $this->type("xpath=//div[@class='crm-section other_amount-section']//div/input", 100);
 
     $streetAddress = "100 Main Street";
     $this->type("street_address-1", $streetAddress);
     $this->type("city-1", "San Francisco");
     $this->type("postal_code-1", "94117");
     $this->select("country-1", "value=1228");
+    $this->waitForElementPresent("state_province-1");
     $this->select("state_province-1", "value=1001");
 
     $this->assertTrue($this->isTextPresent("Payment Method"));
@@ -179,20 +181,20 @@ class WebTest_Contribute_OnlineMultiplePaymentProcessorTest extends CiviSelenium
     $this->waitForElementPresent("xpath=//div[@class='bold pay_later_receipt-section']");
 
     $payLaterInstructionsText = "Pay later instructions $hash";
-    $this->verifyText("xpath=//div[@class='bold pay_later_receipt-section']/p", $payLaterInstructionsText);
+    $this->assertElementContainsText("xpath=//div[@class='bold pay_later_receipt-section']/p", $payLaterInstructionsText);
     $this->click("_qf_Confirm_next-bottom");
 
     $this->waitForElementPresent("xpath=//div[@class='help']/div/p");
-    $this->verifyText("xpath=//div[@class='help']/div/p", $payLaterInstructionsText);
+    $this->assertElementContainsText("xpath=//div[@class='help']/div/p", $payLaterInstructionsText);
 
     //login to check contribution
     $this->openCiviPage("contribute/search", "reset=1", 'contribution_date_low');
-
+    $this->waitForAjaxContent();
     $this->type('sort_name', "$lastName $firstName");
     $this->check('contribution_test');
     $this->click('_qf_Search_refresh');
-    $this->waitForElementPresent("xpath=//div[@id='contributionSearch']/table/tbody/tr[1]/td[11]/span/a[text()='View']");
-    $this->click("xpath=//div[@id='contributionSearch']/table/tbody/tr[1]/td[11]/span/a[text()='View']");
+    $this->waitForElementPresent("xpath=//table[@class='selector row-highlight']/tbody/tr[1]/td[10]/span//a[text()='View']");
+    $this->click("xpath=//table[@class='selector row-highlight']/tbody/tr[1]/td[10]/span//a[text()='View']");
     $this->waitForElementPresent("_qf_ContributionView_cancel-bottom");
     $expected = array(
       'From' => "{$firstName} {$lastName}",

@@ -35,7 +35,7 @@
     <comment>FK to Contact ID</comment>
     <add>1.5</add>
     <html>
-      <type>Autocomplete-Select</type>
+      <type>EntityRef</type>
     </html>
   </field>
   <foreignKey>
@@ -82,6 +82,7 @@
     <add>1.5</add>
     <html>
       <type>Select Date</type>
+      <formatType>activityDate</formatType>
     </html>
   </field>
   <field>
@@ -96,6 +97,7 @@
     <add>1.5</add>
     <html>
       <type>Select Date</type>
+      <formatType>activityDate</formatType>
     </html>
   </field>
   <field>
@@ -110,6 +112,7 @@
     <add>1.5</add>
     <html>
       <type>Select Date</type>
+      <formatType>activityDate</formatType>
     </html>
   </field>
   <field>

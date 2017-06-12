@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -312,13 +312,6 @@ class CRM_Contact_Form_Contact extends CRM_Core_Form {
     $this->assign('contactType', $this->_contactType);
     $this->assign('contactSubType', $this->_contactSubType);
 
-    //build contact subtype form element, CRM-6864
-    $buildContactSubType = TRUE;
-    if ($this->_contactSubType && ($this->_action & CRM_Core_Action::ADD)) {
-      $buildContactSubType = FALSE;
-    }
-    $this->assign('buildContactSubType', $buildContactSubType);
-
     // get the location blocks.
     $this->_blocks = $this->get('blocks');
     if (CRM_Utils_System::isNull($this->_blocks)) {
@@ -355,7 +348,7 @@ class CRM_Contact_Form_Contact extends CRM_Core_Form {
           //loop the group
           for ($i = 0; $i <= $groupCount; $i++) {
             CRM_Custom_Form_CustomData::preProcess($this, NULL, $contactSubType,
-              $i, $this->_contactType
+              $i, $this->_contactType, $this->_contactId
             );
             CRM_Contact_Form_Edit_CustomData::buildQuickForm($this);
           }
@@ -381,7 +374,7 @@ class CRM_Contact_Form_Contact extends CRM_Core_Form {
         $this->assign('paramSubType', $paramSubType);
       }
 
-      if (CRM_Utils_Request::retrieve('type', 'String', CRM_Core_DAO::$_nullObject)) {
+      if (CRM_Utils_Request::retrieve('type', 'String')) {
         CRM_Contact_Form_Edit_CustomData::preProcess($this);
       }
       else {
@@ -447,13 +440,7 @@ class CRM_Contact_Form_Contact extends CRM_Core_Form {
     CRM_Contact_Form_Edit_Address::setDefaultValues($defaults, $this);
 
     if (!empty($defaults['image_URL'])) {
-      list($imageWidth, $imageHeight) = getimagesize(CRM_Utils_String::unstupifyUrl($defaults['image_URL']));
-      list($imageThumbWidth, $imageThumbHeight) = CRM_Contact_BAO_Contact::getThumbSize($imageWidth, $imageHeight);
-      $this->assign('imageWidth', $imageWidth);
-      $this->assign('imageHeight', $imageHeight);
-      $this->assign('imageThumbWidth', $imageThumbWidth);
-      $this->assign('imageThumbHeight', $imageThumbHeight);
-      $this->assign('imageURL', $defaults['image_URL']);
+      $this->assign("imageURL", CRM_Utils_File::getImageURL($defaults['image_URL']));
     }
 
     //set location type and country to default for each block
@@ -781,9 +768,8 @@ class CRM_Contact_Form_Contact extends CRM_Core_Form {
         'options' => $subtypes,
         'class' => $buildCustomData,
         'multiple' => 'multiple',
-        'options-url' => FALSE,
-          )
-      );
+        'option_url' => NULL,
+      ));
     }
 
     // build edit blocks ( custom data, demographics, communication preference, notes, tags and groups )
@@ -808,7 +794,7 @@ class CRM_Contact_Form_Contact extends CRM_Core_Form {
     CRM_Contact_Form_Location::buildQuickForm($this);
 
     // add attachment
-    $this->addField('image_URL', array('maxlength' => '60', 'label' => ts('Browse/Upload Image')));
+    $this->addField('image_URL', array('maxlength' => '255', 'label' => ts('Browse/Upload Image')));
 
     // add the dedupe button
     $this->addElement('submit',
@@ -1144,8 +1130,7 @@ class CRM_Contact_Form_Contact extends CRM_Core_Form {
     // if this is a forced save, ignore find duplicate rule
     if (empty($fields['_qf_Contact_upload_duplicate'])) {
 
-      $dedupeParams = CRM_Dedupe_Finder::formatParams($fields, $contactType);
-      $ids = CRM_Dedupe_Finder::dupesByParams($dedupeParams, $contactType, 'Supervised', array($contactID));
+      $ids = CRM_Contact_BAO_Contact::getDuplicateContacts($fields, $contactType, 'Supervised', array($contactID));
       if ($ids) {
 
         $contactLinks = CRM_Contact_BAO_Contact_Utils::formatContactIDSToLinks($ids, TRUE, TRUE, $contactID);
@@ -1178,14 +1163,14 @@ class CRM_Contact_Form_Contact extends CRM_Core_Form {
         for ($i = 0; $i < count($contactLinks['rows']); $i++) {
           $row .= '  <tr>   ';
           $row .= '    <td class="matching-contacts-name"> ';
-          $row .= $contactLinks['rows'][$i]['display_name'];
+          $row .= CRM_Utils_Array::value('display_name', $contactLinks['rows'][$i]);
           $row .= '    </td>';
           $row .= '    <td class="matching-contacts-email"> ';
-          $row .= $contactLinks['rows'][$i]['primary_email'];
+          $row .= CRM_Utils_Array::value('primary_email', $contactLinks['rows'][$i]);
           $row .= '    </td>';
           $row .= '    <td class="action-items"> ';
-          $row .= $contactLinks['rows'][$i]['view'];
-          $row .= $contactLinks['rows'][$i]['edit'];
+          $row .= CRM_Utils_Array::value('view', $contactLinks['rows'][$i]);
+          $row .= CRM_Utils_Array::value('edit', $contactLinks['rows'][$i]);
           $row .= CRM_Utils_Array::value('merge', $contactLinks['rows'][$i]);
           $row .= '    </td>';
           $row .= '  </tr>   ';
@@ -1289,6 +1274,13 @@ class CRM_Contact_Form_Contact extends CRM_Core_Form {
             'street_unit',
           ))) {
             $streetAddress .= ' ';
+          }
+          // CRM-17619 - if the street number suffix begins with a number, add a space
+          $thesuffix = CRM_Utils_Array::value('street_number_suffix', $address);
+          if ($fld === 'street_number_suffix' && $thesuffix) {
+            if (ctype_digit(substr($thesuffix, 0, 1))) {
+              $streetAddress .= ' ';
+            }
           }
           $streetAddress .= CRM_Utils_Array::value($fld, $address);
         }

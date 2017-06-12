@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2015
+ * @copyright CiviCRM LLC (c) 2004-2017
  */
 
 /**
@@ -69,9 +69,9 @@ class CRM_Activity_Form_Task_PickProfile extends CRM_Activity_Form_Task {
     // Validations.
     if (count($this->_activityHolderIds) > $this->_maxActivities) {
       CRM_Core_Session::setStatus(ts("The maximum number of activities you can select for Update multiple activities is %1. You have selected %2. Please select fewer Activities from your search results and try again.", array(
-            1 => $this->_maxActivities,
-            2 => count($this->_activityHolderIds),
-          )), ts('Maximum Exceeded'), 'error');
+        1 => $this->_maxActivities,
+        2 => count($this->_activityHolderIds),
+      )), ts('Maximum Exceeded'), 'error');
       $validate = TRUE;
     }
 

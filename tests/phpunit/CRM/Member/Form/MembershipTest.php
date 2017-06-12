@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2015                                |
+ | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -34,16 +34,10 @@
  */
 
 /**
- *  Include class definitions
- */
-require_once 'CiviTest/CiviUnitTestCase.php';
-
-require_once 'HTML/QuickForm/Page.php';
-
-/**
  *  Test CRM_Member_Form_Membership functions.
  *
  * @package   CiviCRM
+ * @group headless
  */
 class CRM_Member_Form_MembershipTest extends CiviUnitTestCase {
 
@@ -86,6 +80,11 @@ class CRM_Member_Form_MembershipTest extends CiviUnitTestCase {
    * @var array
    */
   protected $paymentInstruments = array();
+
+  /**
+   * @var CiviMailUtils
+   */
+  protected $mut;
 
   /**
    * Test setup for every test.
@@ -432,6 +431,8 @@ class CRM_Member_Form_MembershipTest extends CiviUnitTestCase {
    */
   public function testSubmit() {
     $form = $this->getForm();
+    $form->preProcess();
+    $this->mut = new CiviMailUtils($this, TRUE);
     $form->_mode = 'test';
     $this->createLoggedInUser();
     $params = array(
@@ -450,7 +451,6 @@ class CRM_Member_Form_MembershipTest extends CiviUnitTestCase {
       'soft_credit_type_id' => '',
       'soft_credit_contact_id' => '',
       'from_email_address' => '"Demonstrators Anonymous" <info@example.org>',
-      'receipt_text_signup' => 'Thank you text',
       'payment_processor_id' => $this->_paymentProcessorID,
       'credit_card_number' => '4111111111111111',
       'cvv2' => '123',
@@ -466,6 +466,8 @@ class CRM_Member_Form_MembershipTest extends CiviUnitTestCase {
       'billing_state_province_id-5' => '1003',
       'billing_postal_code-5' => '90210',
       'billing_country_id-5' => '1228',
+      'send_receipt' => TRUE,
+      'receipt_text' => 'Receipt text',
     );
     $form->_contactID = $this->_individualId;
     $form->testSubmit($params);
@@ -476,11 +478,38 @@ class CRM_Member_Form_MembershipTest extends CiviUnitTestCase {
       'is_test' => TRUE,
     ));
 
+    //CRM-20264 : Check that CC type and number (last 4 digit) is stored during backoffice membership payment
+    $lastFinancialTrxnId = CRM_Core_BAO_FinancialTrxn::getFinancialTrxnId($contribution['id'], 'DESC');
+    $financialTrxn = $this->callAPISuccessGetSingle(
+      'FinancialTrxn',
+      array(
+        'id' => $lastFinancialTrxnId['financialTrxnId'],
+        'return' => array('card_type_id', 'pan_truncation'),
+      )
+    );
+    $this->assertEquals(1, $financialTrxn['card_type_id']);
+    $this->assertEquals(1111, $financialTrxn['pan_truncation']);
+
     $this->callAPISuccessGetCount('LineItem', array(
       'entity_id' => $membership['id'],
       'entity_table' => 'civicrm_membership',
       'contribution_id' => $contribution['id'],
     ), 1);
+
+    $this->_checkFinancialRecords(array(
+      'id' => $contribution['id'],
+      'total_amount' => 50,
+      'financial_account_id' => 2,
+      'payment_instrument_id' => $this->callAPISuccessGetValue('PaymentProcessor', array(
+        'id' => $this->_paymentProcessorID,
+        'return' => 'payment_instrument_id',
+      )),
+    ), 'online');
+    $this->mut->checkMailLog(array(
+      '50',
+      'Receipt text',
+    ));
+    $this->mut->stop();
   }
 
   /**
@@ -518,10 +547,54 @@ class CRM_Member_Form_MembershipTest extends CiviUnitTestCase {
   }
 
   /**
+   * Test membership form with Failed Contribution.
+   */
+  public function testFormStatusUpdate() {
+    $form = $this->getForm();
+    $form->preProcess();
+    $this->_individualId = $this->createLoggedInUser();
+    $memParams = array(
+      'contact_id' => $this->_individualId,
+      'membership_type_id' => $this->membershipTypeAnnualFixedID,
+      'is_override' => TRUE,
+      'status_id' => array_search('Cancelled', CRM_Member_PseudoConstant::membershipStatus()),
+    );
+    $params = $this->getBaseSubmitParams();
+    $params['id'] = $this->contactMembershipCreate($memParams);
+    unset($params['price_set_id']);
+    unset($params['credit_card_number']);
+    unset($params['cvv2']);
+    unset($params['credit_card_exp_date']);
+    unset($params['credit_card_type']);
+    unset($params['send_receipt']);
+    unset($params['is_recur']);
+
+    // process date params to mysql date format.
+    $dateTypes = array(
+      'join_date' => 'joinDate',
+      'start_date' => 'startDate',
+      'end_date' => 'endDate',
+    );
+    $previousStatus = CRM_Core_DAO::getFieldValue('CRM_Member_DAO_Membership', $params['id'], 'status_id');
+    foreach ($dateTypes as $dateField => $dateVariable) {
+      $params[$dateField] = CRM_Core_DAO::getFieldValue('CRM_Member_DAO_Membership', $params['id'], $dateField);
+    }
+    $form->_id = $params['id'];
+    $form->_mode = NULL;
+    $form->_contactID = $this->_individualId;
+
+    $form->testSubmit($params);
+    $membership = $this->callAPISuccessGetSingle('Membership', array('contact_id' => $this->_individualId));
+    //Assert the status remains when the form dates are not modified.
+    $this->assertEquals($membership['status_id'], $previousStatus);
+  }
+
+  /**
    * Test the submit function of the membership form.
    */
   public function testSubmitPayLaterWithBilling() {
     $form = $this->getForm(NULL);
+    $form->preProcess();
     $this->createLoggedInUser();
     $params = array(
       'cid' => $this->_individualId,
@@ -581,13 +654,14 @@ class CRM_Member_Form_MembershipTest extends CiviUnitTestCase {
    */
   public function testSubmitRecurCompleteInstant() {
     $form = $this->getForm();
-
+    $mut = new CiviMailUtils($this, TRUE);
     $processor = Civi\Payment\System::singleton()->getById($this->_paymentProcessorID);
     $processor->setDoDirectPaymentResult(array(
       'payment_status_id' => 1,
       'trxn_id' => 'kettles boil water',
       'fee_amount' => .14,
     ));
+    $processorDetail = $processor->getPaymentProcessor();
     $this->callAPISuccess('MembershipType', 'create', array(
       'id' => $this->membershipTypeAnnualFixedID,
       'duration_unit' => 'month',
@@ -610,13 +684,64 @@ class CRM_Member_Form_MembershipTest extends CiviUnitTestCase {
 
     $this->assertEquals(.14, $contribution['fee_amount']);
     $this->assertEquals('kettles boil water', $contribution['trxn_id']);
+    $this->assertEquals($processorDetail['payment_instrument_id'], $contribution['payment_instrument_id']);
 
     $this->callAPISuccessGetCount('LineItem', array(
       'entity_id' => $membership['id'],
       'entity_table' => 'civicrm_membership',
       'contribution_id' => $contribution['id'],
     ), 1);
+    $mut->checkMailLog(array(
+        '===========================================================
+Billing Name and Address
+===========================================================
+Test
+10 Test St
+Test, AR 90210
+US',
+        '===========================================================
+Membership Information
+===========================================================
+Membership Type: AnnualFixed
+Membership Start Date: ',
+        '===========================================================
+Credit Card Information
+===========================================================
+Visa
+************1111
+Expires: ',
+      )
+    );
+    $mut->stop();
 
+  }
+
+  /**
+   * Test membership form with Failed Contribution.
+   */
+  public function testFormWithFailedContribution() {
+    $form = $this->getForm();
+    $form->preProcess();
+    $this->createLoggedInUser();
+    $params = $this->getBaseSubmitParams();
+    unset($params['price_set_id']);
+    unset($params['credit_card_number']);
+    unset($params['cvv2']);
+    unset($params['credit_card_exp_date']);
+    unset($params['credit_card_type']);
+    unset($params['send_receipt']);
+    unset($params['is_recur']);
+
+    $params['record_contribution'] = TRUE;
+    $params['contribution_status_id'] = array_search('Failed', CRM_Contribute_PseudoConstant::contributionStatus(NULL, 'name'));
+    $form->_mode = NULL;
+    $form->_contactID = $this->_individualId;
+
+    $form->testSubmit($params);
+    $membership = $this->callAPISuccessGetSingle('Membership', array('contact_id' => $this->_individualId));
+    $form->testSubmit($params);
+    $membership = $this->callAPISuccessGetSingle('Membership', array('contact_id' => $this->_individualId));
+    $this->assertEquals($membership['status_id'], array_search('Pending', CRM_Member_PseudoConstant::membershipStatus()));
   }
 
   /**
@@ -630,7 +755,6 @@ class CRM_Member_Form_MembershipTest extends CiviUnitTestCase {
     $form = new CRM_Member_Form_Membership();
     $_SERVER['REQUEST_METHOD'] = 'GET';
     $form->controller = new CRM_Core_Controller();
-    $form->_bltID = 5;
     return $form;
   }
 
@@ -673,6 +797,7 @@ class CRM_Member_Form_MembershipTest extends CiviUnitTestCase {
       'billing_state_province_id-5' => '1003',
       'billing_postal_code-5' => '90210',
       'billing_country_id-5' => '1228',
+      'send_receipt' => 1,
     );
     return $params;
   }

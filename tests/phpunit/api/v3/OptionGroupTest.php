@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
 | CiviCRM version 4.7                                                |
 +--------------------------------------------------------------------+
-| Copyright CiviCRM LLC (c) 2004-2015                                |
+| Copyright CiviCRM LLC (c) 2004-2017                                |
 +--------------------------------------------------------------------+
 | This file is a part of CiviCRM.                                    |
 |                                                                    |
@@ -25,10 +25,9 @@
 +--------------------------------------------------------------------+
  */
 
-require_once 'CiviTest/CiviUnitTestCase.php';
-
 /**
  * Class api_v3_OptionGroupTest
+ * @group headless
  */
 class api_v3_OptionGroupTest extends CiviUnitTestCase {
   protected $_apiversion = 3;
@@ -168,6 +167,28 @@ class api_v3_OptionGroupTest extends CiviUnitTestCase {
   public function testDeleteOptionGroup() {
     $result = $this->callAPISuccess($this->_entity, 'create', $this->_params);
     $this->callAPIAndDocument('OptionGroup', 'delete', array('id' => $result['id']), __FUNCTION__, __FILE__);
+  }
+
+  /**
+   * Ensure only one option value exists after calling ensureOptionValueExists.
+   */
+  public function testEnsureOptionGroupExistsExistingValue() {
+    CRM_Core_BAO_OptionGroup::ensureOptionGroupExists(array('name' => 'participant_role'));
+    $this->callAPISuccessGetSingle('OptionGroup', array('name' => 'participant_role'));
+  }
+
+  /**
+   * Ensure only one option value exists adds a new value.
+   */
+  public function testEnsureOptionGroupExistsNewValue() {
+    $optionGroupID = CRM_Core_BAO_OptionGroup::ensureOptionGroupExists(array(
+      'name' => 'Bombed',
+      'title' => ts('Catastrophy'),
+      'description' => ts('blah blah'),
+      'is_reserved' => 1,
+    ));
+    $optionGroup = $this->callAPISuccessGetSingle('OptionGroup', array('name' => 'Bombed'));
+    $this->assertEquals($optionGroupID, $optionGroup['id']);
   }
 
 }

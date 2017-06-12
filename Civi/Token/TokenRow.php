@@ -1,6 +1,5 @@
 <?php
 namespace Civi\Token;
-use Civi\Token\Event\TokenRenderEvent;
 
 /**
  * Class TokenRow
@@ -72,7 +71,7 @@ class TokenRow {
 
   /**
    * @param string $format
-   * @return $this
+   * @return TokenRow
    */
   public function format($format) {
     $this->format = $format;
@@ -85,7 +84,7 @@ class TokenRow {
    *
    * @param string|array $a
    * @param mixed $b
-   * @return $this
+   * @return TokenRow
    */
   public function context($a = NULL, $b = NULL) {
     if (is_array($a)) {
@@ -106,7 +105,7 @@ class TokenRow {
    * @param string|array $a
    * @param string|array $b
    * @param mixed $c
-   * @return $this
+   * @return TokenRow
    */
   public function tokens($a = NULL, $b = NULL, $c = NULL) {
     if (is_array($a)) {
@@ -128,6 +127,29 @@ class TokenRow {
   }
 
   /**
+   * Update the value of a custom field token.
+   *
+   * @param string $entity
+   * @param int $customFieldID
+   * @param int $entityID
+   * @return TokenRow
+   */
+  public function customToken($entity, $customFieldID, $entityID) {
+    $customFieldName = "custom_" . $customFieldID;
+    $fieldValue = civicrm_api3($entity, 'getvalue', array(
+      'return' => $customFieldName,
+      'id' => $entityID,
+    ));
+
+    // format the raw custom field value into proper display value
+    if ($fieldValue) {
+      $fieldValue = \CRM_Core_BAO_CustomField::displayValue($fieldValue, $customFieldID);
+    }
+
+    return $this->tokens($entity, $customFieldName, $fieldValue);
+  }
+
+  /**
    * Update the value of a token. Apply formatting based on DB schema.
    *
    * @param string $tokenEntity
@@ -135,6 +157,8 @@ class TokenRow {
    * @param string $baoName
    * @param array $baoField
    * @param mixed $fieldValue
+   * @return TokenRow
+   * @throws \CRM_Core_Exception
    */
   public function dbToken($tokenEntity, $tokenField, $baoName, $baoField, $fieldValue) {
     if ($fieldValue === NULL || $fieldValue === '') {
@@ -172,7 +196,7 @@ class TokenRow {
    *
    * @param string $format
    *
-   * @return $this
+   * @return TokenRow
    */
   public function fill($format = NULL) {
     if ($format === NULL) {
@@ -195,7 +219,15 @@ class TokenRow {
         foreach ($textTokens as $entity => $values) {
           foreach ($values as $field => $value) {
             if (!isset($htmlTokens[$entity][$field])) {
-              $htmlTokens[$entity][$field] = htmlentities($value);
+              // CRM-18420 - Activity Details Field are enclosed within <p>,
+              // hence if $body_text is empty, htmlentities will lead to
+              // conversion of these tags resulting in raw HTML.
+              if ($entity == 'activity' && $field == 'details') {
+                $htmlTokens[$entity][$field] = $value;
+              }
+              else {
+                $htmlTokens[$entity][$field] = htmlentities($value);
+              }
             }
           }
         }
