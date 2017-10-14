@@ -683,8 +683,7 @@ abstract class CRM_Core_Payment {
    *   field metadata
    */
   public function getPaymentFormFieldsMetadata() {
-    //@todo convert credit card type into an option value
-    $creditCardType = array('' => ts('- select -')) + CRM_Contribute_PseudoConstant::creditCard();
+    $creditCardType = array('' => ts('- select -')) + CRM_Core_Payment_Form::getCreditCardCSSNames();
     $isCVVRequired = Civi::settings()->get('cvv_backoffice_required');
     if (!$this->isBackOffice()) {
       $isCVVRequired = TRUE;
