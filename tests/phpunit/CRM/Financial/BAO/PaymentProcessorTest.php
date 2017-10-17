@@ -49,14 +49,14 @@ class CRM_Financial_BAO_PaymentProcessorTest extends CiviUnitTestCase {
       'domain_id' => 1,
       'accepted_credit_cards' => json_encode(array(
         'Visa' => 'Visa',
-        'Mastercard' => 'Mastercard',
+        'MasterCard' => 'Mastercard',
         'Amex' => 'American Express',
       )),
     );
     $paymentProcessor = CRM_Financial_BAO_PaymentProcessor::create($params);
     $expectedCards = array(
       'Visa' => 'Visa',
-      'Mastercard' => 'Mastercard',
+      'MasterCard' => 'Mastercard',
       'Amex' => 'American Express',
     );
     $cards = CRM_Financial_BAO_PaymentProcessor::getCreditCards($paymentProcessor->id);
@@ -74,7 +74,7 @@ class CRM_Financial_BAO_PaymentProcessorTest extends CiviUnitTestCase {
       'domain_id' => 1,
       'accepted_credit_cards' => json_encode(array(
         'Visa' => 'Visa',
-        'Mastercard' => 'Mastercard',
+        'MasterCard' => 'Mastercard',
         'Amex' => 'American Express',
       )),
     );
@@ -85,7 +85,7 @@ class CRM_Financial_BAO_PaymentProcessorTest extends CiviUnitTestCase {
     $Cards = CRM_Contribute_PseudoConstant::creditCard($cards);
     $expectedCards = array(
       'Visa' => 'Visa',
-      'Mastercard' => 'Mastercard',
+      'MasterCard' => 'Mastercard',
       'Amex' => 'American Express',
     );
     $this->assertEquals($Cards, $expectedCards, 'Verify correct credit card types are returned');
@@ -94,7 +94,7 @@ class CRM_Financial_BAO_PaymentProcessorTest extends CiviUnitTestCase {
     $Cards2 = CRM_Contribute_PseudoConstant::creditCard(array());
     $allCards = array(
       'Visa' => 'Visa',
-      'Mastercard' => 'Mastercard',
+      'MasterCard' => 'Mastercard',
       'Amex' => 'American Express',
       'Discover' => 'Discover', // Note: Discover is a default credit card type available, not assigned to a processor
     );
