@@ -676,7 +676,7 @@ WHERE   id IN ( ' . implode(' , ', array_keys($membershipType)) . ' )';
 
     //if contribution status is pending then set pay later
     if ($formValues['contribution_status_id'] == array_search('Pending', CRM_Contribute_PseudoConstant::contributionStatus())) {
-      $this->_params['is_pay_later'] = 1;
+      $this->_params['is_pay_later'] = $formValues['is_pay_later'] = 1;
     }
     $renewMembership = CRM_Member_BAO_Membership::renewMembershipFormWrapper($this->_contactID,
       $formValues['membership_type_id'][1],
