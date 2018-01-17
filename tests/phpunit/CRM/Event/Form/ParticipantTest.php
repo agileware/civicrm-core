@@ -39,9 +39,14 @@ class CRM_Event_Form_ParticipantTest extends CiviUnitTestCase {
   /**
    * Initial test of submit function.
    *
+   * @param string $thousandSeparator
+   *
+   * @dataProvider getThousandSeparators
+   *
    * @throws \Exception
    */
   public function testSubmitWithPayment() {
+    $this->setCurrencySeparators($thousandSeparator);
     $event = $this->eventCreate(array('is_monetary' => 1, 'financial_type_id' => 1));
     $contactID = $this->individualCreate();
     $form = $this->getFormObject('CRM_Event_Form_Participant');
@@ -85,8 +90,8 @@ class CRM_Event_Form_ParticipantTest extends CiviUnitTestCase {
         13 => 1,
       ),
       'amount_level' => 'Too much',
-      'fee_amount' => 55,
-      'total_amount' => 55,
+      'fee_amount' => $this->formatMoneyInput(1550.55),
+      'total_amount' => $this->formatMoneyInput(1550.55),
       'from_email_address' => 'abc@gmail.com',
       'send_receipt' => 1,
       'receipt_text' => '',
@@ -94,7 +99,7 @@ class CRM_Event_Form_ParticipantTest extends CiviUnitTestCase {
     $participants = $this->callAPISuccess('Participant', 'get', array());
     $this->assertEquals(1, $participants['count']);
     $contribution = $this->callAPISuccessGetSingle('Contribution', array());
-    $this->assertEquals(55, $contribution['total_amount']);
+    $this->assertEquals(1550.55, $contribution['total_amount']);
     $this->assertEquals('Debit Card', $contribution['payment_instrument']);
   }
 
