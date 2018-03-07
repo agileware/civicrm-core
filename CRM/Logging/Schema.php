@@ -296,7 +296,7 @@ AND    (TABLE_NAME LIKE 'log_civicrm_%' $nonStandardTableNameString )
    * and also implements any engine change to INNODB defined by the hooks.
    *
    * Note changing engine & adding hook-defined indexes, but not changing back
-   * to ARCHIVE if engine has not been deliberately set (by hook) and not dropping
+   * to MyISAM if engine has not been deliberately set (by hook) and not dropping
    * indexes. Sysadmin will need to manually intervene to revert to defaults.
    */
   public function updateLogTableSchema() {
@@ -703,12 +703,12 @@ COLS;
     // - prepend the name with log_
     // - drop AUTO_INCREMENT columns
     // - drop non-column rows of the query (keys, constraints, etc.)
-    // - set the ENGINE to the specified engine (default is archive)
+    // - set the ENGINE to the specified engine (default is MyISAM)
     // - add log-specific columns (at the end of the table)
     $query = preg_replace("/^CREATE TABLE `$table`/i", "CREATE TABLE `{$this->db}`.log_$table", $query);
     $query = preg_replace("/ AUTO_INCREMENT/i", '', $query);
     $query = preg_replace("/^  [^`].*$/m", '', $query);
-    $engine = strtoupper(CRM_Utils_Array::value('engine', $this->logTableSpec[$table], 'ARCHIVE'));
+    $engine = strtoupper(CRM_Utils_Array::value('engine', $this->logTableSpec[$table], 'MyISAM'));
     $engine .= " " . CRM_Utils_Array::value('engine_config', $this->logTableSpec[$table]);
     $query = preg_replace("/^\) ENGINE=[^ ]+ /im", ') ENGINE=' . $engine . ' ', $query);
 
