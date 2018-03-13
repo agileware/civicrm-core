@@ -302,8 +302,9 @@ AND    (TABLE_NAME LIKE 'log_civicrm_%' $nonStandardTableNameString )
    * and also implements any engine change to INNODB defined by the hooks.
    *
    * Note changing engine & adding hook-defined indexes, but not changing back
-   * to ARCHIVE if engine has not been deliberately set (by hook) and not dropping
-   * indexes. Sysadmin will need to manually intervene to revert to defaults.
+   * to ARCHIVE / INNODB if engine has not been deliberately set (by hook) and
+   * not dropping indexes. Sysadmin will need to manually intervene to revert to
+   * defaults.
    */
   public function updateLogTableSchema() {
     $updateLogConn = FALSE;
