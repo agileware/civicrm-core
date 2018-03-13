@@ -132,6 +132,7 @@ class CRM_Contribute_BAO_Contribution extends CRM_Contribute_DAO_Contribution {
     else {
       // @todo put a deprecated here - this should be done in the form layer.
       $params['skipCleanMoney'] = FALSE;
+      Civi::log()->warning('Deprecated code path. Money should always be clean before it hits the BAO.', array('civi.tag' => 'deprecated'));
     }
 
     foreach ($moneyFields as $field) {
@@ -2618,6 +2619,7 @@ INNER JOIN civicrm_activity ON civicrm_activity_contact.activity_id = civicrm_ac
       if (!empty($this->_relatedObjects['membership'])) {
         foreach ($this->_relatedObjects['membership'] as $membership) {
           if ($membership->id) {
+            $values['membership_id'] = $membership->id;
             $values['isMembership'] = TRUE;
             $values['membership_assign'] = TRUE;
 
@@ -4104,7 +4106,7 @@ WHERE eft.financial_trxn_id IN ({$trxnId}, {$baseTrxnId['financialTrxnId']})
     }
 
     $paymentBalance = CRM_Core_BAO_FinancialTrxn::getPartialPaymentWithType($id, $entity, FALSE, $total);
-    $contribution = civicrm_api3('Contribution', 'getsingle', array('id' => $id, 'return' => array('is_pay_later', 'contribution_status_id', 'financial_type_id')));
+    $contribution = civicrm_api3('Contribution', 'getsingle', array('id' => $contributionId, 'return' => array('is_pay_later', 'contribution_status_id', 'financial_type_id')));
 
     $info['payLater'] = $contribution['is_pay_later'];
     $info['contribution_status'] = $contribution['contribution_status'];
@@ -4752,7 +4754,7 @@ WHERE eft.financial_trxn_id IN ({$trxnId}, {$baseTrxnId['financialTrxnId']})
    * @return array
    */
   public static function generateFromEmailAndName($input, $contribution) {
-    // Use input valuse if supplied.
+    // Use input value if supplied.
     if (!empty($input['receipt_from_email'])) {
       return array(CRM_Utils_array::value('receipt_from_name', $input, ''), $input['receipt_from_email']);
     }
@@ -5692,7 +5694,10 @@ LIMIT 1;";
    *
    */
   public static function createProportionalEntry($entityParams, $eftParams) {
-    $paid = $entityParams['line_item_amount'] * ($entityParams['trxn_total_amount'] / $entityParams['contribution_total_amount']);
+    $paid = 0;
+    if ($entityParams['contribution_total_amount'] != 0) {
+      $paid = $entityParams['line_item_amount'] * ($entityParams['trxn_total_amount'] / $entityParams['contribution_total_amount']);
+    }
     // Record Entity Financial Trxn; CRM-20145
     $eftParams['amount'] = CRM_Contribute_BAO_Contribution_Utils::formatAmount($paid);
     civicrm_api3('EntityFinancialTrxn', 'create', $eftParams);

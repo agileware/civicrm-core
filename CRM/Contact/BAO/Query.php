@@ -2002,6 +2002,8 @@ class CRM_Contact_BAO_Query {
       case 'prox_postal_code':
       case 'prox_state_province_id':
       case 'prox_country_id':
+      case 'prox_geo_code_1':
+      case 'prox_geo_code_2':
         // handled by the proximity_distance clause
         return;
 
@@ -2142,6 +2144,7 @@ class CRM_Contact_BAO_Query {
       }
 
       $this->_where[$grouping][] = self::buildClause($where, $op, $value);
+      $this->_tables[$aName] = $this->_whereTables[$aName] = 1;
       list($qillop, $qillVal) = self::buildQillForFieldValue('CRM_Core_DAO_Address', "state_province_id", $value, $op);
       $this->_qill[$grouping][] = ts("%1 %2 %3", array(1 => $field['title'], 2 => $qillop, 3 => $qillVal));
     }
@@ -2170,6 +2173,7 @@ class CRM_Contact_BAO_Query {
       }
 
       $this->_where[$grouping][] = self::buildClause($where, $op, $value, 'Positive');
+      $this->_tables[$aName] = $this->_whereTables[$aName] = 1;
 
       list($qillop, $qillVal) = CRM_Contact_BAO_Query::buildQillForFieldValue(NULL, $name, $value, $op);
       $this->_qill[$grouping][] = ts("%1 %2 %3", array(1 => $field['title'], 2 => $qillop, 3 => $qillVal));
@@ -4048,17 +4052,31 @@ WHERE  $smartGroupClause
       }
     }
 
-    $rTypeValues = array();
+    $rTypeValues = $relTypes = $relTypesIds = array();
     if (!empty($relationType)) {
-      $rel = explode('_', $relationType[2]);
-      self::$_relType = $rel[1];
-      $params = array('id' => $rel[0]);
-      $rType = CRM_Contact_BAO_RelationshipType::retrieve($params, $rTypeValues);
+      $relationType[2] = (array) $relationType[2];
+      foreach ($relationType[2] as $relType) {
+        $rel = explode('_', $relType);
+        self::$_relType .= $rel[1];
+        $params = array('id' => $rel[0]);
+        $typeValues = array();
+        $rTypeValue = CRM_Contact_BAO_RelationshipType::retrieve($params, $typeValues);
+        if (!empty($rTypeValue)) {
+          $rTypeValues[] = $rTypeValue;
+          $relTypesIds[] = $rel[0];
+          $relTypes[] = $relType;
+        }
+      }
     }
-    if (!empty($rTypeValues) && $rTypeValues['name_a_b'] == $rTypeValues['name_b_a']) {
-      // if we don't know which end of the relationship we are dealing with we'll create a temp table
-      //@todo unless we are dealing with a target group
-      self::$_relType = 'reciprocal';
+    if (!empty($rTypeValues)) {
+      foreach ($rTypeValues as $rTypeValue) {
+        $rTypeValue = (array) $rTypeValue;
+        if ($rTypeValue['name_a_b'] == $rTypeValue['name_b_a']) {
+          // if we don't know which end of the relationship we are dealing with we'll create a temp table
+          //@todo unless we are dealing with a target group
+          self::$_relType = 'reciprocal';
+        }
+      }
     }
     // if we are creating a temp table we build our own where for the relationship table
     $relationshipTempTable = NULL;
@@ -4075,12 +4093,17 @@ WHERE  $smartGroupClause
         $where[$grouping][] = "( contact_b.sort_name $nameClause AND contact_b.id != contact_a.id )";
       }
     }
-
     $allRelationshipType = CRM_Contact_BAO_Relationship::getContactRelationshipType(NULL, 'null', NULL, NULL, TRUE);
-
     if ($nameClause || !$targetGroup) {
       if (!empty($relationType)) {
-        $this->_qill[$grouping][] = $allRelationshipType[$relationType[2]] . " $name";
+        $relQill = '';
+        foreach ($relTypes as $rel) {
+          if (!empty($relQill)) {
+            $relQill .= ' OR ';
+          }
+          $relQill .= $allRelationshipType[$rel];
+        }
+        $this->_qill[$grouping][] = 'Relationship Type(s) ' . $relQill . " $name";
       }
       else {
         $this->_qill[$grouping][] = $name;
@@ -4113,7 +4136,14 @@ WHERE  $smartGroupClause
         }
       }
       if (!empty($relationType)) {
-        $this->_qill[$grouping][] = $allRelationshipType[$relationType[2]] . " ( " . implode(", ", $qillNames) . " )";
+        $relQill = '';
+        foreach ($relTypes as $rel) {
+          if (!empty($relQill)) {
+            $relQill .= ' OR ';
+          }
+          $relQill .= $allRelationshipType[$rel];
+        }
+        $this->_qill[$grouping][] = 'Relationship Type(s) ' . $relQill . " ( " . implode(", ", $qillNames) . " )";
       }
       else {
         $this->_qill[$grouping][] = implode(", ", $qillNames);
@@ -4163,8 +4193,8 @@ civicrm_relationship.is_permission_a_b = 0
 
     $this->addRelationshipDateClauses($grouping, $where);
     $this->addRelationshipActivePeriodClauses($grouping, $where);
-    if (!empty($relationType) && !empty($rType) && isset($rType->id)) {
-      $where[$grouping][] = 'civicrm_relationship.relationship_type_id = ' . $rType->id;
+    if (!empty($relTypes)) {
+      $where[$grouping][] = 'civicrm_relationship.relationship_type_id IN (' . implode(',', $relTypesIds) . ')';
     }
     $this->_tables['civicrm_relationship'] = $this->_whereTables['civicrm_relationship'] = 1;
     $this->_useDistinct = TRUE;
@@ -4194,7 +4224,6 @@ civicrm_relationship.is_permission_a_b = 0
       ";
       CRM_Core_DAO::executeQuery($sql);
     }
-
   }
 
   /**
@@ -5012,16 +5041,8 @@ SELECT COUNT( conts.total_amount ) as total_count,
     if ($context == 'search') {
       $where .= " AND contact_a.is_deleted = 0 ";
     }
-    CRM_Financial_BAO_FinancialType::getAvailableFinancialTypes($financialTypes);
-    if (!empty($financialTypes)) {
-      $where .= " AND civicrm_contribution.financial_type_id IN (" . implode(',', array_keys($financialTypes)) . ") AND li.id IS NULL";
-      $from .= " LEFT JOIN civicrm_line_item li
-                      ON civicrm_contribution.id = li.contribution_id AND
-                         li.entity_table = 'civicrm_contribution' AND li.financial_type_id NOT IN (" . implode(',', array_keys($financialTypes)) . ") ";
-    }
-    else {
-      $where .= " AND civicrm_contribution.financial_type_id IN (0)";
-    }
+
+    $query = $this->appendFinancialTypeWhereAndFromToQueryStrings($where, $from);
 
     // make sure contribution is completed - CRM-4989
     $completedWhere = $where . " AND civicrm_contribution.contribution_status_id = 1 ";
@@ -5150,6 +5171,28 @@ SELECT COUNT( conts.total_amount ) as cancel_count,
     }
 
     return $summary;
+  }
+
+  /**
+   * Append financial ACL limits to the query from & where clauses, if applicable.
+   *
+   * @param string $where
+   * @param string $from
+   */
+  public function appendFinancialTypeWhereAndFromToQueryStrings(&$where, &$from) {
+    if (!CRM_Financial_BAO_FinancialType::isACLFinancialTypeStatus()) {
+      return;
+    }
+    CRM_Financial_BAO_FinancialType::getAvailableFinancialTypes($financialTypes);
+    if (!empty($financialTypes)) {
+      $where .= " AND civicrm_contribution.financial_type_id IN (" . implode(',', array_keys($financialTypes)) . ") AND li.id IS NULL";
+      $from .= " LEFT JOIN civicrm_line_item li
+                  ON civicrm_contribution.id = li.contribution_id AND
+                     li.entity_table = 'civicrm_contribution' AND li.financial_type_id NOT IN (" . implode(',', array_keys($financialTypes)) . ") ";
+    }
+    else {
+      $where .= " AND civicrm_contribution.financial_type_id IN (0)";
+    }
   }
 
   /**

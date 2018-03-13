@@ -998,6 +998,19 @@ abstract class CRM_Core_Payment {
   }
 
   /**
+   * Get the currency for the transaction.
+   *
+   * Handle any inconsistency about how it is passed in here.
+   *
+   * @param $params
+   *
+   * @return string
+   */
+  protected function getAmount($params) {
+    return CRM_Utils_Money::format($params['amount'], NULL, NULL, TRUE);
+  }
+
+  /**
    * Get url to return to after cancelled or failed transaction.
    *
    * @param string $qfKey
@@ -1157,7 +1170,7 @@ abstract class CRM_Core_Payment {
    */
   public function doPayment(&$params, $component = 'contribute') {
     $this->_component = $component;
-    $statuses = CRM_Contribute_BAO_Contribution::buildOptions('contribution_status_id');
+    $statuses = CRM_Contribute_BAO_Contribution::buildOptions('contribution_status_id', 'validate');
 
     // If we have a $0 amount, skip call to processor and set payment_status to Completed.
     // Conceivably a processor might override this - perhaps for setting up a token - but we don't
