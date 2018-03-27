@@ -568,6 +568,7 @@ AND   cas.entity_value = $id AND
           'subject' => $messageSubject,
           'entity' => 'action_schedule',
           'entity_id' => $scheduleID,
+          'token_params' => $tokenParams,
         );
 
         if (!$html || $contact['preferred_mail_format'] == 'Text' ||
@@ -720,7 +721,7 @@ AND   cas.entity_value = $id AND
       if ($mapping->entity == 'civicrm_activity') {
         $compInfo = CRM_Core_Component::getEnabledComponents();
         $tokenEntity = 'activity';
-        $tokenFields = array('activity_id', 'activity_type', 'subject', 'details', 'activity_date_time');
+        $tokenFields = array('activity_id', 'activity_type', 'subject', 'details', 'activity_date_time', 'case_id');
         $extraSelect = ', ov.label as activity_type, e.id as activity_id';
         $extraJoin = "
 INNER JOIN civicrm_option_group og ON og.name = 'activity_type'
