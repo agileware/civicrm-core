@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2017                                |
+ | Copyright CiviCRM LLC (c) 2004-2018                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2017
+ * @copyright CiviCRM LLC (c) 2004-2018
  */
 
 /**
@@ -304,6 +304,7 @@ AND    reset_date IS NULL
       return $fromEmailValues;
     }
 
+    $contactFromEmails = [];
     // add logged in user's active email ids
     $contactID = CRM_Core_Session::singleton()->getLoggedInContactID();
     if ($contactID) {
@@ -321,10 +322,10 @@ AND    reset_date IS NULL
         if (!empty($emailVal['is_primary'])) {
           $fromEmailHtml .= ' ' . ts('(preferred)');
         }
-        $fromEmailValues[$emailId] = $fromEmailHtml;
+        $contactFromEmails[$fromEmail] = $fromEmailHtml;
       }
     }
-    return $fromEmailValues;
+    return CRM_Utils_Array::crmArrayMerge($contactFromEmails, $fromEmailValues);
   }
 
   /**

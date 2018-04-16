@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2017                                |
+ | Copyright CiviCRM LLC (c) 2004-2018                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -237,6 +237,7 @@ class CRM_Contribute_Form_Contribution extends CRM_Contribute_Form_AbstractEditP
     // Get the contribution id if update
     $this->_id = CRM_Utils_Request::retrieve('id', 'Positive', $this);
     if (!empty($this->_id)) {
+      $this->assignPaymentInfoBlock();
       $this->assign('contribID', $this->_id);
     }
 
@@ -627,11 +628,13 @@ class CRM_Contribute_Form_Contribution extends CRM_Contribute_Form_AbstractEditP
 
     $paymentInstrument = FALSE;
     if (!$this->_mode) {
+      // payment_instrument isn't required in edit and will not be present when payment block is enabled.
+      $required = $this->_id ? FALSE : TRUE;
       $checkPaymentID = array_search('Check', CRM_Contribute_PseudoConstant::paymentInstrument('name'));
       $paymentInstrument = $this->add('select', 'payment_instrument_id',
         ts('Payment Method'),
         array('' => ts('- select -')) + CRM_Contribute_PseudoConstant::paymentInstrument(),
-        TRUE, array('onChange' => "return showHideByValue('payment_instrument_id','{$checkPaymentID}','checkNumber','table-row','select',false);")
+        $required, array('onChange' => "return showHideByValue('payment_instrument_id','{$checkPaymentID}','checkNumber','table-row','select',false);")
       );
     }
 
@@ -643,6 +646,7 @@ class CRM_Contribute_Form_Contribution extends CRM_Contribute_Form_AbstractEditP
     $this->add('select', 'from_email_address', ts('Receipt From'), $this->_fromEmails);
 
     $component = 'contribution';
+    $componentDetails = [];
     if ($this->_id) {
       $componentDetails = CRM_Contribute_BAO_Contribution::getComponentDetails($this->_id);
       if (CRM_Utils_Array::value('membership', $componentDetails)) {
@@ -709,7 +713,6 @@ class CRM_Contribute_Form_Contribution extends CRM_Contribute_Form_AbstractEditP
       // don't allow price set for contribution if it is related to participant, or if it is a pledge payment
       // and if we already have line items for that participant. CRM-5095
       if ($buildPriceSet && $this->_id) {
-        $componentDetails = CRM_Contribute_BAO_Contribution::getComponentDetails($this->_id);
         $pledgePaymentId = CRM_Core_DAO::getFieldValue('CRM_Pledge_DAO_PledgePayment',
           $this->_id,
           'id',
@@ -808,23 +811,24 @@ class CRM_Contribute_Form_Contribution extends CRM_Contribute_Form_AbstractEditP
       )
     );
 
-    // if status is Cancelled freeze Amount, Payment Instrument, Check #, Financial Type,
-    // Net and Fee Amounts are frozen in AdditionalInfo::buildAdditionalDetail
-    if ($this->_id && ($this->_values['contribution_status_id'] == CRM_Core_PseudoConstant::getKey('CRM_Contribute_BAO_Contribution', 'contribution_status_id', 'Cancelled'))) {
-      if ($totalAmount) {
-        $totalAmount->freeze();
-      }
-      $paymentInstrument->freeze();
-      $trxnId->freeze();
-      $financialType->freeze();
-    }
-
     // if contribution is related to membership or participant freeze Financial Type, Amount
-    if ($this->_id && isset($this->_values['tax_amount'])) {
+    if ($this->_id) {
       $componentDetails = CRM_Contribute_BAO_Contribution::getComponentDetails($this->_id);
-      if (CRM_Utils_Array::value('membership', $componentDetails) || CRM_Utils_Array::value('participant', $componentDetails)) {
+      $isCancelledStatus = ($this->_values['contribution_status_id'] == CRM_Core_PseudoConstant::getKey('CRM_Contribute_BAO_Contribution', 'contribution_status_id', 'Cancelled'));
+
+      if (CRM_Utils_Array::value('membership', $componentDetails) ||
+        CRM_Utils_Array::value('participant', $componentDetails) ||
+        // if status is Cancelled freeze Amount, Payment Instrument, Check #, Financial Type,
+        // Net and Fee Amounts are frozen in AdditionalInfo::buildAdditionalDetail
+        $isCancelledStatus
+      ) {
         if ($totalAmount) {
           $totalAmount->freeze();
+          $this->getElement('currency')->freeze();
+        }
+        if ($isCancelledStatus) {
+          $paymentInstrument->freeze();
+          $trxnId->freeze();
         }
         $financialType->freeze();
         $this->assign('freezeFinancialType', TRUE);

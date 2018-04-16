@@ -3,7 +3,7 @@
   +--------------------------------------------------------------------+
   | CiviCRM version 4.7                                                |
   +--------------------------------------------------------------------+
-  | Copyright CiviCRM LLC (c) 2004-2017                                |
+  | Copyright CiviCRM LLC (c) 2004-2018                                |
   +--------------------------------------------------------------------+
   | This file is a part of CiviCRM.                                    |
   |                                                                    |
@@ -31,7 +31,7 @@
  * All DAO classes should inherit from this class.
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2017
+ * @copyright CiviCRM LLC (c) 2004-2018
  */
 
 if (!defined('DB_DSN_MODE')) {
@@ -1662,10 +1662,10 @@ FROM   civicrm_domain
    *
    * @param $componentIDs
    * @param string $tableName
-   *
+   * @param string $idField
    * @return array
    */
-  public static function &getContactIDsFromComponent(&$componentIDs, $tableName) {
+  public static function getContactIDsFromComponent($componentIDs, $tableName, $idField = 'id') {
     $contactIDs = array();
 
     if (empty($componentIDs)) {
@@ -1676,7 +1676,7 @@ FROM   civicrm_domain
     $query = "
 SELECT contact_id
   FROM $tableName
- WHERE id IN ( $IDs )
+ WHERE $idField IN ( $IDs )
 ";
 
     $dao = CRM_Core_DAO::executeQuery($query);

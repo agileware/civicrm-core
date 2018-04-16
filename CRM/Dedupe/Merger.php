@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2017                                |
+ | Copyright CiviCRM LLC (c) 2004-2018                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2017
+ * @copyright CiviCRM LLC (c) 2004-2018
  */
 class CRM_Dedupe_Merger {
 
@@ -39,25 +39,25 @@ class CRM_Dedupe_Merger {
    * @return array
    */
   public static function relTables() {
-    static $relTables;
 
-    // Setting these merely prevents enotices - but it may be more appropriate not to add the user table below
-    // if the url can't be retrieved. A more standardised way to retrieve them is.
-    // CRM_Core_Config::singleton()->userSystem->getUserRecordUrl() - however that function takes a contact_id &
-    // we may need a different function when it is not known.
-    $title = $userRecordUrl = '';
+    if (!isset(Civi::$statics[__CLASS__]['relTables'])) {
 
-    $config = CRM_Core_Config::singleton();
-    if ($config->userSystem->is_drupal) {
-      $userRecordUrl = CRM_Utils_System::url('user/%ufid');
-      $title = ts('%1 User: %2; user id: %3', array(1 => $config->userFramework, 2 => '$ufname', 3 => '$ufid'));
-    }
-    elseif ($config->userFramework == 'Joomla') {
-      $userRecordUrl = $config->userSystem->getVersion() > 1.5 ? $config->userFrameworkBaseURL . "index.php?option=com_users&view=user&task=user.edit&id=" . '%ufid' : $config->userFrameworkBaseURL . "index2.php?option=com_users&view=user&task=edit&id[]=" . '%ufid';
-      $title = ts('%1 User: %2; user id: %3', array(1 => $config->userFramework, 2 => '$ufname', 3 => '$ufid'));
-    }
+      // Setting these merely prevents enotices - but it may be more appropriate not to add the user table below
+      // if the url can't be retrieved. A more standardised way to retrieve them is.
+      // CRM_Core_Config::singleton()->userSystem->getUserRecordUrl() - however that function takes a contact_id &
+      // we may need a different function when it is not known.
+      $title = $userRecordUrl = '';
 
-    if (!$relTables) {
+      $config = CRM_Core_Config::singleton();
+      if ($config->userSystem->is_drupal) {
+        $userRecordUrl = CRM_Utils_System::url('user/%ufid');
+        $title = ts('%1 User: %2; user id: %3', array(1 => $config->userFramework, 2 => '$ufname', 3 => '$ufid'));
+      }
+      elseif ($config->userFramework == 'Joomla') {
+        $userRecordUrl = $config->userSystem->getVersion() > 1.5 ? $config->userFrameworkBaseURL . "index.php?option=com_users&view=user&task=user.edit&id=" . '%ufid' : $config->userFrameworkBaseURL . "index2.php?option=com_users&view=user&task=edit&id[]=" . '%ufid';
+        $title = ts('%1 User: %2; user id: %3', array(1 => $config->userFramework, 2 => '$ufname', 3 => '$ufid'));
+      }
+
       $relTables = array(
         'rel_table_contributions' => array(
           'title' => ts('Contributions'),
@@ -155,8 +155,12 @@ class CRM_Dedupe_Merger {
 
       // Allow hook_civicrm_merge() to adjust $relTables
       CRM_Utils_Hook::merge('relTables', $relTables);
+
+      // Cache the results in a static variable
+      Civi::$statics[__CLASS__]['relTables'] = $relTables;
     }
-    return $relTables;
+
+    return Civi::$statics[__CLASS__]['relTables'];
   }
 
   /**
@@ -273,11 +277,12 @@ class CRM_Dedupe_Merger {
    * We treat multi-valued custom sets as "related tables" similar to activities, contributions, etc.
    * @param string $request
    *   'relTables' or 'cidRefs'.
+   * @return array
    * @see CRM-13836
    */
   public static function getMultiValueCustomSets($request) {
-    static $data = NULL;
-    if ($data === NULL) {
+
+    if (!isset(Civi::$statics[__CLASS__]['multiValueCustomSets'])) {
       $data = array(
         'relTables' => array(),
         'cidRefs' => array(),
@@ -296,8 +301,12 @@ class CRM_Dedupe_Merger {
           'url' => CRM_Utils_System::url('civicrm/contact/view', 'reset=1&force=1&cid=$cid' . $urlSuffix),
         );
       }
+
+      // Store the result in a static variable cache
+      Civi::$statics[__CLASS__]['multiValueCustomSets'] = $data;
     }
-    return $data[$request];
+
+    return Civi::$statics[__CLASS__]['multiValueCustomSets'][$request];
   }
 
   /**
@@ -430,6 +439,34 @@ INNER JOIN  civicrm_membership membership2 ON membership1.membership_type_id = m
   }
 
   /**
+   * Based on the provided two contact_ids and a set of tables, remove the
+   * belongings of the other contact and of their relations.
+   *
+   * @param int $otherID
+   * @param bool $tables
+   */
+  public static function removeContactBelongings($otherID, $tables) {
+    // CRM-20421: Removing Inherited memberships when memberships of parent are not migrated to new contact.
+    if (in_array("civicrm_membership", $tables)) {
+      $membershipIDs = CRM_Utils_Array::collect('id',
+        CRM_Utils_Array::value('values',
+          civicrm_api3("Membership", "get", array(
+            "contact_id" => $otherID,
+            "return"     => "id",
+          )
+          )
+        ));
+
+      if (!empty($membershipIDs)) {
+        civicrm_api3("Membership", "get", array(
+          'owner_membership_id' => array('IN' => $membershipIDs),
+          'api.Membership.delete' => array('id' => '$value.id'),
+        ));
+      }
+    }
+  }
+
+  /**
    * Based on the provided two contact_ids and a set of tables, move the
    * belongings of the other contact to the main one.
    *
@@ -467,12 +504,15 @@ INNER JOIN  civicrm_membership membership2 ON membership1.membership_type_id = m
 
     $mainId = (int) $mainId;
     $otherId = (int) $otherId;
+    $multi_value_tables = array_keys(CRM_Dedupe_Merger::getMultiValueCustomSets('cidRefs'));
 
     $sqls = array();
     foreach ($affected as $table) {
-      // skipping non selected custom table's value migration
-      if ($customTableToCopyFrom !== NULL && in_array($table, $customTables) && !in_array($table, $customTableToCopyFrom)) {
-        continue;
+      // skipping non selected single-value custom table's value migration
+      if (!in_array($table, $multi_value_tables)) {
+        if ($customTableToCopyFrom !== NULL && in_array($table, $customTables) && !in_array($table, $customTableToCopyFrom)) {
+          continue;
+        }
       }
 
       // Call custom processing function for objects that require it
@@ -1481,7 +1521,7 @@ INNER JOIN  civicrm_membership membership2 ON membership1.membership_type_id = m
 
     $qfZeroBug = 'e8cddb72-a257-11dc-b9cc-0016d3330ee9';
     $relTables = CRM_Dedupe_Merger::relTables();
-    $submittedCustomFields = $moveTables = $locationMigrationInfo = $tableOperations = array();
+    $submittedCustomFields = $moveTables = $locationMigrationInfo = $tableOperations = $removeTables = array();
 
     foreach ($migrationInfo as $key => $value) {
       if ($value == $qfZeroBug) {
@@ -1509,6 +1549,9 @@ INNER JOIN  civicrm_membership membership2 ON membership1.membership_type_id = m
           }
         }
       }
+      elseif (substr($key, 0, 15) == 'move_rel_table_' and $value == '0') {
+        $removeTables = array_merge($moveTables, $relTables[substr($key, 5)]['tables']);
+      }
     }
     self::mergeLocations($mainId, $otherId, $locationMigrationInfo, $migrationInfo);
 
@@ -1516,6 +1559,13 @@ INNER JOIN  civicrm_membership membership2 ON membership1.membership_type_id = m
     $customTablesToCopyValues = self::getAffectedCustomTables($submittedCustomFields);
     CRM_Dedupe_Merger::moveContactBelongings($mainId, $otherId, $moveTables, $tableOperations, $customTablesToCopyValues);
     unset($moveTables, $tableOperations);
+
+    // **** Do table related removals
+    if (!empty($removeTables)) {
+      // **** CRM-20421
+      CRM_Dedupe_Merger::removeContactBelongings($otherId, $removeTables);
+      $removeTables = array();
+    }
 
     // FIXME: fix gender, prefix and postfix, so they're edible by createProfileContact()
     $names['gender'] = array('newName' => 'gender_id', 'groupName' => 'gender');

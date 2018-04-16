@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2017                                |
+ | Copyright CiviCRM LLC (c) 2004-2018                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -748,8 +748,7 @@ WHERE eft.entity_id = %1 AND ft.to_financial_account_id <> %2";
       'participant_id' => $participant->id,
       'contribution_id' => $contribution['id'],
     );
-    $ids = array();
-    CRM_Event_BAO_ParticipantPayment::create($paymentParticipant, $ids);
+    CRM_Event_BAO_ParticipantPayment::create($paymentParticipant);
 
     $contributionObject = new CRM_Contribute_BAO_Contribution();
     $contributionObject->id = $contribution['id'];

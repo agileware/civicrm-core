@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2017                                |
+ | Copyright CiviCRM LLC (c) 2004-2018                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -96,7 +96,6 @@ class api_v3_SyntaxConformanceTest extends CiviUnitTestCase {
     $this->toBeImplemented['create'] = array(
       'Cxn',
       'CxnApp',
-      'JobLog',
       'SurveyRespondant',
       'OptionGroup',
       'MailingRecipients',
@@ -114,7 +113,6 @@ class api_v3_SyntaxConformanceTest extends CiviUnitTestCase {
     $this->toBeImplemented['delete'] = array(
       'Cxn',
       'CxnApp',
-      'JobLog',
       'MembershipPayment',
       'OptionGroup',
       'SurveyRespondant',
@@ -267,11 +265,7 @@ class api_v3_SyntaxConformanceTest extends CiviUnitTestCase {
    * @return array
    */
   public static function custom_data_incl_non_std_entities_get() {
-    $customDataEntities = self::custom_data_entities();
-    $customDataEntities[] = ['UFGroup'];
-    $customDataEntities[] = ['PriceSet'];
-    $customDataEntities[] = ['PaymentToken'];
-    return $customDataEntities;
+    return static::entities(static::toBeSkipped_custom_data_creatable(TRUE));
   }
 
   /**
@@ -374,6 +368,71 @@ class api_v3_SyntaxConformanceTest extends CiviUnitTestCase {
    * @param bool $sequential
    *
    * @return array
+   */
+  public static function toBeSkipped_custom_data_creatable($sequential = FALSE) {
+    $entitiesWithout = array(
+      // Ones to fix.
+      'CaseContact',
+      'CustomField',
+      'CustomGroup',
+      'DashboardContact',
+      'Domain',
+      'File',
+      'FinancialType',
+      'LocBlock',
+      'MailingEventConfirm',
+      'MailingEventResubscribe',
+      'MailingEventSubscribe',
+      'MailingEventUnsubscribe',
+      'MailingJob',
+      'MembershipPayment',
+      'SavedSearch',
+      'UFJoin',
+      'UFField',
+      'PriceFieldValue',
+      'GroupContact',
+      'EntityTag',
+      'PledgePayment',
+      'Relationship',
+
+      // ones that are not real entities hence not extendable.
+      'ActivityType',
+      'Entity',
+      'Cxn',
+      'Constant',
+      'Attachment',
+      'CustomSearch',
+      'CustomValue',
+      'CxnApp',
+      'Extension',
+      'MailingContact',
+      'User',
+      'System',
+      'Setting',
+      'SystemLog',
+      'ReportTemplate',
+      'MailingRecipients',
+      'SurveyRespondant',
+      'Profile',
+      'Payment',
+      'Order',
+      'MailingGroup',
+      'Logging',
+    );
+    if ($sequential === TRUE) {
+      return $entitiesWithout;
+    }
+    $entities = array();
+    foreach ($entitiesWithout as $e) {
+      $entities[] = array($e);
+    }
+    return $entities;
+  }
+
+  /**
+   * @param bool $sequential
+   *
+   * @return array
    * @todo add metadata for ALL these entities
    */
   public static function toBeSkipped_getfields($sequential = FALSE) {
@@ -399,7 +458,6 @@ class api_v3_SyntaxConformanceTest extends CiviUnitTestCase {
       'MailingContact',
       'EntityTag',
       'Participant',
-      'ParticipantPayment',
       'Setting',
       'SurveyRespondant',
       'MailingRecipients',
@@ -437,7 +495,6 @@ class api_v3_SyntaxConformanceTest extends CiviUnitTestCase {
       'Constant',
       'Entity',
       'Location',
-      'Domain',
       'Profile',
       'CustomValue',
       'SurveyRespondant',
@@ -451,8 +508,6 @@ class api_v3_SyntaxConformanceTest extends CiviUnitTestCase {
       'OptionGroup',
       'Membership',
       'Group',
-      'GroupOrganization',
-      'GroupNesting',
       'File',
       'EntityTag',
       'CustomField',
@@ -471,7 +526,6 @@ class api_v3_SyntaxConformanceTest extends CiviUnitTestCase {
       'GroupContact',
       'MembershipPayment',
       'Participant',
-      'ParticipantPayment',
       'LineItem',
       'PledgePayment',
       'ContributionPage',
@@ -572,6 +626,7 @@ class api_v3_SyntaxConformanceTest extends CiviUnitTestCase {
           'definition',
         ),
       ),
+      'Domain' => ['cant_update' => ['domain_version']],
       'MembershipBlock' => array(
         'cant_update' => array(
           // The fake/auto-generated values leave us unable to properly cleanup fake data
@@ -669,6 +724,11 @@ class api_v3_SyntaxConformanceTest extends CiviUnitTestCase {
         'break_return' => array(
           'ignore_severity',
         ),
+      ),
+      'JobLog' => array(
+        // For better or worse triggers override.
+        'break_return' => ['run_time'],
+        'cant_update' => ['run_time'],
       ),
     );
     if (empty($knownFailures[$entity]) || empty($knownFailures[$entity][$key])) {
@@ -785,27 +845,40 @@ class api_v3_SyntaxConformanceTest extends CiviUnitTestCase {
    * @param $entityName
    */
   public function testCustomDataGet($entityName) {
+    $this->quickCleanup(array('civicrm_uf_match'));
     $this->createLoggedInUser();// so subsidiary activities are created
+
+    $entitiesWithNamingIssues = [
+      'MailingComponent' => 'Component',
+      'SmsProvider' => 'Provider',
+      'AclRole' => 'EntityRole',
+      'MailingEventQueue' => 'Queue',
+    ];
+
+    $usableName = !empty($entitiesWithNamingIssues[$entityName]) ? $entitiesWithNamingIssues[$entityName] : $entityName;
+    $optionName = CRM_Core_DAO_AllCoreTables::getTableForClass(CRM_Core_DAO_AllCoreTables::getFullName($usableName));
 
     if (!isset(CRM_Core_BAO_CustomQuery::$extendsMap[$entityName])) {
       $createdValue = $this->callAPISuccess('OptionValue', 'create', [
         'option_group_id' => 'cg_extend_objects',
-        'label' => $entityName,
-        'value' => $entityName,
-        'name' => CRM_Core_DAO_AllCoreTables::getTableForClass(CRM_Core_DAO_AllCoreTables::getFullName($entityName)),
+        'label' => $usableName,
+        'value' => $usableName,
+        'name' => $optionName,
       ]);
     }
     // We are not passing 'check_permissions' so the the more limited permissions *should* be
     // ignored but per CRM-17700 there is a history of custom data applying permissions when it shouldn't.
     CRM_Core_Config::singleton()->userPermissionClass->permissions = array('access CiviCRM', 'view my contact');
-    $ids = $this->entityCustomGroupWithSingleFieldCreate(__FUNCTION__, $entityName . 'Test.php');
+    $ids = $this->entityCustomGroupWithSingleFieldCreate(__FUNCTION__, $usableName . 'Test.php');
     $customFieldName = 'custom_' . $ids['custom_field_id'];
     $objects = $this->getMockableBAOObjects($entityName, 1);
     $params = array('id' => $objects[0]->id, 'custom_' . $ids['custom_field_id'] => "custom string");
     $result = $this->callAPISuccess($entityName, 'create', $params);
 
+    $this->assertTrue(isset($result['id']), 'no id on ' . $entityName);
     $getParams = array('id' => $result['id'], 'return' => array($customFieldName));
     $check = $this->callAPISuccess($entityName, 'get', $getParams);
+    $this->assertTrue(!empty($check['values'][$check['id']][$customFieldName]), 'Custom data not present for ' . $entityName);
     $this->assertEquals("custom string", $check['values'][$check['id']][$customFieldName], 'Custom data not present for ' . $entityName);
 
     $this->customFieldDelete($ids['custom_field_id']);
@@ -1465,7 +1538,7 @@ class api_v3_SyntaxConformanceTest extends CiviUnitTestCase {
    * @throws \PHPUnit_Framework_IncompleteTestError
    */
   public function testInvalidID_delete($Entity) {
-    $result = $this->callAPIFailure($Entity, 'Delete', array('id' => 999));
+    $result = $this->callAPIFailure($Entity, 'Delete', array('id' => 999999));
   }
 
   /**

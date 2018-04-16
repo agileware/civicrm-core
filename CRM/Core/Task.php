@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2017                                |
+ | Copyright CiviCRM LLC (c) 2004-2018                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -27,7 +27,7 @@
 
 /**
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2017
+ * @copyright CiviCRM LLC (c) 2004-2018
  */
 
 /**
@@ -82,7 +82,7 @@ abstract class CRM_Core_Task {
    *            ]
    */
   public static function tasks() {
-    CRM_Utils_Hook::searchTasks(self::$objectType, self::$_tasks);
+    CRM_Utils_Hook::searchTasks(static::$objectType, self::$_tasks);
     asort(self::$_tasks);
 
     return self::$_tasks;
@@ -120,7 +120,7 @@ abstract class CRM_Core_Task {
   /**
    * Show tasks selectively based on the permission level
    * of the user
-   * This function should be call parent::corePermissionedTaskTitles
+   * This function should be overridden by the child class which would normally call parent::corePermissionedTaskTitles
    *
    * @param int $permission
    * @param array $params
@@ -129,7 +129,9 @@ abstract class CRM_Core_Task {
    * @return array
    *   set of tasks that are valid for the user
    */
-  abstract public static function permissionedTaskTitles($permission, $params);
+  public static function permissionedTaskTitles($permission, $params) {
+    return self::corePermissionedTaskTitles(self::tasks(), $permission, $params);
+  }
 
   /**
    * Show tasks selectively based on the permission level
@@ -170,8 +172,8 @@ abstract class CRM_Core_Task {
     static::tasks();
 
     if (!CRM_Utils_Array::value($value, self::$_tasks)) {
-      // Children can specify a default task (eg. print), we don't here
-      return array();
+      // Children can specify a default task (eg. print), pick another if it is not valid.
+      $value = key(self::$_tasks);
     }
     return array(
       CRM_Utils_Array::value('class', self::$_tasks[$value]),

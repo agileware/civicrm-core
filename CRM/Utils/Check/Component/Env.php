@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2017                                |
+ | Copyright CiviCRM LLC (c) 2004-2018                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2017
+ * @copyright CiviCRM LLC (c) 2004-2018
  */
 class CRM_Utils_Check_Component_Env extends CRM_Utils_Check_Component {
 
@@ -208,14 +208,19 @@ class CRM_Utils_Check_Component_Env extends CRM_Utils_Check_Component {
     $messages = array();
 
     list($domainEmailName, $domainEmailAddress) = CRM_Core_BAO_Domain::getNameAndEmail(TRUE);
-    $domain = CRM_Core_BAO_Domain::getDomain();
-    $domainName = $domain->name;
-    $fixEmailUrl = CRM_Utils_System::url("civicrm/admin/domain", "action=update&reset=1");
+    $domain        = CRM_Core_BAO_Domain::getDomain();
+    $domainName    = $domain->name;
+    $fixEmailUrl   = CRM_Utils_System::url("civicrm/admin/options/from_email_address", "&reset=1");
+    $fixDomainName = CRM_Utils_System::url("civicrm/admin/domain", "action=update&reset=1");
 
     if (!$domainEmailAddress || $domainEmailAddress == 'info@EXAMPLE.ORG') {
       if (!$domainName || $domainName == 'Default Domain Name') {
-        $msg = ts("Please enter your organization's <a href=\"%1\">name, primary address, and default FROM Email Address</a> (for system-generated emails).",
-          array(1 => $fixEmailUrl));
+        $msg = ts("Please enter your organization's <a href=\"%1\">name, primary address </a> and <a href=\"%2\">default FROM Email Address </a> (for system-generated emails).",
+          array(
+            1 => $fixDomainName,
+            2 => $fixEmailUrl,
+          )
+        );
       }
       else {
         $msg = ts('Please enter a <a href="%1">default FROM Email Address</a> (for system-generated emails).',
@@ -224,7 +229,7 @@ class CRM_Utils_Check_Component_Env extends CRM_Utils_Check_Component {
     }
     elseif (!$domainName || $domainName == 'Default Domain Name') {
       $msg = ts("Please enter your organization's <a href=\"%1\">name and primary address</a>.",
-        array(1 => $fixEmailUrl));
+        array(1 => $fixDomainName));
     }
 
     if (!empty($msg)) {

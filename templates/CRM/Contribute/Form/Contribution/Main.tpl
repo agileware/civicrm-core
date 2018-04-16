@@ -2,7 +2,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2017                                |
+ | Copyright CiviCRM LLC (c) 2004-2018                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -74,7 +74,7 @@
 
   {include file="CRM/common/TrackingFields.tpl"}
 
-  <div class="crm-contribution-page-id-{$contributionPageID} crm-block crm-form-block crm-contribution-main-form-block">
+  <div class="crm-contribution-page-id-{$contributionPageID} crm-block crm-contribution-main-form-block">
 
   {if $contact_id && !$ccid}
     <div class="messages status no-popup crm-not-you-message">
@@ -97,7 +97,7 @@
   {elseif !empty($ccid)}
     {if $lineItem && $priceSetID && !$is_quick_config}
       <div class="header-dark">
-        {ts}Contribution Information{/ts}
+        {ts}Contribution Information{/ts}{if $display_name} &ndash; {$display_name}{/if}
       </div>
       {assign var="totalAmount" value=$pendingAmount}
       {include file="CRM/Price/Page/LineItem.tpl" context="Contribution"}

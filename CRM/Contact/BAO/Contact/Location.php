@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2017                                |
+ | Copyright CiviCRM LLC (c) 2004-2018                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -28,7 +28,7 @@
 /**
  *
  * @package CRM
- * @copyright CiviCRM LLC (c) 2004-2017
+ * @copyright CiviCRM LLC (c) 2004-2018
  */
 class CRM_Contact_BAO_Contact_Location {
 
@@ -63,6 +63,7 @@ class CRM_Contact_BAO_Contact_Location {
   }
 
   /**
+   * @deprecated Not used anywhere, use the Phone API instead
    * Get the sms number and display name of a contact.
    *
    * @param int $id
@@ -74,6 +75,7 @@ class CRM_Contact_BAO_Contact_Location {
    *   tuple of display_name and sms if found, or (null,null)
    */
   public static function getPhoneDetails($id, $type = NULL) {
+    Civi::log()->warning('Deprecated function CRM_Contact_BAO_Contact_Location::getPhoneDetails, use Phone.get API instead', array('civi.tag' => 'deprecated'));
     if (!$id) {
       return array(NULL, NULL);
     }

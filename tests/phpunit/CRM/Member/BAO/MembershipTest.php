@@ -3,7 +3,7 @@
  +--------------------------------------------------------------------+
  | CiviCRM version 4.7                                                |
  +--------------------------------------------------------------------+
- | Copyright CiviCRM LLC (c) 2004-2017                                |
+ | Copyright CiviCRM LLC (c) 2004-2018                                |
  +--------------------------------------------------------------------+
  | This file is a part of CiviCRM.                                    |
  |                                                                    |
@@ -615,6 +615,88 @@ class CRM_Member_BAO_MembershipTest extends CiviUnitTestCase {
 
     $this->membershipDelete($membershipId);
     $this->contactDelete($contactId);
+  }
+
+  public function testUpdateAllMembershipStatusConvertExpiredOverriddenStatusToNormal() {
+    $params = array(
+      'contact_id' => $this->individualCreate(),
+      'membership_type_id' => $this->_membershipTypeID,
+      'join_date' => date('Ymd', time()),
+      'start_date' => date('Ymd', time()),
+      'end_date' => date('Ymd', strtotime('+1 year')),
+      'source' => 'Payment',
+      'is_override' => 1,
+      'status_override_end_date' => date('Ymd', strtotime('-1 day')),
+      'status_id' => $this->_membershipStatusID,
+    );
+    $ids = array();
+    $createdMembership = CRM_Member_BAO_Membership::create($params, $ids);
+
+    CRM_Member_BAO_Membership::updateAllMembershipStatus();
+
+    $membershipAfterProcess = civicrm_api3('Membership', 'get', array(
+      'sequential' => 1,
+      'id' => $createdMembership->id,
+      'return' => array('id', 'is_override', 'status_override_end_date'),
+    ))['values'][0];
+
+    $this->assertEquals($createdMembership->id, $membershipAfterProcess['id']);
+    $this->assertArrayNotHasKey('is_override', $membershipAfterProcess);
+    $this->assertArrayNotHasKey('status_override_end_date', $membershipAfterProcess);
+  }
+
+  public function testUpdateAllMembershipStatusHandleOverriddenWithEndOverrideDateEqualTodayAsExpired() {
+    $params = array(
+      'contact_id' => $this->individualCreate(),
+      'membership_type_id' => $this->_membershipTypeID,
+      'join_date' => date('Ymd', time()),
+      'start_date' => date('Ymd', time()),
+      'end_date' => date('Ymd', strtotime('+1 year')),
+      'source' => 'Payment',
+      'is_override' => 1,
+      'status_override_end_date' => date('Ymd', time()),
+      'status_id' => $this->_membershipStatusID,
+    );
+    $ids = array();
+    $createdMembership = CRM_Member_BAO_Membership::create($params, $ids);
+
+    CRM_Member_BAO_Membership::updateAllMembershipStatus();
+
+    $membershipAfterProcess = civicrm_api3('Membership', 'get', array(
+      'sequential' => 1,
+      'id' => $createdMembership->id,
+      'return' => array('id', 'is_override', 'status_override_end_date'),
+    ))['values'][0];
+
+    $this->assertEquals($createdMembership->id, $membershipAfterProcess['id']);
+    $this->assertArrayNotHasKey('is_override', $membershipAfterProcess);
+    $this->assertArrayNotHasKey('status_override_end_date', $membershipAfterProcess);
+  }
+
+  public function testUpdateAllMembershipStatusDoesNotConvertOverridenMembershipWithoutEndOverrideDateToNormal() {
+    $params = array(
+      'contact_id' => $this->individualCreate(),
+      'membership_type_id' => $this->_membershipTypeID,
+      'join_date' => date('Ymd', time()),
+      'start_date' => date('Ymd', time()),
+      'end_date' => date('Ymd', strtotime('+1 year')),
+      'source' => 'Payment',
+      'is_override' => 1,
+      'status_id' => $this->_membershipStatusID,
+    );
+    $ids = array();
+    $createdMembership = CRM_Member_BAO_Membership::create($params, $ids);
+
+    CRM_Member_BAO_Membership::updateAllMembershipStatus();
+
+    $membershipAfterProcess = civicrm_api3('Membership', 'get', array(
+      'sequential' => 1,
+      'id' => $createdMembership->id,
+      'return' => array('id', 'is_override', 'status_override_end_date'),
+    ))['values'][0];
+
+    $this->assertEquals($createdMembership->id, $membershipAfterProcess['id']);
+    $this->assertEquals(1, $membershipAfterProcess['is_override']);
   }
 
 }
