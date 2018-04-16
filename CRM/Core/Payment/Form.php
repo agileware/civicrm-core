@@ -282,6 +282,13 @@ class CRM_Core_Payment_Form {
     $payment->validatePaymentInstrument($values, $errors);
   }
 
+  public function removeBillingValuesIfSameAddress(&$values) {
+    if (isset($values["billing_same_address"]) && $values["billing_same_address"] && isset($values["payment_processor_id"])) {
+      $payment = Civi\Payment\System::singleton()->getById($values["payment_processor_id"]);
+      $payment->removeBillingValues($values);
+    }
+  }
+
   /**
    * The credit card pseudo constant results only the CC label, not the key ID
    * So we normalize the name to use it as a CSS class.

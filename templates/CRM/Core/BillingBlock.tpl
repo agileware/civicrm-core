@@ -55,25 +55,27 @@
   {/if}
   {if $billingDetailsFields|@count && $paymentProcessor.payment_processor_type neq 'PayPal_Express'}
     {if $profileAddressFields && !$ccid}
-      <input type="checkbox" id="billingcheckbox" value="0">
-      <label for="billingcheckbox">{ts}My billing address is the same as above{/ts}</label>
+      {$form.billing_same_address.html}
+      <label for="billing_same_address">{ts}My billing address is the same as above{/ts}</label>
     {/if}
     <fieldset class="billing_name_address-group">
       <legend>{ts}Billing Name and Address{/ts}</legend>
       <div class="crm-section billing_name_address-section">
         {foreach from=$billingDetailsFields item=billingField}
-          {assign var='name' value=$form.$billingField.name}
-          <div class="crm-section {$form.$billingField.name}-section">
-            <div class="label">{$form.$billingField.label}
-              {if $requiredPaymentFields.$name}<span class="crm-marker" title="{ts}This field is required.{/ts}">*</span>{/if}
+          {if $form.$billingField.type != 'checkbox'}
+            {assign var='name' value=$form.$billingField.name}
+            <div class="crm-section {$form.$billingField.name}-section">
+              <div class="label">{$form.$billingField.label}
+                {if $requiredPaymentFields.$name}<span class="crm-marker" title="{ts}This field is required.{/ts}">*</span>{/if}
+              </div>
+              {if $form.$billingField.type == 'text'}
+                <div class="content">{$form.$billingField.html}</div>
+              {else}
+                <div class="content">{$form.$billingField.html|crmAddClass:big}</div>
+              {/if}
+              <div class="clear"></div>
             </div>
-            {if $form.$billingField.type == 'text'}
-              <div class="content">{$form.$billingField.html}</div>
-            {else}
-              <div class="content">{$form.$billingField.html|crmAddClass:big}</div>
-            {/if}
-            <div class="clear"></div>
-          </div>
+          {/if}
         {/foreach}
       </div>
     </fieldset>
@@ -89,6 +91,7 @@
       var input_ids = {};
       var select_ids = {};
       var orig_id, field, field_name;
+      var billingSameAddress = $('#billing_same_address').is(":checked");
 
       // build input ids
       $('.billing_name_address-section input').each(function (i) {
@@ -137,7 +140,8 @@
         }
       }
       if (checked) {
-        $('#billingcheckbox').prop('checked', true).data('crm-initial-value', true);
+        $('#billing_same_address').prop('checked', true).data('crm-initial-value', true);
+        billingSameAddress = true;
         if (!CRM.billing || CRM.billing.billingProfileIsHideable) {
           $('.billing_name_address-group').hide();
         }
@@ -151,11 +155,12 @@
           var orig_id = input_ids[id];
 
           // if billing checkbox is active, copy other field into billing field
-          if ($('#billingcheckbox').prop('checked')) {
+          if ($('#billing_same_address').prop('checked')) {
             $(orig_id).val($(id).val());
           }
         });
       }
+
       for (var id in select_ids) {
         orig_id = select_ids[id];
         $(id).change(function () {
@@ -163,7 +168,7 @@
           var orig_id = select_ids[id];
 
           // if billing checkbox is active, copy other field into billing field
-          if ($('#billingcheckbox').prop('checked')) {
+          if ($('#billing_same_address').prop('checked')) {
             $(orig_id + ' option').prop('selected', false);
             $(orig_id + ' option[value="' + $(id).val() + '"]').prop('selected', true);
             $(orig_id).change();
@@ -171,27 +176,16 @@
         });
       }
 
-
       // toggle show/hide
-      $('#billingcheckbox').click(function () {
+      $('#billing_same_address').click(function () {
         if (this.checked) {
           if (!CRM.billing || CRM.billing.billingProfileIsHideable) {
             $('.billing_name_address-group').hide(200);
           }
-
-          // copy all values
-          for (var id in input_ids) {
-            orig_id = input_ids[id];
-            $(orig_id).val($(id).val());
-          }
-          for (var id in select_ids) {
-            orig_id = select_ids[id];
-            $(orig_id + ' option').prop('selected', false);
-            $(orig_id + ' option[value="' + $(id).val() + '"]').prop('selected', true);
-            $(orig_id).change();
-          }
+          $('.billing_name_address-section .crm-marker').hide();
         } else {
           $('.billing_name_address-group').show(200);
+          $('.billing_name_address-section .crm-marker').show();
         }
       });
 
@@ -202,6 +196,10 @@
                 .replace(/-/g, '');
         $('#credit_card_number').val(cc);
       });
+
+      if (billingSameAddress) {
+          $('.billing_name_address-section .crm-marker').hide();
+      }
     });
 
   </script>
