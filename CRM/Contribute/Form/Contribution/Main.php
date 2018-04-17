@@ -1084,6 +1084,7 @@ class CRM_Contribute_Form_Contribution_Main extends CRM_Contribute_Form_Contribu
     }
 
     if (!empty($self->_paymentFields)) {
+      self::removeBillingValuesIfSameAddress($self->_paymentFields, $fields);
       CRM_Core_Form::validateMandatoryFields($self->_paymentFields, $fields, $errors);
     }
     CRM_Core_Payment_Form::validatePaymentInstrument($fields['payment_processor'], $fields, $errors, $self);

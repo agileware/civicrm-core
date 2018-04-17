@@ -529,6 +529,17 @@ class CRM_Contribute_Form_ContributionBase extends CRM_Core_Form {
     return $this->_defaults;
   }
 
+  public static function removeBillingValuesIfSameAddress(&$paymentFields, &$values) {
+    if (isset($values["billing_address_same"]) && $values["billing_address_same"]) {
+      foreach ($paymentFields as $index => $paymentField) {
+        if (isset($paymentField["is_billing_field"]) && $paymentField["is_billing_field"]) {
+          $paymentFields[$index]["is_required"] = FALSE;
+          $values[$paymentField["name"]] = "";
+        }
+      }
+    }
+  }
+
   /**
    * Assign the minimal set of variables to the template.
    *
@@ -544,6 +555,8 @@ class CRM_Contribute_Form_ContributionBase extends CRM_Core_Form {
     $this->assign('billingName', $name);
     $this->set('name', $name);
 
+    $billing_address_same = CRM_Utils_Array::value('billing_address_same', $this->_params, FALSE);
+    $this->assign('billing_address_same', $billing_address_same);
     $this->assign('paymentProcessor', $this->_paymentProcessor);
     $vars = array(
       'amount',

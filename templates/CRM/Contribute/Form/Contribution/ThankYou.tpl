@@ -247,7 +247,7 @@
 
   {if ( $contributeMode ne 'notify' and (!$is_pay_later or $isBillingAddressRequiredForPayLater) and $is_monetary and ( $amount GT 0 OR $minimum_fee GT 0 ) ) or $email }
     {if $contributeMode ne 'notify' and (!$is_pay_later or $isBillingAddressRequiredForPayLater) and $is_monetary and ( $amount GT 0 OR $minimum_fee GT 0 ) }
-      {if $billingName or $address}
+      {if ($billingName or $address) and not $billing_address_same}
         <div class="crm-group billing_name_address-group">
           <div class="header-dark">
             {ts}Billing Name and Address{/ts}

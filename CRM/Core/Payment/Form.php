@@ -106,6 +106,7 @@ class CRM_Core_Payment_Form {
       'cc_field' => TRUE,
       'attributes' => array('size' => 30, 'maxlength' => 60, 'autocomplete' => 'off'),
       'is_required' => TRUE,
+      'is_billing_field' => TRUE,
     );
 
     $form->_paymentFields['billing_middle_name'] = array(
@@ -115,6 +116,7 @@ class CRM_Core_Payment_Form {
       'cc_field' => TRUE,
       'attributes' => array('size' => 30, 'maxlength' => 60, 'autocomplete' => 'off'),
       'is_required' => FALSE,
+      'is_billing_field' => TRUE,
     );
 
     $form->_paymentFields['billing_last_name'] = array(
@@ -124,6 +126,7 @@ class CRM_Core_Payment_Form {
       'cc_field' => TRUE,
       'attributes' => array('size' => 30, 'maxlength' => 60, 'autocomplete' => 'off'),
       'is_required' => TRUE,
+      'is_billing_field' => TRUE,
     );
 
     $form->_paymentFields["billing_street_address-{$bltID}"] = array(
@@ -133,6 +136,7 @@ class CRM_Core_Payment_Form {
       'cc_field' => TRUE,
       'attributes' => array('size' => 30, 'maxlength' => 60, 'autocomplete' => 'off'),
       'is_required' => TRUE,
+      'is_billing_field' => TRUE,
     );
 
     $form->_paymentFields["billing_city-{$bltID}"] = array(
@@ -142,6 +146,7 @@ class CRM_Core_Payment_Form {
       'cc_field' => TRUE,
       'attributes' => array('size' => 30, 'maxlength' => 60, 'autocomplete' => 'off'),
       'is_required' => TRUE,
+      'is_billing_field' => TRUE,
     );
 
     $form->_paymentFields["billing_state_province_id-{$bltID}"] = array(
@@ -150,6 +155,7 @@ class CRM_Core_Payment_Form {
       'name' => "billing_state_province_id-{$bltID}",
       'cc_field' => TRUE,
       'is_required' => TRUE,
+      'is_billing_field' => TRUE,
     );
 
     $form->_paymentFields["billing_postal_code-{$bltID}"] = array(
@@ -159,6 +165,17 @@ class CRM_Core_Payment_Form {
       'cc_field' => TRUE,
       'attributes' => array('size' => 30, 'maxlength' => 60, 'autocomplete' => 'off'),
       'is_required' => TRUE,
+      'is_billing_field' => TRUE,
+    );
+
+    $form->_paymentFields["billing_address_same"] = array(
+      'htmlType' => 'checkbox',
+      'name' => "billing_address_same",
+      'title' => ts('Same Billing Address'),
+      'cc_field' => TRUE,
+      'attributes' => '',
+      'is_required' => FALSE,
+      'is_billing_field' => TRUE,
     );
 
     $form->_paymentFields["billing_country_id-{$bltID}"] = array(
@@ -171,10 +188,12 @@ class CRM_Core_Payment_Form {
       ) +
       CRM_Core_PseudoConstant::country(),
       'is_required' => TRUE,
+      'is_billing_field' => TRUE,
     );
     //CRM-15509 working towards giving control over billing fields to payment processors. For now removing tpl hard-coding
     $smarty = CRM_Core_Smarty::singleton();
     $smarty->assign('billingDetailsFields', array(
+      'billing_address_same',
       'billing_first_name',
       'billing_middle_name',
       'billing_last_name',

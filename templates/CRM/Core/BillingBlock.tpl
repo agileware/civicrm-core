@@ -56,25 +56,29 @@
   {/if}
   {if $billingDetailsFields|@count && $paymentProcessor.payment_processor_type neq 'PayPal_Express'}
     {if $profileAddressFields}
-      <input type="checkbox" id="billingcheckbox" value="0">
-      <label for="billingcheckbox">{ts}My billing address is the same as above{/ts}</label>
+      {$form.billing_address_same.html}
+      <label for="billing_address_same">{ts}My billing address is the same as above{/ts}</label>
     {/if}
     <fieldset class="billing_name_address-group">
       <legend>{ts}Billing Name and Address{/ts}</legend>
       <div class="crm-section billing_name_address-section">
         {foreach from=$billingDetailsFields item=billingField}
-          {assign var='name' value=$form.$billingField.name}
-          <div class="crm-section {$form.$billingField.name}-section">
-            <div class="label">{$form.$billingField.label}
-              {if $requiredPaymentFields.$name}<span class="crm-marker" title="{ts}This field is required.{/ts}">*</span>{/if}
-            </div>
-            {if $form.$billingField.type == 'text'}
-              <div class="content">{$form.$billingField.html}</div>
-            {else}
-              <div class="content">{$form.$billingField.html|crmAddClass:big}</div>
-            {/if}
-            <div class="clear"></div>
-          </div>
+
+          {if $form.$billingField.type != 'checkbox'}
+              {assign var='name' value=$form.$billingField.name}
+              <div class="crm-section {$form.$billingField.name}-section">
+                <div class="label">{$form.$billingField.label}
+                  {if $requiredPaymentFields.$name}<span class="crm-marker" title="{ts}This field is required.{/ts}">*</span>{/if}
+                </div>
+                {if $form.$billingField.type == 'text'}
+                  <div class="content">{$form.$billingField.html}</div>
+                {else}
+                  <div class="content">{$form.$billingField.html|crmAddClass:big}</div>
+                {/if}
+                <div class="clear"></div>
+              </div>
+          {/if}
+
         {/foreach}
       </div>
     </fieldset>
@@ -138,7 +142,7 @@
         }
       }
       if (checked) {
-        $('#billingcheckbox').prop('checked', true);
+        $('#billing_address_same').prop('checked', true);
         if (!CRM.billing || CRM.billing.billingProfileIsHideable) {
           $('.billing_name_address-group').hide();
         }
@@ -152,7 +156,7 @@
           var orig_id = input_ids[id];
 
           // if billing checkbox is active, copy other field into billing field
-          if ($('#billingcheckbox').prop('checked')) {
+          if ($('#billing_address_same').prop('checked')) {
             $(orig_id).val($(id).val());
           }
         });
@@ -164,7 +168,7 @@
           var orig_id = select_ids[id];
 
           // if billing checkbox is active, copy other field into billing field
-          if ($('#billingcheckbox').prop('checked')) {
+          if ($('#billing_address_same').prop('checked')) {
             $(orig_id + ' option').prop('selected', false);
             $(orig_id + ' option[value="' + $(id).val() + '"]').prop('selected', true);
             $(orig_id).change();
@@ -174,7 +178,7 @@
 
 
       // toggle show/hide
-      $('#billingcheckbox').click(function () {
+      $('#billing_address_same').click(function () {
         if (this.checked) {
           if (!CRM.billing || CRM.billing.billingProfileIsHideable) {
             $('.billing_name_address-group').hide(200);
