@@ -334,7 +334,9 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
     }
     // if onbehalf-of-organization
     if (!empty($this->_values['onbehalf_profile_id']) && !empty($this->_params['onbehalf']['organization_name'])) {
-      $this->_params['organization_id'] = CRM_Utils_Array::value('onbehalfof_id', $this->_params);
+      if (empty($this->_params['org_option']) && empty($this->_params['organization_id'])) {
+        $this->_params['organization_id'] = CRM_Utils_Array::value('onbehalfof_id', $this->_params);
+      }
       $this->_params['organization_name'] = $this->_params['onbehalf']['organization_name'];
       $addressBlocks = array(
         'street_address',
@@ -1530,6 +1532,7 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
       }
 
       $i = 1;
+      $form->_params['createdMembershipIDs'] = array();
       foreach ($membershipTypeIDs as $memType) {
         $membershipLineItems = array();
         if ($i < count($membershipTypeIDs)) {
@@ -1590,6 +1593,15 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
           // Next line is probably redundant. Checksprevent it happening twice.
           CRM_Member_BAO_Membership::linkMembershipPayment($membership, $membershipContribution);
         }
+        if ($membership) {
+          CRM_Core_BAO_CustomValueTable::postProcess($form->_params, 'civicrm_membership', $membership->id, 'Membership');
+          $form->_params['createdMembershipIDs'][] = $membership->id;
+          $form->_params['membershipID'] = $membership->id;
+
+          //CRM-15232: Check if membership is created and on the basis of it use
+          //membership receipt template to send payment receipt
+          $form->_values['isMembership'] = TRUE;
+        }
       }
       if ($form->_priceSetId && !empty($form->_useForMember) && !empty($form->_lineItem)) {
         foreach ($form->_lineItem[$form->_priceSetId] as & $priceFieldOp) {
@@ -1611,23 +1623,7 @@ class CRM_Contribute_Form_Contribution_Confirm extends CRM_Contribute_Form_Contr
       $message = $this->compileErrorMessage($errors);
       throw new CRM_Core_Exception($message);
     }
-    $form->_params['createdMembershipIDs'] = array();
 
-    // CRM-7851 - Moved after processing Payment Errors
-    //@todo - the reasoning for this being here seems a little outdated
-    CRM_Core_BAO_CustomValueTable::postProcess($form->_params, 'civicrm_membership', $membership->id, 'Membership');
-    $form->_params['createdMembershipIDs'][] = $membership->id;
-
-    if ($membership) {
-      //presumably this is only relevant for exactly 1 membership
-      $form->_params['membershipID'] = $membership->id;
-    }
-
-    //CRM-15232: Check if membership is created and on the basis of it use
-    //membership receipt template to send payment receipt
-    if ($membership) {
-      $form->_values['isMembership'] = TRUE;
-    }
     if (isset($membershipContributionID)) {
       $form->_values['contribution_id'] = $membershipContributionID;
     }

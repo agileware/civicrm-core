@@ -3996,10 +3996,11 @@ LEFT JOIN civicrm_contact {$field['alias']} ON {$field['alias']}.id = {$this->_a
         }
         if (array_key_exists('filters', $table)) {
           foreach ($table['filters'] as $filterName => $filter) {
-            if (!empty($this->_params["{$filterName}_value"]) ||
-              CRM_Utils_Array::value("{$filterName}_op", $this->_params) ==
-              'nll' ||
-              CRM_Utils_Array::value("{$filterName}_op", $this->_params) ==
+            if (!empty($this->_params["{$filterName}_value"])
+              || !empty($this->_params["{$filterName}_relative"])
+              || CRM_Utils_Array::value("{$filterName}_op", $this->_params) ==
+              'nll'
+              || CRM_Utils_Array::value("{$filterName}_op", $this->_params) ==
               'nnll'
             ) {
               $this->_selectedTables[] = $tableName;
@@ -4304,8 +4305,12 @@ LEFT JOIN civicrm_contact {$field['alias']} ON {$field['alias']}.id = {$this->_a
 
   /**
    * Add Address into From Table if required.
+   *
+   * @deprecated use joinAddressFromContact
+   * (left here in case extensions use it).
    */
   public function addAddressFromClause() {
+    Civi::log()->warning('Deprecated function addAddressFromClause. Use joinAddressFromContact.', array('civi.tag' => 'deprecated'));
     // include address field if address column is to be included
     if ((isset($this->_addressField) &&
         $this->_addressField
@@ -4322,8 +4327,13 @@ LEFT JOIN civicrm_contact {$field['alias']} ON {$field['alias']}.id = {$this->_a
 
   /**
    * Add Phone into From Table if required.
+   *
+   * @deprecated use joinPhoneFromContact
+   *  (left here in case extensions use it).
    */
   public function addPhoneFromClause() {
+
+    Civi::log()->warning('Deprecated function addPhoneFromClause. Use joinPhoneFromContact.', array('civi.tag' => 'deprecated'));
     // include address field if address column is to be included
     if ($this->isTableSelected('civicrm_phone')) {
       $this->_from .= "
@@ -4331,6 +4341,96 @@ LEFT JOIN civicrm_contact {$field['alias']} ON {$field['alias']}.id = {$this->_a
       ON ({$this->_aliases['civicrm_contact']}.id =
       {$this->_aliases['civicrm_phone']}.contact_id) AND
       {$this->_aliases['civicrm_phone']}.is_primary = 1\n";
+    }
+  }
+
+  /**
+   * Add Address into From Table if required.
+   *
+   * Prefix will be added to both tables as
+   * it is assumed you are using it to get address of a secondary contact.
+   *
+   * @param string $prefix
+   * @param array $extra Additional options.
+   *      Not currently used in core but may be used in override extensions.
+   */
+  protected function joinAddressFromContact($prefix = '', $extra = array()) {
+    $addressTables = ['civicrm_address', 'civicrm_country', 'civicrm_worldregion', 'civicrm_state_province'];
+    $isJoinRequired = $this->_addressField;
+    foreach ($addressTables as $addressTable) {
+      if ($this->isTableSelected($prefix . $addressTable)) {
+        $isJoinRequired = TRUE;
+      }
+    }
+    if ($isJoinRequired) {
+      $this->_from .= "
+                 LEFT JOIN civicrm_address {$this->_aliases[$prefix . 'civicrm_address']}
+                           ON ({$this->_aliases[$prefix . 'civicrm_contact']}.id =
+                               {$this->_aliases[$prefix . 'civicrm_address']}.contact_id) AND
+                               {$this->_aliases[$prefix . 'civicrm_address']}.is_primary = 1\n";
+    }
+  }
+
+  /**
+   * Add Country into From Table if required.
+   *
+   * Prefix will be added to both tables as
+   * it is assumed you are using it to get address of a secondary contact.
+   *
+   * @param string $prefix
+   * @param array $extra Additional options.
+   *      Not currently used in core but may be used in override extensions.
+   */
+  protected function joinCountryFromAddress($prefix = '', $extra = array()) {
+    // include country field if country column is to be included
+    if ($this->isTableSelected($prefix . 'civicrm_country') || $this->isTableSelected($prefix . 'civicrm_worldregion')) {
+      if (empty($this->_aliases[$prefix . 'civicrm_country'])) {
+        $this->_aliases[$prefix . 'civicrm_country'] = $prefix . '_report_country';
+      }
+      $this->_from .= "
+            LEFT JOIN civicrm_country {$this->_aliases[$prefix . 'civicrm_country']}
+                   ON {$this->_aliases[$prefix . 'civicrm_address']}.country_id = {$this->_aliases[$prefix . 'civicrm_country']}.id AND
+                      {$this->_aliases[$prefix . 'civicrm_address']}.is_primary = 1 ";
+    }
+  }
+
+  /**
+   * Add Phone into From Table if required.
+   *
+   * Prefix will be added to both tables as
+   * it is assumed you are using it to get address of a secondary contact.
+   *
+   * @param string $prefix
+   * @param array $extra Additional options.
+   *      Not currently used in core but may be used in override extensions.
+   */
+  protected function joinPhoneFromContact($prefix = '', $extra = array()) {
+    // include phone field if phone column is to be included
+    if ($this->isTableSelected($prefix . 'civicrm_phone')) {
+      $this->_from .= "
+      LEFT JOIN civicrm_phone {$this->_aliases[$prefix . 'civicrm_phone']}
+             ON {$this->_aliases[$prefix . 'civicrm_contact']}.id = {$this->_aliases[$prefix . 'civicrm_phone']}.contact_id AND
+                {$this->_aliases[$prefix . 'civicrm_phone']}.is_primary = 1\n";
+    }
+  }
+
+  /**
+   * Add Email into From Table if required.
+   *
+   * Prefix will be added to both tables as
+   * it is assumed you are using it to get address of a secondary contact.
+   *
+   * @param string $prefix
+   * @param array $extra Additional options.
+   *      Not currently used in core but may be used in override extensions.
+   */
+  protected function joinEmailFromContact($prefix = '', $extra = array()) {
+    // include email field if email column is to be included
+    if ($this->isTableSelected($prefix . 'civicrm_email')) {
+      $this->_from .= "
+            LEFT JOIN  civicrm_email {$this->_aliases[$prefix . 'civicrm_email']}
+                   ON ({$this->_aliases[$prefix . 'civicrm_contact']}.id = {$this->_aliases[$prefix . 'civicrm_email']}.contact_id AND
+                       {$this->_aliases[$prefix . 'civicrm_email']}.is_primary = 1) ";
     }
   }
 
