@@ -745,14 +745,21 @@ AND    u.status = 1
    * @param int $drupalID
    *   Drupal User ID.
    */
-  public function og_membership_create($ogID, $drupalID) {
+  public function og_membership_create($ogID, $drupalID, $context = '') {
     if (function_exists('og_entity_query_alter')) {
       // sort-of-randomly chose a function that only exists in the // 7.x-2.x branch
       //
       // @TODO Find more solid way to check - try system_get_info('module', 'og').
       //
       // Also, since we don't know how to get the entity type of the // group, we'll assume it's 'node'
-      og_group('node', $ogID, array('entity' => user_load($drupalID)));
+      if(!$context) {
+        og_group('node', $ogID, array('entity' => user_load($drupalID)));
+      }
+      elseif('ACL' == $context){
+        // Grant the administrator role by first contorting around OG.
+        $roles = array_flip(og_roles('node', FALSE, $ogID));
+        og_role_grant('node', $ogID, $drupalID,  $roles[OG_ADMINISTRATOR_ROLE]);
+      }
     }
     else {
       // Works for the OG 7.x-1.x branch
@@ -768,12 +775,19 @@ AND    u.status = 1
    * @param int $drupalID
    *   Drupal User ID.
    */
-  public function og_membership_delete($ogID, $drupalID) {
+  public function og_membership_delete($ogID, $drupalID, $context = '') {
     if (function_exists('og_entity_query_alter')) {
       // sort-of-randomly chose a function that only exists in the 7.x-2.x branch
       // TODO: Find a more solid way to make this test
       // Also, since we don't know how to get the entity type of the group, we'll assume it's 'node'
-      og_ungroup('node', $ogID, 'user', user_load($drupalID));
+      if(!$context) {
+        og_ungroup('node', $ogID, 'user', user_load($drupalID));
+      }
+      elseif('ACL' == $context){
+        // Revoke the administrator role by first contorting around OG.
+        $roles = array_flip(og_roles('node', FALSE, $ogID));
+        og_role_revoke('node', $ogID, $drupalID, $roles[OG_ADMINISTRATOR_ROLE]);
+      }
     }
     else {
       // Works for the OG 7.x-1.x branch
