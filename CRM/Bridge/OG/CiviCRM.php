@@ -100,7 +100,7 @@ class CRM_Bridge_OG_CiviCRM {
    */
   public static function groupContact($groupID, $contactIDs, $op) {
     $config = CRM_Core_Config::singleton();
-    $ogID = CRM_Bridge_OG_Utils::ogID($groupID, FALSE);
+    $ogID = CRM_Bridge_OG_Utils::ogID($groupID, FALSE, $context);
 
     if (!$ogID) {
       return;
@@ -110,10 +110,10 @@ class CRM_Bridge_OG_CiviCRM {
       $drupalID = CRM_Core_BAO_UFMatch::getUFId($contactID);
       if ($drupalID) {
         if ($op == 'add') {
-          $group_membership = $config->userSystem->og_membership_create($ogID, $drupalID);
+          $group_membership = $config->userSystem->og_membership_create($ogID, $drupalID, $context);
         }
         else {
-          $group_membership = $config->userSystem->og_membership_delete($ogID, $drupalID);
+          $group_membership = $config->userSystem->og_membership_delete($ogID, $drupalID, $context);
         }
       }
     }
