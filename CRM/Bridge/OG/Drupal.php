@@ -257,9 +257,11 @@ SELECT v.id
       $groupParams['status'] = $params['is_active'] ? 'Added' : 'Pending';
       civicrm_api('GroupContact', 'Create', $groupParams);
 
-      // add to notifications group
-      $groupNotificationsParams['status'] = $params['is_active'] ? 'Added' : 'Pending';
-      civicrm_api('GroupContact', 'Create', $groupNotificationsParams);
+      // add to notifications group if auto-subscribe is set.
+      if($params['notifications_subscribe']) {
+        $groupNotificationsParams['status'] = $params['is_active'] ? 'Added' : 'Pending';
+        civicrm_api('GroupContact', 'Create', $groupNotificationsParams);
+      }
     }
     else {
       // remove from core group
