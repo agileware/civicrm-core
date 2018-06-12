@@ -50,6 +50,13 @@ class CRM_Bridge_OG_Drupal {
     $groupParams['group_type'] = ['2' => 1];
     self::updateCiviGroup($groupParams, $op);
 
+    // next create or update the CiviCRM notifications group
+    $groupNotificationsParams = $params;
+    $groupNotificationsParams['name'] = $groupNotificationsParams['title'] = "{$groupNotificationsParams['name']}: Notifications";
+    $groupNotificationsParams['source'] = CRM_Bridge_OG_Utils::ogSyncMailName($params['og_id']);
+    $groupNotificationsParams['group_type'] = ['2' => 1];
+    self::updateCiviGroup($groupNotificationsParams, $op);
+
     if (CRM_Bridge_OG_Utils::aclEnabled()) {
       // next create or update the CiviCRM ACL group
       $aclParams = $params;
@@ -228,19 +235,40 @@ SELECT v.id
       NULL, TRUE
     );
 
+    // get the notifications group id of this OG
+    $groupNotificationsID = CRM_Bridge_OG_Utils::groupID(CRM_Bridge_OG_Utils::ogSyncMailName($params['og_id']),
+      NULL, TRUE
+    );
+
     $groupParams = [
       'contact_id' => $contactID,
       'group_id' => $groupID,
       'version' => 3,
     ];
 
+    $groupNotificationsParams = [
+      'contact_id' => $contactID,
+      'group_id' => $groupNotificationsID,
+      'version' => 3,
+    ];
+
     if ($op == 'add') {
+      // add to core group
       $groupParams['status'] = $params['is_active'] ? 'Added' : 'Pending';
       civicrm_api('GroupContact', 'Create', $groupParams);
+
+      // add to notifications group
+      $groupNotificationsParams['status'] = $params['is_active'] ? 'Added' : 'Pending';
+      civicrm_api('GroupContact', 'Create', $groupNotificationsParams);
     }
     else {
+      // remove from core group
       $groupParams['status'] = 'Removed';
       civicrm_api('GroupContact', 'Delete', $groupParams);
+
+      // remove from notifications group
+      $groupNotificationsParams['status'] = 'Removed';
+      civicrm_api('GroupContact', 'Delete', $groupNotificationsParams);
     }
 
     if (CRM_Bridge_OG_Utils::aclEnabled() &&

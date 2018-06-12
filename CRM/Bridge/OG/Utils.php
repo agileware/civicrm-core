@@ -71,22 +71,32 @@ class CRM_Bridge_OG_Utils {
   }
 
   /**
+   * @param int $ogID
+   *
+   * @return string
+   */
+  public static function ogSyncMailName($ogID) {
+    return "OG Sync Group Mail :{$ogID}:";
+  }
+
+  /**
    * @param int $groupID
    * @param bool $abort
    *
    * @return int|null|string
    * @throws Exception
    */
-  public static function ogID($groupID, $abort = TRUE) {
+  public static function ogID($groupID, $abort = TRUE, &$context) {
     $source = CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_Group',
       $groupID,
       'source'
     );
 
     if (strpos($source, 'OG Sync Group') !== FALSE) {
-      preg_match('/:(\d+):$/', $source, $matches);
-      if (is_numeric($matches[1])) {
-        return $matches[1];
+      preg_match('/^OG Sync Group (.*?) ?:(\d+):$/', $source, $matches);
+      if (is_numeric($matches[2])) {
+        $context = $matches[1];
+        return $matches[2];
       }
     }
     if ($abort) {
