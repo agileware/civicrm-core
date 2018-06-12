@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.7                                                |
+ | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2018                                |
  +--------------------------------------------------------------------+
@@ -120,6 +120,19 @@ class CRM_Utils_SQL {
       return FALSE;
     }
     return TRUE;
+  }
+
+  /**
+   * Is the Database set up to handle acceents.
+   * @return bool
+   */
+  public static function supportStorageOfAccents() {
+    $charSetDB = CRM_Core_DAO::executeQuery("SHOW VARIABLES LIKE 'character_set_database'")->fetchAll();
+    $charSet = $charSetDB[0]['Value'];
+    if ($charSet == 'utf8') {
+      return TRUE;
+    }
+    return FALSE;
   }
 
 }

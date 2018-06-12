@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.7                                                |
+ | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2018                                |
  +--------------------------------------------------------------------+
@@ -200,6 +200,13 @@ class CRM_Event_Form_Participant extends CRM_Contribute_Form_AbstractEditPayment
    */
   public function getDefaultEntity() {
     return 'Participant';
+  }
+
+  /**
+   * Default form context used as part of addField()
+   */
+  public function getDefaultContext() {
+    return 'create';
   }
 
   /**
@@ -733,7 +740,7 @@ class CRM_Event_Form_Participant extends CRM_Contribute_Form_AbstractEditPayment
 
     $this->addElement('checkbox', 'is_notify', ts('Send Notification'), NULL);
 
-    $this->add('text', 'source', ts('Event Source'));
+    $this->addField('source', array('entity' => 'Participant', 'name' => 'source'));
     $noteAttributes = CRM_Core_DAO::getAttribute('CRM_Core_DAO_Note');
     $this->add('textarea', 'note', ts('Notes'), $noteAttributes['note']);
 

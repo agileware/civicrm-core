@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.7                                                |
+ | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2018                                |
  +--------------------------------------------------------------------+
@@ -334,7 +334,9 @@ class CRM_Admin_Form_ScheduleReminders extends CRM_Admin_Form {
         $errors['absolute_date'] = ts('Absolute date cannot be earlier than the current time.');
       }
     }
-
+    if (!CRM_Utils_Rule::email($fields['from_email'])) {
+      $errors['from_email'] = ts('Please enter a valid email address.');
+    }
     $recipientKind = array(
       'participant_role' => array(
         'name' => 'participant role',
@@ -347,6 +349,13 @@ class CRM_Admin_Form_ScheduleReminders extends CRM_Admin_Form {
     );
     if ($fields['limit_to'] != '' && array_key_exists($fields['recipient'], $recipientKind) && empty($fields[$recipientKind[$fields['recipient']]['target_id']])) {
       $errors[$recipientKind[$fields['recipient']]['target_id']] = ts('If "Also include" or "Limit to" are selected, you must specify at least one %1', array(1 => $recipientKind[$fields['recipient']]['name']));
+    }
+
+    //CRM-21523
+    if (!empty($fields['is_repeat']) &&
+      (empty($fields['repetition_frequency_interval']) || ($fields['end_frequency_interval'] == NULL))
+    ) {
+      $errors['is_repeat'] = ts('If you are enabling repetition you must indicate the frequency and ending term.');
     }
 
     $actionSchedule = $self->parseActionSchedule($fields);

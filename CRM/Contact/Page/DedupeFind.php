@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.7                                                |
+ | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2018                                |
  +--------------------------------------------------------------------+
@@ -63,7 +63,8 @@ class CRM_Contact_Page_DedupeFind extends CRM_Core_Page_Basic {
     $limit = CRM_Utils_Request::retrieve('limit', 'Integer', $this);
     $rgid = CRM_Utils_Request::retrieve('rgid', 'Positive', $this);
     $cid = CRM_Utils_Request::retrieve('cid', 'Positive', $this, FALSE, 0);
-    $criteria = CRM_Utils_Request::retrieve('criteria', 'Json', $this, FALSE);
+
+    $criteria = CRM_Utils_Request::retrieve('criteria', 'Json', $this, FALSE, '{}');
     $this->assign('criteria', $criteria);
 
     $isConflictMode = ($context == 'conflicts');

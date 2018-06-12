@@ -1090,7 +1090,7 @@ class CiviUnitTestCase extends PHPUnit_Extensions_Database_TestCase {
    * @return int
    *   $id of participant created
    */
-  public function participantCreate($params) {
+  public function participantCreate($params = []) {
     if (empty($params['contact_id'])) {
       $params['contact_id'] = $this->individualCreate();
     }
@@ -2786,6 +2786,7 @@ AND    ( TABLE_NAME LIKE 'civicrm_value_%' )
         'contribution_page_id' => $this->_contributionPageID,
         'payment_processor_id' => $this->_paymentProcessorID,
         'is_test' => 0,
+        'skipCleanMoney' => TRUE,
       ),
     ), $params));
     $this->_contributionRecurID = $contributionRecur['id'];

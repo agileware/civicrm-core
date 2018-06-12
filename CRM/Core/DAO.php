@@ -1,7 +1,7 @@
 <?php
 /*
   +--------------------------------------------------------------------+
-  | CiviCRM version 4.7                                                |
+  | CiviCRM version 5                                                  |
   +--------------------------------------------------------------------+
   | Copyright CiviCRM LLC (c) 2004-2018                                |
   +--------------------------------------------------------------------+
@@ -1686,6 +1686,7 @@ FROM   civicrm_domain
    * @param $componentIDs
    * @param string $tableName
    * @param string $idField
+   *
    * @return array
    */
   public static function getContactIDsFromComponent($componentIDs, $tableName, $idField = 'id') {

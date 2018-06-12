@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.7                                                |
+ | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2018                                |
  +--------------------------------------------------------------------+
@@ -1127,10 +1127,10 @@ SELECT case_status.label AS case_status, status_id, civicrm_case_type.title AS c
       }
 
       if (!empty($dao->priority)) {
-        if ($dao->priority == CRM_Core_OptionGroup::getValue('priority', 'Urgent', 'name')) {
+        if ($dao->priority == CRM_Core_PseudoConstant::getKey('CRM_Activity_BAO_Activity', 'priority_id', 'Urgent')) {
           $caseActivity['DT_RowClass'] .= " priority-urgent ";
         }
-        elseif ($dao->priority == CRM_Core_OptionGroup::getValue('priority', 'Low', 'name')) {
+        elseif ($dao->priority == CRM_Core_PseudoConstant::getKey('CRM_Activity_BAO_Activity', 'priority_id', 'Low')) {
           $caseActivity['DT_RowClass'] .= " priority-low ";
         }
       }

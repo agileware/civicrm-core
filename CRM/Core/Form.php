@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.7                                                |
+ | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2018                                |
  +--------------------------------------------------------------------+
@@ -406,6 +406,12 @@ class CRM_Core_Form extends HTML_QuickForm_Page {
       if (HTML_QuickForm::isError($error)) {
         CRM_Core_Error::fatal(HTML_QuickForm::errorMessage($element));
       }
+    }
+
+    // Add context for the editing of option groups
+    if (isset($extra['option_context'])) {
+      $context = json_encode($extra['option_context']);
+      $element->setAttribute('data-option-edit-context', $context);
     }
 
     return $element;
@@ -1469,6 +1475,9 @@ class CRM_Core_Form extends HTML_QuickForm_Page {
         //Set default columns and rows for textarea.
         $props['rows'] = isset($props['rows']) ? $props['rows'] : 4;
         $props['cols'] = isset($props['cols']) ? $props['cols'] : 60;
+        if (!$props['maxlength'] && isset($fieldSpec['length'])) {
+          $props['maxlength'] = $fieldSpec['length'];
+        }
         return $this->add('textarea', $name, $label, $props, $required);
 
       case 'Select Date':

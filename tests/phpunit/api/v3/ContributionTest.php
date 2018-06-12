@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.7                                                |
+ | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2018                                |
  +--------------------------------------------------------------------+
@@ -695,6 +695,7 @@ class api_v3_ContributionTest extends CiviUnitTestCase {
 
     $params['total_amount'] = $this->formatMoneyInput(5000.77);
     $params['fee_amount'] = $this->formatMoneyInput(.77);
+    $params['skipCleanMoney'] = FALSE;
 
     $contribution = $this->callAPISuccess('contribution', 'create', $params);
     $contribution = $this->callAPISuccessGetSingle('contribution', array('id' => $contribution['id']));
@@ -4127,6 +4128,16 @@ class api_v3_ContributionTest extends CiviUnitTestCase {
     // only be called from test classes. Move into test suite & maybe just use api
     // from this function.
     return array_merge(CRM_Financial_BAO_FinancialItem::retrieveEntityFinancialTrxn($trxnParams, FALSE, array()));
+  }
+
+  /**
+   * Test getunique api call for Contribution entity
+   */
+  public function testContributionGetUnique() {
+    $result = $this->callAPIAndDocument($this->_entity, 'getunique', array(), __FUNCTION__, __FILE__);
+    $this->assertEquals(2, $result['count']);
+    $this->assertEquals(array('trxn_id'), $result['values']['UI_contrib_trxn_id']);
+    $this->assertEquals(array('invoice_id'), $result['values']['UI_contrib_invoice_id']);
   }
 
 }

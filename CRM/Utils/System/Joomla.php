@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.7                                                |
+ | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2018                                |
  +--------------------------------------------------------------------+
@@ -636,6 +636,16 @@ class CRM_Utils_System_Joomla extends CRM_Utils_System_Base {
   public function getLoggedInUniqueIdentifier() {
     $user = JFactory::getUser();
     return $this->getUniqueIdentifierFromUserObject($user);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public function getUser($contactID) {
+    $user_details = parent::getUser($contactID);
+    $user = JFactory::getUser($user_details['id']);
+    $user_details['name'] = $user->name;
+    return $user_details;
   }
 
   /**

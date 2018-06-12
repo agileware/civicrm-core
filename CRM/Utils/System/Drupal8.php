@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.7                                                |
+ | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2018                                |
  +--------------------------------------------------------------------+
@@ -440,7 +440,7 @@ class CRM_Utils_System_Drupal8 extends CRM_Utils_System_DrupalBase {
     CRM_Utils_Hook::config($config);
 
     if ($loadUser) {
-      if (!empty($params['uid']) && $username = \Drupal\user\Entity\User::load($uid)->getUsername()) {
+      if (!empty($params['uid']) && $username = \Drupal\user\Entity\User::load($params['uid'])->getUsername()) {
         $this->loadUser($username);
       }
       elseif (!empty($params['name']) && !empty($params['pass']) && \Drupal::service('user.auth')->authenticate($params['name'], $params['pass'])) {
@@ -567,6 +567,16 @@ class CRM_Utils_System_Drupal8 extends CRM_Utils_System_DrupalBase {
       }
     }
     return $modules;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public function getUser($contactID) {
+    $user_details = parent::getUser($contactID);
+    $user_details['name'] = $user_details['name']->value;
+    $user_details['email'] = $user_details['email']->value;
+    return $user_details;
   }
 
   /**

@@ -1,7 +1,7 @@
 <?php
 /*
  +--------------------------------------------------------------------+
- | CiviCRM version 4.7                                                |
+ | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
  | Copyright CiviCRM LLC (c) 2004-2017                                |
  +--------------------------------------------------------------------+
@@ -989,6 +989,7 @@ return array(
     'type' => 'Array',
     'add' => '4.7',
     'is_domain' => 1,
+    'is_contact' => 0,
     'default' => array(),
     'title' => 'Do not notify assignees for',
     'help_text' => 'These activity types will be excluded from automated email notifications to assignees.',
