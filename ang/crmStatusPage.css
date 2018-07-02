@@ -67,7 +67,7 @@
   width: auto;
   margin: 0;
   padding: 0;
-  z-index: 99;
+  z-index: 99999;
 }
 
 #crm-status-list .hush-menu li {
