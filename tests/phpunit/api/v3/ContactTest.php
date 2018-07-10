@@ -2036,7 +2036,8 @@ class api_v3_ContactTest extends CiviUnitTestCase {
     $this->assertTrue(is_numeric($ufMatch->id));
 
     // setup - mock the calls to CRM_Utils_System_*::getUfId
-    $userSystem = $this->getMock('CRM_Utils_System_UnitTests', array('getUfId'));
+    $mockFunction = $this->mockMethod;
+    $userSystem = $this->$mockFunction('CRM_Utils_System_UnitTests', array('getUfId'));
     $userSystem->expects($this->once())
       ->method('getUfId')
       ->with($this->equalTo('exampleUser'))
@@ -2111,7 +2112,8 @@ class api_v3_ContactTest extends CiviUnitTestCase {
    */
   public function testContactGetByUnknownUsername() {
     // setup - mock the calls to CRM_Utils_System_*::getUfId
-    $userSystem = $this->getMock('CRM_Utils_System_UnitTests', array('getUfId'));
+    $mockFunction = $this->mockMethod;
+    $userSystem = $this->$mockFunction('CRM_Utils_System_UnitTests', array('getUfId'));
     $userSystem->expects($this->once())
       ->method('getUfId')
       ->with($this->equalTo('exampleUser'))
@@ -2732,12 +2734,13 @@ class api_v3_ContactTest extends CiviUnitTestCase {
         'first_contact' => $firstAlphabeticalContactBySortName,
         'second_contact' => $secondAlphabeticalContactBySortName,
       ),
-      'bob_search_no_orderby' => array(
-        'search_parameters' => array('name' => 'bob'),
-        'settings' => array('includeWildCardInName' => TRUE, 'includeOrderByClause' => FALSE),
-        'first_contact' => $firstContactByID,
-        'second_contact' => $secondContactByID,
-      ),
+      // This test has been disabled as is proving to be problematic to reproduce due to MySQL sorting issues between different versions
+      // 'bob_search_no_orderby' => array(
+      //  'search_parameters' => array('name' => 'bob'),
+      //  'settings' => array('includeWildCardInName' => TRUE, 'includeOrderByClause' => FALSE),
+      //  'first_contact' => $firstContactByID,
+      //  'second_contact' => $secondContactByID,
+      //),
       'bob_search_no_wildcard' => array(
         'search_parameters' => array('name' => 'bob'),
         'settings' => array('includeWildCardInName' => FALSE, 'includeOrderByClause' => TRUE),
@@ -2764,12 +2767,13 @@ class api_v3_ContactTest extends CiviUnitTestCase {
         'first_contact' => $firstAlphabeticalContactFirstNameBob,
         'second_contact' => $secondAlphabeticalContactFirstNameBob,
       ),
-      'first_name_search_no_orderby' => array(
-        'search_parameters' => array('name' => 'bob', 'field_name' => 'first_name'),
-        'settings' => array('includeWildCardInName' => TRUE, 'includeOrderByClause' => FALSE),
-        'first_contact' => $firstByIDContactFirstNameBob,
-        'second_contact' => $secondByIDContactFirstNameBob,
-      ),
+      // This test has been disabled as is proving to be problematic to reproduce due to MySQL sorting issues between different versions
+      //'first_name_search_no_orderby' => array(
+      //  'search_parameters' => array('name' => 'bob', 'field_name' => 'first_name'),
+      //  'settings' => array('includeWildCardInName' => TRUE, 'includeOrderByClause' => FALSE),
+      //  'first_contact' => $firstByIDContactFirstNameBob,
+      //  'second_contact' => $secondByIDContactFirstNameBob,
+      //),
       'email_search_basic' => array(
         'search_parameters' => array('name' => 'bob', 'field_name' => 'email', 'table_name' => 'eml'),
         'settings' => array('includeWildCardInName' => FALSE, 'includeOrderByClause' => TRUE),
@@ -2917,7 +2921,8 @@ class api_v3_ContactTest extends CiviUnitTestCase {
     $this->callAPISuccess('Setting', 'create', array('includeOrderByClause' => FALSE));
     $result = $this->callAPISuccess('contact', 'getquick', array('name' => 'bob'));
     $this->assertEquals('Bob, Bob', $result['values'][0]['sort_name']);
-    $this->assertEquals('E Bobby, Bobby', $result['values'][1]['sort_name']);
+    // This test has been disabled as is proving to be problematic to reproduce due to MySQL sorting issues between different versions
+    //$this->assertEquals('E Bobby, Bobby', $result['values'][1]['sort_name']);
   }
 
   /**
@@ -3778,6 +3783,66 @@ class api_v3_ContactTest extends CiviUnitTestCase {
     $result = $this->callAPIAndDocument($this->_entity, 'getunique', array(), __FUNCTION__, __FILE__);
     $this->assertEquals(1, $result['count']);
     $this->assertEquals(array('external_identifier'), $result['values']['UI_external_identifier']);
+  }
+
+  public function testSmartGroupsForRelatedContacts() {
+    $rtype1 = $this->callAPISuccess('relationship_type', 'create', array(
+      "name_a_b" => uniqid() . " Child of",
+      "name_b_a" => uniqid() . " Parent of",
+    ));
+    $rtype2 = $this->callAPISuccess('relationship_type', 'create', array(
+      "name_a_b" => uniqid() . " Household Member of",
+      "name_b_a" => uniqid() . " Household Member is",
+    ));
+    $h1 = $this->householdCreate();
+    $c1 = $this->individualCreate(array('last_name' => 'Adams'));
+    $c2 = $this->individualCreate(array('last_name' => 'Adams'));
+    $this->callAPISuccess('relationship', 'create', array(
+      'contact_id_a' => $c1,
+      'contact_id_b' => $c2,
+      'is_active' => 1,
+      'relationship_type_id' => $rtype1['id'], // Child of
+    ));
+    $this->callAPISuccess('relationship', 'create', array(
+      'contact_id_a' => $c1,
+      'contact_id_b' => $h1,
+      'is_active' => 1,
+      'relationship_type_id' => $rtype2['id'], // Household Member of
+    ));
+    $this->callAPISuccess('relationship', 'create', array(
+      'contact_id_a' => $c2,
+      'contact_id_b' => $h1,
+      'is_active' => 1,
+      'relationship_type_id' => $rtype2['id'], // Household Member of
+    ));
+
+    $ssParams = array(
+      'formValues' => array(
+        'display_relationship_type' => $rtype1['id'] . '_a_b', // Child of
+        'sort_name' => 'Adams',
+      ),
+    );
+    $g1ID = $this->smartGroupCreate($ssParams, array('name' => uniqid(), 'title' => uniqid()));
+    $ssParams = array(
+      'formValues' => array(
+        'display_relationship_type' => $rtype2['id'] . '_a_b', // Household Member of
+      ),
+    );
+    $g2ID = $this->smartGroupCreate($ssParams, array('name' => uniqid(), 'title' => uniqid()));
+    $ssParams = array(
+      'formValues' => array(
+        'display_relationship_type' => $rtype2['id'] . '_b_a', // Household Member is
+      ),
+    );
+    // the reverse of g2 which adds another layer for overlap at related contact filter
+    $g3ID = $this->smartGroupCreate($ssParams, array('name' => uniqid(), 'title' => uniqid()));
+    CRM_Contact_BAO_GroupContactCache::loadAll();
+    $g1Contacts = $this->callAPISuccess('contact', 'get', array('group' => $g1ID));
+    $g2Contacts = $this->callAPISuccess('contact', 'get', array('group' => $g2ID));
+    $g3Contacts = $this->callAPISuccess('contact', 'get', array('group' => $g3ID));
+    $this->assertTrue($g1Contacts['count'] == 1);
+    $this->assertTrue($g2Contacts['count'] == 2);
+    $this->assertTrue($g3Contacts['count'] == 1);
   }
 
 }

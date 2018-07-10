@@ -569,4 +569,48 @@ class api_v3_CustomFieldTest extends CiviUnitTestCase {
     return $r;
   }
 
+  public function testMakeSearchableContactReferenceFieldUnsearchable() {
+    $customGroup = $this->customGroupCreate(array(
+      'name' => 'testCustomGroup',
+      'title' => 'testCustomGroup',
+      'extends' => 'Individual',
+    ));
+    $params = array(
+      'name' => 'testCustomField',
+      'label' => 'testCustomField',
+      'custom_group_id' => 'testCustomGroup',
+      'data_type' => 'ContactReference',
+      'html_type' => 'Autocomplete-Select',
+      'is_searchable' => '1',
+    );
+    $result = $this->callAPISuccess('CustomField', 'create', $params);
+    $params = [
+      'id' => $result['id'],
+      'is_searchable' => 0,
+    ];
+    $result = $this->callAPISuccess('CustomField', 'create', $params);
+  }
+
+  public function testDisableSearchableContactReferenceField() {
+    $customGroup = $this->customGroupCreate(array(
+      'name' => 'testCustomGroup',
+      'title' => 'testCustomGroup',
+      'extends' => 'Individual',
+    ));
+    $params = array(
+      'name' => 'testCustomField',
+      'label' => 'testCustomField',
+      'custom_group_id' => 'testCustomGroup',
+      'data_type' => 'ContactReference',
+      'html_type' => 'Autocomplete-Select',
+      'is_searchable' => '1',
+    );
+    $result = $this->callAPISuccess('CustomField', 'create', $params);
+    $params = [
+      'id' => $result['id'],
+      'is_active' => 0,
+    ];
+    $result = $this->callAPISuccess('CustomField', 'create', $params);
+  }
+
 }

@@ -1343,10 +1343,10 @@ ORDER BY   civicrm_email.is_bulkmail DESC
       }
       // add trailing quote since we've gobbled it up in a previous regex
       // function getPatterns, line 431
-      if (preg_match('/^href[ ]*=[ ]*\'/', $url)) {
+      if (preg_match("/^href[ ]*=[ ]*'.*[^']$/", $url)) {
         $url .= "'";
       }
-      elseif (preg_match('/^href[ ]*=[ ]*\"/', $url)) {
+      elseif (preg_match('/^href[ ]*=[ ]*".*[^"]$/', $url)) {
         $url .= '"';
       }
       $data = $url;
@@ -2336,7 +2336,6 @@ ORDER BY   civicrm_email.is_bulkmail DESC
     // get all the groups that this user can access
     // if they dont have universal access
     $groupNames = civicrm_api3('Group', 'get', array(
-      'is_active' => 1,
       'check_permissions' => TRUE,
       'return' => array('title', 'id'),
       'options' => array('limit' => 0),
@@ -2520,8 +2519,8 @@ LEFT JOIN civicrm_mailing_group g ON g.mailing_id   = m.id
   }
 
   /**
-   * Delete Jobss and all its associated records
-   * related to test Mailings
+   * @deprecated
+   *  Use CRM_Mailing_BAO_MailingJob::del($id)
    *
    * @param int $id
    *   Id of the Job to delete.
@@ -2533,9 +2532,9 @@ LEFT JOIN civicrm_mailing_group g ON g.mailing_id   = m.id
       CRM_Core_Error::fatal();
     }
 
-    $dao = new CRM_Mailing_BAO_MailingJob();
-    $dao->id = $id;
-    $dao->delete();
+    \Civi::log('This function is deprecated, use CRM_Mailing_BAO_MailingJob::del instead', ['civi.tag' => 'deprecated']);
+
+    CRM_Mailing_BAO_MailingJob::del($id);
   }
 
   /**

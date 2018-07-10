@@ -370,6 +370,128 @@ class CRM_Contact_BAO_QueryTest extends CiviUnitTestCase {
 
   }
 
+  public function testNonReciprocalRelationshipTargetGroupIsCorrectResults() {
+    $contactID_a = $this->individualCreate();
+    $contactID_b = $this->individualCreate();
+    $this->callAPISuccess('Relationship', 'create', array(
+      'contact_id_a' => $contactID_a,
+      'contact_id_b' => $contactID_b,
+      'relationship_type_id' => 1,
+      'is_active' => 1,
+    ));
+    // Create a group and add contact A to it.
+    $groupID = $this->groupCreate();
+    $this->callAPISuccess('GroupContact', 'create', array('group_id' => $groupID, 'contact_id' => $contactID_a, 'status' => 'Added'));
+
+    // Add another (sans-relationship) contact to the group,
+    $contactID_c = $this->individualCreate();
+    $this->callAPISuccess('GroupContact', 'create', array('group_id' => $groupID, 'contact_id' => $contactID_c, 'status' => 'Added'));
+
+    $params = array(
+      array(
+        0 => 'relation_type_id',
+        1 => 'IN',
+        2 =>
+        array(
+          0 => '1_b_a',
+        ),
+        3 => 0,
+        4 => 0,
+      ),
+      array(
+        0 => 'relation_target_group',
+        1 => 'IN',
+        2 =>
+        array(
+          0 => $groupID,
+        ),
+        3 => 0,
+        4 => 0,
+      ),
+    );
+
+    $query = new CRM_Contact_BAO_Query($params);
+    $dao = $query->searchQuery();
+    $this->assertEquals('1', $dao->N, "Search query returns exactly 1 result?");
+    $this->assertTrue($dao->fetch(), "Search query returns success?");
+    $this->assertEquals($contactID_b, $dao->contact_id, "Search query returns parent of contact A?");
+  }
+
+  public function testReciprocalRelationshipTargetGroupIsCorrectResults() {
+    $contactID_a = $this->individualCreate();
+    $contactID_b = $this->individualCreate();
+    $this->callAPISuccess('Relationship', 'create', array(
+      'contact_id_a' => $contactID_a,
+      'contact_id_b' => $contactID_b,
+      'relationship_type_id' => 2,
+      'is_active' => 1,
+    ));
+    // Create a group and add contact A to it.
+    $groupID = $this->groupCreate();
+    $this->callAPISuccess('GroupContact', 'create', array('group_id' => $groupID, 'contact_id' => $contactID_a, 'status' => 'Added'));
+
+    // Add another (sans-relationship) contact to the group,
+    $contactID_c = $this->individualCreate();
+    $this->callAPISuccess('GroupContact', 'create', array('group_id' => $groupID, 'contact_id' => $contactID_c, 'status' => 'Added'));
+
+    $params = array(
+      array(
+        0 => 'relation_type_id',
+        1 => 'IN',
+        2 =>
+        array(
+          0 => '2_a_b',
+        ),
+        3 => 0,
+        4 => 0,
+      ),
+      array(
+        0 => 'relation_target_group',
+        1 => 'IN',
+        2 =>
+        array(
+          0 => $groupID,
+        ),
+        3 => 0,
+        4 => 0,
+      ),
+    );
+
+    $query = new CRM_Contact_BAO_Query($params);
+    $dao = $query->searchQuery();
+    $this->assertEquals('1', $dao->N, "Search query returns exactly 1 result?");
+    $this->assertTrue($dao->fetch(), "Search query returns success?");
+    $this->assertEquals($contactID_b, $dao->contact_id, "Search query returns spouse of contact A?");
+  }
+
+  public function testReciprocalRelationshipTargetGroupUsesTempTable() {
+    $groupID = $this->groupCreate();
+    $params = array(
+      array(
+        0 => 'relation_type_id',
+        1 => 'IN',
+        2 =>
+        array(
+          0 => '2_a_b',
+        ),
+        3 => 0,
+        4 => 0,
+      ),
+      array(
+        0 => 'relation_target_group',
+        1 => 'IN',
+        2 =>
+        array(
+          0 => $groupID,
+        ),
+        3 => 0,
+        4 => 0,
+      ),
+    );
+    $sql = CRM_Contact_BAO_Query::getQuery($params);
+    $this->assertContains('INNER JOIN civicrm_rel_temp_', $sql, "Query appears to use temporary table of compiled relationships?", TRUE);
+  }
+
   /**
    * Test Relationship Clause
    */
@@ -529,6 +651,44 @@ civicrm_relationship.is_active = 1 AND
                   ON civicrm_contribution.id = li.contribution_id AND
                      li.entity_table = 'civicrm_contribution' AND li.financial_type_id NOT IN ({$donationTypeID}) ", $from);
     $this->disableFinancialACLs();
+  }
+
+  /**
+   * When we have a relative date in search criteria, check that convertFormValues() sets _low & _high date fields and returns other criteria.
+   * CRM-21816 fix relative dates in search bug
+   */
+  public function testConvertFormValuesCRM21816() {
+    $fv = array(
+      "member_end_date_relative" => "starting_2.month", // next 60 days
+      "member_end_date_low" => "20180101000000",
+      "member_end_date_high" => "20180331235959",
+      "membership_is_current_member" => "1",
+      "member_is_primary" => "1",
+    );
+    $fv_orig = $fv;  // $fv is modified by convertFormValues()
+    $params = CRM_Contact_BAO_Query::convertFormValues($fv);
+
+    // restructure for easier testing
+    $modparams = array();
+    foreach ($params as $p) {
+      $modparams[$p[0]] = $p;
+    }
+
+    // Check member_end_date_low is in params
+    $this->assertTrue(is_array($modparams['member_end_date_low']));
+    // ... fv and params should match
+    $this->assertEquals($modparams['member_end_date_low'][2], $fv['member_end_date_low']);
+    // ... fv & fv_orig should be different
+    $this->assertNotEquals($fv['member_end_date_low'], $fv_orig['member_end_date_low']);
+
+    // same for member_end_date_high
+    $this->assertTrue(is_array($modparams['member_end_date_high']));
+    $this->assertEquals($modparams['member_end_date_high'][2], $fv['member_end_date_high']);
+    $this->assertNotEquals($fv['member_end_date_high'], $fv_orig['member_end_date_high']);
+
+    // Check other fv values are in params
+    $this->assertEquals($modparams['membership_is_current_member'][2], $fv_orig['membership_is_current_member']);
+    $this->assertEquals($modparams['member_is_primary'][2], $fv_orig['member_is_primary']);
   }
 
 }

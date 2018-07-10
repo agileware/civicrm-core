@@ -40,10 +40,6 @@ class CRM_Upgrade_Incremental_php_FiveTwo extends CRM_Upgrade_Incremental_Base {
    * @param null $currentVer
    */
   public function setPreUpgradeMessage(&$preUpgradeMessage, $rev, $currentVer = NULL) {
-    // Example: Generate a pre-upgrade message.
-    // if ($rev == '5.12.34') {
-    //   $preUpgradeMessage .= '<p>' . ts('A new permission has been added called %1 This Permission is now used to control access to the Manage Tags screen', array(1 => 'manage tags')) . '</p>';
-    // }
   }
 
   /**

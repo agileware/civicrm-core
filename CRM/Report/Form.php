@@ -2433,7 +2433,7 @@ WHERE cg.extends IN ('" . implode("','", $this->_customGroupExtends) . "') AND
    * @return mixed
    */
   protected function alterBoolean($value) {
-    $options = array(0 => ts('No'), 1 => ts('Yes'));
+    $options = array(0 => '', 1 => ts('Yes'));
     if (isset($options[$value])) {
       return $options[$value];
     }
@@ -4526,7 +4526,7 @@ LEFT JOIN civicrm_contact {$field['alias']} ON {$field['alias']}.id = {$this->_a
    * (left here in case extensions use it).
    */
   public function addAddressFromClause() {
-    Civi::log()->warning('Deprecated function addAddressFromClause. Use joinAddressFromContact.', array('civi.tag' => 'deprecated'));
+    CRM_Core_Error::deprecatedFunctionWarning('CRM_Report_Form::joinAddressFromContact');
     // include address field if address column is to be included
     if ((isset($this->_addressField) &&
         $this->_addressField
@@ -4548,8 +4548,7 @@ LEFT JOIN civicrm_contact {$field['alias']} ON {$field['alias']}.id = {$this->_a
    *  (left here in case extensions use it).
    */
   public function addPhoneFromClause() {
-
-    Civi::log()->warning('Deprecated function addPhoneFromClause. Use joinPhoneFromContact.', array('civi.tag' => 'deprecated'));
+    CRM_Core_Error::deprecatedFunctionWarning('CRM_Report_Form::joinPhoneFromContact');
     // include address field if address column is to be included
     if ($this->isTableSelected('civicrm_phone')) {
       $this->_from .= "
@@ -5299,6 +5298,7 @@ LEFT JOIN civicrm_contact {$field['alias']} ON {$field['alias']}.id = {$this->_a
         'is_order_bys' => TRUE,
         'is_group_bys' => TRUE,
         'is_fields' => TRUE,
+        'is_filters' => TRUE,
       ),
       $options['prefix'] . 'external_identifier' => array(
         'name' => 'external_identifier',

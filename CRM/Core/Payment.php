@@ -104,6 +104,17 @@ abstract class CRM_Core_Payment {
   protected $cancelUrl;
 
   /**
+   * Processor type label.
+   *
+   * (Deprecated parameter but used in some messages).
+   *
+   * @deprecated
+   *
+   * @var string
+   */
+  public $_processorName;
+
+  /**
    * The profile configured to show on the billing form.
    *
    * Currently only the pseudo-profile 'billing' is supported but hopefully in time we will take an id and
@@ -1538,6 +1549,18 @@ INNER JOIN civicrm_contribution con ON ( con.contribution_recur_id = rec.id )
    * @return bool
    */
   public function supportsEditRecurringContribution() {
+    return FALSE;
+  }
+
+  /**
+   * Checks if payment processor supports recurring contributions
+   *
+   * @return bool
+   */
+  public function supportsRecurring() {
+    if (!empty($this->_paymentProcessor['is_recur'])) {
+      return TRUE;
+    }
     return FALSE;
   }
 

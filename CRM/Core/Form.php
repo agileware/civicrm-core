@@ -269,7 +269,17 @@ class CRM_Core_Form extends HTML_QuickForm_Page {
     $this->addClass(CRM_Utils_System::getClassName($this));
 
     $this->assign('snippet', CRM_Utils_Array::value('snippet', $_GET));
+    $this->setTranslatedFields();
   }
+
+  /**
+   * Set translated fields.
+   *
+   * This function is called from the class constructor, allowing us to set
+   * fields on the class that can't be set as properties due to need for
+   * translation or other non-input specific handling.
+   */
+  protected function setTranslatedFields() {}
 
   /**
    * Add one or more css classes to the form.
@@ -366,6 +376,9 @@ class CRM_Core_Form extends HTML_QuickForm_Page {
     if ($type == 'datepicker') {
       $attributes = ($attributes ? $attributes : array());
       $attributes['data-crm-datepicker'] = json_encode((array) $extra);
+      if (!empty($attributes['aria-label']) || $label) {
+        $attributes['aria-label'] = CRM_Utils_Array::value('aria-label', $attributes, $label);
+      }
       $type = "text";
     }
     if ($type == 'select' && is_array($extra)) {
@@ -1413,7 +1426,8 @@ class CRM_Core_Form extends HTML_QuickForm_Page {
     // Core field - get metadata.
     $fieldSpec = civicrm_api3($props['entity'], 'getfield', $props);
     $fieldSpec = $fieldSpec['values'];
-    $label = CRM_Utils_Array::value('label', $props, isset($fieldSpec['title']) ? $fieldSpec['title'] : NULL);
+    $fieldSpecLabel = isset($fieldSpec['html']['label']) ? $fieldSpec['html']['label'] : CRM_Utils_Array::value('title', $fieldSpec);
+    $label = CRM_Utils_Array::value('label', $props, $fieldSpecLabel);
 
     $widget = isset($props['type']) ? $props['type'] : $fieldSpec['html']['type'];
     if ($widget == 'TextArea' && $context == 'search') {
@@ -1475,7 +1489,7 @@ class CRM_Core_Form extends HTML_QuickForm_Page {
         //Set default columns and rows for textarea.
         $props['rows'] = isset($props['rows']) ? $props['rows'] : 4;
         $props['cols'] = isset($props['cols']) ? $props['cols'] : 60;
-        if (!$props['maxlength'] && isset($fieldSpec['length'])) {
+        if (empty($props['maxlength']) && isset($fieldSpec['length'])) {
           $props['maxlength'] = $fieldSpec['length'];
         }
         return $this->add('textarea', $name, $label, $props, $required);
