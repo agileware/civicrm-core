@@ -1,4 +1,5 @@
 <?php
+require_once 'CiviTest/CiviUnitTestCase.php';
 
 /**
  * Class CRM_Logging_SchmeaTest

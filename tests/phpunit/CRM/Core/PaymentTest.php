@@ -25,9 +25,6 @@
  +--------------------------------------------------------------------+
  */
 
-
-require_once 'CiviTest/CiviUnitTestCase.php';
-
 /**
  * Class CRM_Core_PaymentTest
  */
@@ -46,6 +43,44 @@ class CRM_Core_PaymentTest extends CiviUnitTestCase {
     }
     $log = $this->callAPISuccess('SystemLog', 'get', array());
     $this->assertEquals('payment_notification processor_name=Paypal', $log['values'][$log['id']]['message']);
+  }
+
+  /**
+   * Test that CVV is always required for front facing pages.
+   */
+  public function testCVVSettingForContributionPages() {
+
+    CRM_Core_BAO_Setting::setItem(
+      0,
+      CRM_Core_BAO_Setting::CONTRIBUTE_PREFERENCES_NAME,
+      'cvv_backoffice_required'
+    );
+
+    $processor = NULL;
+    $dummyPayment = new CRM_Core_Payment_Dummy("test", $processor);
+    $paymentMetaData = $dummyPayment->getPaymentFormFieldsMetadata();
+    $this->assertEquals(1, $paymentMetaData["cvv2"]["is_required"], "CVV should be required for front office.");
+
+    $paymentMetaData = $dummyPayment->getPaymentFormFieldsMetadata(TRUE);
+    $this->assertEquals(0, $paymentMetaData["cvv2"]["is_required"], "CVV should not be required for back office.");
+
+    $paymentMetaData = $dummyPayment->getPaymentFormFieldsMetadata(FALSE);
+    $this->assertEquals(1, $paymentMetaData["cvv2"]["is_required"], "CVV should not be required for front office.");
+
+    CRM_Core_BAO_Setting::setItem(
+      1,
+      CRM_Core_BAO_Setting::CONTRIBUTE_PREFERENCES_NAME,
+      'cvv_backoffice_required'
+    );
+
+    $paymentMetaData = $dummyPayment->getPaymentFormFieldsMetadata();
+    $this->assertEquals(1, $paymentMetaData["cvv2"]["is_required"], "CVV should be required for front office.");
+
+    $paymentMetaData = $dummyPayment->getPaymentFormFieldsMetadata(TRUE);
+    $this->assertEquals(1, $paymentMetaData["cvv2"]["is_required"], "CVV should be required for back office.");
+
+    $paymentMetaData = $dummyPayment->getPaymentFormFieldsMetadata(FALSE);
+    $this->assertEquals(1, $paymentMetaData["cvv2"]["is_required"], "CVV should be required for front office.");
   }
 
 }
