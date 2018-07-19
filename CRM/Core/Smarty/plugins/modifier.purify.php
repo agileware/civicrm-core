@@ -1,4 +1,5 @@
-{*
+<?php
+/*
  +--------------------------------------------------------------------+
  | CiviCRM version 5                                                  |
  +--------------------------------------------------------------------+
@@ -22,46 +23,23 @@
  | GNU Affero General Public License or the licensing of CiviCRM,     |
  | see the CiviCRM license FAQ at http://civicrm.org/licensing        |
  +--------------------------------------------------------------------+
-*}
-{if $top}
-  {if $printOnly}
-    <h1>{$reportTitle}</h1>
-    <div id="report-date">{$reportDate}</div>
-  {/if}
-  {if $statistics}
-    <table class="report-layout statistics-table">
-      {foreach from=$statistics.groups item=row}
-        <tr>
-          <th class="statistics" scope="row">{$row.title}</th>
-          <td>{$row.value|escape}</td>
-        </tr>
-      {/foreach}
-      {foreach from=$statistics.filters item=row}
-        <tr>
-          <th class="statistics" scope="row">{$row.title}</th>
-          <td>{$row.value|escape}</td>
-        </tr>
-      {/foreach}
-    </table>
-  {/if}
-{/if}
+ */
 
-{if $bottom and $rows and $statistics}
-  <table class="report-layout">
-    {foreach from=$statistics.counts item=row}
-      <tr>
-        <th class="statistics" scope="row">{$row.title}</th>
-        <td>
-          {if $row.type eq 1024}
-            {$row.value|crmMoney|escape}
-          {elseif $row.type eq 2}
-            {$row.value|escape}
-          {else}
-            {$row.value|crmNumberFormat|escape}
-          {/if}
+/**
+ * @package CRM
+ * @copyright CiviCRM LLC (c) 2004-2018
+ * $Id$
+ */
 
-        </td>
-      </tr>
-    {/foreach}
-  </table>
-{/if}
+/**
+ * Purify HTML to mitigate against XSS attacks
+ *
+ * @param string $text
+ *   Input text, potentially containing XSS
+ *
+ * @return string
+ *   Output text, containing only clean HTML
+ */
+function smarty_modifier_purify($text) {
+  return CRM_Utils_String::purifyHTML($text);
+}
