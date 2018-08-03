@@ -621,6 +621,7 @@ FROM civicrm_action_schedule cas
       'subject' => $tokenRow->render('subject'),
       'entity' => 'action_schedule',
       'entity_id' => $schedule->id,
+      'token_params' => (array) $tokenRow->tokenProcessor->rowContexts[0]['actionSearchResult'],
     );
 
     if (!$body_html || $tokenRow->context['contact']['preferred_mail_format'] == 'Text' ||
