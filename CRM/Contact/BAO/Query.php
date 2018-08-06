@@ -4066,7 +4066,7 @@ WHERE  $smartGroupClause
       $relationType[2] = (array) $relationType[2];
       foreach ($relationType[2] as $relType) {
         $rel = explode('_', $relType);
-        self::$_relType .= $rel[1];
+        self::$_relType = $rel[1];
         $params = array('id' => $rel[0]);
         $typeValues = array();
         $rTypeValue = CRM_Contact_BAO_RelationshipType::retrieve($params, $typeValues);
@@ -5669,11 +5669,11 @@ SELECT COUNT( conts.total_amount ) as cancel_count,
         return $clause;
 
       case 'IS EMPTY':
-        $clause = " (NULLIF($field, '') IS NULL) ";
+        $clause = ($dataType == 'Date') ? " $field IS NULL " : " (NULLIF($field, '') IS NULL) ";
         return $clause;
 
       case 'IS NOT EMPTY':
-        $clause = " (NULLIF($field, '') IS NOT NULL) ";
+        $clause = ($dataType == 'Date') ? " $field IS NOT NULL " : " (NULLIF($field, '') IS NOT NULL) ";
         return $clause;
 
       case 'IN':
@@ -5684,7 +5684,7 @@ SELECT COUNT( conts.total_amount ) as cancel_count,
         }
 
       default:
-        if (empty($dataType)) {
+        if (empty($dataType) || $dataType == 'Date') {
           $dataType = 'String';
         }
         if (is_array($value)) {

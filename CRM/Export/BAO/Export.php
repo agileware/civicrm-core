@@ -41,6 +41,68 @@ class CRM_Export_BAO_Export {
   // CRM-7675
   const EXPORT_ROW_COUNT = 100000;
 
+  protected static $relationshipReturnProperties = [];
+
+  /**
+   * @param $value
+   * @param $locationTypeFields
+   * @param $relationshipTypes
+   *
+   * @return array
+   */
+  protected static function setRelationshipReturnProperties($value, $locationTypeFields, $relationshipTypes) {
+    $locationTypes = CRM_Core_PseudoConstant::get('CRM_Core_DAO_Address', 'location_type_id');
+    $relPhoneTypeId = $relIMProviderId = NULL;
+    if (!empty($value[2])) {
+      $relationField = CRM_Utils_Array::value(2, $value);
+      if (trim(CRM_Utils_Array::value(3, $value))) {
+        $relLocTypeId = CRM_Utils_Array::value(3, $value);
+      }
+      else {
+        $relLocTypeId = 'Primary';
+      }
+
+      if ($relationField == 'phone') {
+        $relPhoneTypeId = CRM_Utils_Array::value(4, $value);
+      }
+      elseif ($relationField == 'im') {
+        $relIMProviderId = CRM_Utils_Array::value(4, $value);
+      }
+    }
+    elseif (!empty($value[4])) {
+      $relationField = CRM_Utils_Array::value(4, $value);
+      $relLocTypeId = CRM_Utils_Array::value(5, $value);
+      if ($relationField == 'phone') {
+        $relPhoneTypeId = CRM_Utils_Array::value(6, $value);
+      }
+      elseif ($relationField == 'im') {
+        $relIMProviderId = CRM_Utils_Array::value(6, $value);
+      }
+    }
+    if (in_array($relationField, $locationTypeFields) && is_numeric($relLocTypeId)) {
+      if ($relPhoneTypeId) {
+        self::$relationshipReturnProperties[$relationshipTypes]['location'][$locationTypes[$relLocTypeId]]['phone-' . $relPhoneTypeId] = 1;
+      }
+      elseif ($relIMProviderId) {
+        self::$relationshipReturnProperties[$relationshipTypes]['location'][$locationTypes[$relLocTypeId]]['im-' . $relIMProviderId] = 1;
+      }
+      else {
+        self::$relationshipReturnProperties[$relationshipTypes]['location'][$locationTypes[$relLocTypeId]][$relationField] = 1;
+      }
+    }
+    else {
+      self::$relationshipReturnProperties[$relationshipTypes][$relationField] = 1;
+    }
+    return array($relationField);
+  }
+
+  /**
+   * @return array
+   */
+  public static function getRelationshipReturnProperties() {
+    return self::relationshipReturnProperties;
+  }
+
   /**
    * Get Querymode based on ExportMode
    *
@@ -348,58 +410,15 @@ class CRM_Export_BAO_Export {
       );
 
       foreach ($fields as $key => $value) {
-        $relationField = NULL;
-        $relationshipTypes = $fieldName = CRM_Utils_Array::value(1, $value);
+        $fieldName = CRM_Utils_Array::value(1, $value);
         if (!$fieldName) {
           continue;
         }
 
-        if (array_key_exists($relationshipTypes, $contactRelationshipTypes) && (!empty($value[2]) || !empty($value[4]))) {
-          $relPhoneTypeId = $relIMProviderId = NULL;
-          if (!empty($value[2])) {
-            $relationField = CRM_Utils_Array::value(2, $value);
-            if (trim(CRM_Utils_Array::value(3, $value))) {
-              $relLocTypeId = CRM_Utils_Array::value(3, $value);
-            }
-            else {
-              $relLocTypeId = 'Primary';
-            }
-
-            if ($relationField == 'phone') {
-              $relPhoneTypeId = CRM_Utils_Array::value(4, $value);
-            }
-            elseif ($relationField == 'im') {
-              $relIMProviderId = CRM_Utils_Array::value(4, $value);
-            }
-          }
-          elseif (!empty($value[4])) {
-            $relationField = CRM_Utils_Array::value(4, $value);
-            $relLocTypeId = CRM_Utils_Array::value(5, $value);
-            if ($relationField == 'phone') {
-              $relPhoneTypeId = CRM_Utils_Array::value(6, $value);
-            }
-            elseif ($relationField == 'im') {
-              $relIMProviderId = CRM_Utils_Array::value(6, $value);
-            }
-          }
-          if (in_array($relationField, $locationTypeFields) && is_numeric($relLocTypeId)) {
-            if ($relPhoneTypeId) {
-              $returnProperties[$relationshipTypes]['location'][$locationTypes[$relLocTypeId]]['phone-' . $relPhoneTypeId] = 1;
-            }
-            elseif ($relIMProviderId) {
-              $returnProperties[$relationshipTypes]['location'][$locationTypes[$relLocTypeId]]['im-' . $relIMProviderId] = 1;
-            }
-            else {
-              $returnProperties[$relationshipTypes]['location'][$locationTypes[$relLocTypeId]][$relationField] = 1;
-            }
-          }
-          else {
-            $returnProperties[$relationshipTypes][$relationField] = 1;
-          }
-        }
-
-        if ($relationField) {
-          // already handled.
+        if (array_key_exists($fieldName, $contactRelationshipTypes) && (!empty($value[2]) || !empty($value[4]))) {
+          self::setRelationshipReturnProperties($value, $locationTypeFields, $fieldName);
+          // @todo we can later not add this to this array but maintain a separate array.
+          $returnProperties = array_merge($returnProperties, self::$relationshipReturnProperties);
         }
         elseif (is_numeric(CRM_Utils_Array::value(2, $value))) {
           $locTypeId = $value[2];
@@ -582,81 +601,7 @@ INSERT INTO {$componentTable} SELECT distinct gc.contact_id FROM civicrm_group_c
       unset($returnProperties[$relationKeyHOH]['im_provider']);
     }
 
-    $allRelContactArray = $relationQuery = array();
-
-    foreach ($contactRelationshipTypes as $rel => $dnt) {
-      if ($relationReturnProperties = CRM_Utils_Array::value($rel, $returnProperties)) {
-        $allRelContactArray[$rel] = array();
-        // build Query for each relationship
-        $relationQuery[$rel] = new CRM_Contact_BAO_Query(NULL, $relationReturnProperties,
-          NULL, FALSE, FALSE, $queryMode
-        );
-        list($relationSelect, $relationFrom, $relationWhere, $relationHaving) = $relationQuery[$rel]->query();
-
-        list($id, $direction) = explode('_', $rel, 2);
-        // identify the relationship direction
-        $contactA = 'contact_id_a';
-        $contactB = 'contact_id_b';
-        if ($direction == 'b_a') {
-          $contactA = 'contact_id_b';
-          $contactB = 'contact_id_a';
-        }
-        if ($exportMode == CRM_Export_Form_Select::CONTACT_EXPORT) {
-          $relIDs = $ids;
-        }
-        elseif ($exportMode == CRM_Export_Form_Select::ACTIVITY_EXPORT) {
-          $sourceID = CRM_Core_PseudoConstant::getKey('CRM_Activity_BAO_ActivityContact', 'record_type_id', 'Activity Source');
-          $dao = CRM_Core_DAO::executeQuery("
-            SELECT contact_id FROM civicrm_activity_contact
-            WHERE activity_id IN ( " . implode(',', $ids) . ") AND
-            record_type_id = {$sourceID}
-          ");
-
-          while ($dao->fetch()) {
-            $relIDs[] = $dao->contact_id;
-          }
-        }
-        else {
-          $component = self::exportComponent($exportMode);
-
-          if ($exportMode == CRM_Export_Form_Select::CASE_EXPORT) {
-            $relIDs = CRM_Case_BAO_Case::retrieveContactIdsByCaseId($ids);
-          }
-          else {
-            $relIDs = CRM_Core_DAO::getContactIDsFromComponent($ids, $component);
-          }
-        }
-
-        $relationshipJoin = $relationshipClause = '';
-        if (!$selectAll && $componentTable) {
-          $relationshipJoin = " INNER JOIN {$componentTable} ctTable ON ctTable.contact_id = {$contactA}";
-        }
-        elseif (!empty($relIDs)) {
-          $relID = implode(',', $relIDs);
-          $relationshipClause = " AND crel.{$contactA} IN ( {$relID} )";
-        }
-
-        $relationFrom = " {$relationFrom}
-                INNER JOIN civicrm_relationship crel ON crel.{$contactB} = contact_a.id AND crel.relationship_type_id = {$id}
-                {$relationshipJoin} ";
-
-        //check for active relationship status only
-        $today = date('Ymd');
-        $relationActive = " AND (crel.is_active = 1 AND ( crel.end_date is NULL OR crel.end_date >= {$today} ) )";
-        $relationWhere = " WHERE contact_a.is_deleted = 0 {$relationshipClause} {$relationActive}";
-        $relationGroupBy = CRM_Contact_BAO_Query::getGroupByFromSelectColumns($relationQuery[$rel]->_select, "crel.{$contactA}");
-        $relationSelect = "{$relationSelect}, {$contactA} as refContact ";
-        $relationQueryString = "$relationSelect $relationFrom $relationWhere $relationHaving $relationGroupBy";
-
-        $allRelContactDAO = CRM_Core_DAO::executeQuery($relationQueryString);
-        while ($allRelContactDAO->fetch()) {
-          //FIX Me: Migrate this to table rather than array
-          // build the array of all related contacts
-          $allRelContactArray[$rel][$allRelContactDAO->refContact] = clone($allRelContactDAO);
-        }
-        $allRelContactDAO->free();
-      }
-    }
+    list($relationQuery, $allRelContactArray) = self::buildRelatedContactArray($selectAll, $ids, $exportMode, $componentTable, $contactRelationshipTypes, $returnProperties, $queryMode);
 
     // make sure the groups stuff is included only if specifically specified
     // by the fields param (CRM-1969), else we limit the contacts outputted to only
@@ -1314,7 +1259,7 @@ VALUES $sqlValueString
    */
   public static function createTempTable(&$sqlColumns) {
     //creating a temporary table for the search result that need be exported
-    $exportTempTable = CRM_Core_DAO::createTempTableName('civicrm_export', TRUE);
+    $exportTempTable = CRM_Utils_SQL_TempTable::build()->setDurable()->setCategory('export')->getName();
 
     // also create the sql table
     $sql = "DROP TABLE IF EXISTS {$exportTempTable}";
@@ -2165,6 +2110,107 @@ WHERE  {$whereClause}";
         $row[$relPrefix] = '';
       }
     }
+  }
+
+  /**
+   * Get the ids that we want to get related contact details for.
+   *
+   * @param array $ids
+   * @param int $exportMode
+   *
+   * @return array
+   */
+  protected static function getIDsForRelatedContact($ids, $exportMode) {
+    if ($exportMode == CRM_Export_Form_Select::CONTACT_EXPORT) {
+      return $ids;
+    }
+    if ($exportMode == CRM_Export_Form_Select::ACTIVITY_EXPORT) {
+      $relIDs = [];
+      $sourceID = CRM_Core_PseudoConstant::getKey('CRM_Activity_BAO_ActivityContact', 'record_type_id', 'Activity Source');
+      $dao = CRM_Core_DAO::executeQuery("
+            SELECT contact_id FROM civicrm_activity_contact
+            WHERE activity_id IN ( " . implode(',', $ids) . ") AND
+            record_type_id = {$sourceID}
+          ");
+
+      while ($dao->fetch()) {
+        $relIDs[] = $dao->contact_id;
+      }
+      return $relIDs;
+    }
+    $component = self::exportComponent($exportMode);
+
+    if ($exportMode == CRM_Export_Form_Select::CASE_EXPORT) {
+      return CRM_Case_BAO_Case::retrieveContactIdsByCaseId($ids);
+    }
+    else {
+      return CRM_Core_DAO::getContactIDsFromComponent($ids, $component);
+    }
+  }
+
+  /**
+   * @param $selectAll
+   * @param $ids
+   * @param $exportMode
+   * @param $componentTable
+   * @param $contactRelationshipTypes
+   * @param $returnProperties
+   * @param $queryMode
+   * @return array
+   */
+  protected static function buildRelatedContactArray($selectAll, $ids, $exportMode, $componentTable, $contactRelationshipTypes, $returnProperties, $queryMode) {
+    $allRelContactArray = $relationQuery = array();
+
+    foreach ($contactRelationshipTypes as $rel => $dnt) {
+      if ($relationReturnProperties = CRM_Utils_Array::value($rel, $returnProperties)) {
+        $allRelContactArray[$rel] = array();
+        // build Query for each relationship
+        $relationQuery[$rel] = new CRM_Contact_BAO_Query(NULL, $relationReturnProperties,
+          NULL, FALSE, FALSE, $queryMode
+        );
+        list($relationSelect, $relationFrom, $relationWhere, $relationHaving) = $relationQuery[$rel]->query();
+
+        list($id, $direction) = explode('_', $rel, 2);
+        // identify the relationship direction
+        $contactA = 'contact_id_a';
+        $contactB = 'contact_id_b';
+        if ($direction == 'b_a') {
+          $contactA = 'contact_id_b';
+          $contactB = 'contact_id_a';
+        }
+        $relIDs = self::getIDsForRelatedContact($ids, $exportMode);
+
+        $relationshipJoin = $relationshipClause = '';
+        if (!$selectAll && $componentTable) {
+          $relationshipJoin = " INNER JOIN {$componentTable} ctTable ON ctTable.contact_id = {$contactA}";
+        }
+        elseif (!empty($relIDs)) {
+          $relID = implode(',', $relIDs);
+          $relationshipClause = " AND crel.{$contactA} IN ( {$relID} )";
+        }
+
+        $relationFrom = " {$relationFrom}
+                INNER JOIN civicrm_relationship crel ON crel.{$contactB} = contact_a.id AND crel.relationship_type_id = {$id}
+                {$relationshipJoin} ";
+
+        //check for active relationship status only
+        $today = date('Ymd');
+        $relationActive = " AND (crel.is_active = 1 AND ( crel.end_date is NULL OR crel.end_date >= {$today} ) )";
+        $relationWhere = " WHERE contact_a.is_deleted = 0 {$relationshipClause} {$relationActive}";
+        $relationGroupBy = CRM_Contact_BAO_Query::getGroupByFromSelectColumns($relationQuery[$rel]->_select, "crel.{$contactA}");
+        $relationSelect = "{$relationSelect}, {$contactA} as refContact ";
+        $relationQueryString = "$relationSelect $relationFrom $relationWhere $relationHaving $relationGroupBy";
+
+        $allRelContactDAO = CRM_Core_DAO::executeQuery($relationQueryString);
+        while ($allRelContactDAO->fetch()) {
+          //FIX Me: Migrate this to table rather than array
+          // build the array of all related contacts
+          $allRelContactArray[$rel][$allRelContactDAO->refContact] = clone($allRelContactDAO);
+        }
+        $allRelContactDAO->free();
+      }
+    }
+    return array($relationQuery, $allRelContactArray);
   }
 
 }

@@ -65,7 +65,7 @@ class Container {
     // services. Consequently, we assume a minimal service available -- the classloader
     // has been setup, and civicrm.settings.php is loaded, but nothing else works.
 
-    $cacheMode = defined('CIVICRM_CONTAINER_CACHE') ? CIVICRM_CONTAINER_CACHE : 'always';
+    $cacheMode = defined('CIVICRM_CONTAINER_CACHE') ? CIVICRM_CONTAINER_CACHE : 'auto';
 
     // In pre-installation environments, don't bother with caching.
     if (!defined('CIVICRM_TEMPLATE_COMPILEDIR') || !defined('CIVICRM_DSN') || $cacheMode === 'never' || \CRM_Utils_System::isInUpgradeMode()) {
@@ -160,12 +160,18 @@ class Container {
 
     $container->setDefinition('psr_log', new Definition('CRM_Core_Error_Log', array()));
 
-    foreach (array('js_strings', 'community_messages') as $cacheName) {
-      $container->setDefinition("cache.{$cacheName}", new Definition(
+    $basicCaches = array(
+      'js_strings' => 'js_strings',
+      'community_messages' => 'community_messages',
+      'checks' => 'checks',
+      'session' => 'CiviCRM Session',
+    );
+    foreach ($basicCaches as $cacheSvc => $cacheGrp) {
+      $container->setDefinition("cache.{$cacheSvc}", new Definition(
         'CRM_Utils_Cache_Interface',
         array(
           array(
-            'name' => $cacheName,
+            'name' => $cacheGrp,
             'type' => array('*memory*', 'SqlGroup', 'ArrayCache'),
           ),
         )

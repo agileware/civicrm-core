@@ -920,8 +920,7 @@ class CRM_Activity_BAO_Activity extends CRM_Activity_DAO_Activity {
 
     $config = CRM_Core_Config::singleton();
 
-    $randomNum = md5(uniqid());
-    $activityTempTable = "civicrm_temp_activity_details_{$randomNum}";
+    $activityTempTable = CRM_Utils_SQL_TempTable::build()->setCategory('actdetail')->getName();
 
     $tableFields = array(
       'activity_id' => 'int unsigned',
@@ -1012,7 +1011,7 @@ LEFT JOIN  civicrm_case_activity ON ( civicrm_case_activity.activity_id = tbl.ac
 
     // step 2: Get target and assignee contacts for above activities
     // create temp table for target contacts
-    $activityContactTempTable = "civicrm_temp_activity_contact_{$randomNum}";
+    $activityContactTempTable = CRM_Utils_SQL_TempTable::build()->setCategory('actcontact')->getName();
     $query = "CREATE TEMPORARY TABLE {$activityContactTempTable} (
                 activity_id int unsigned, contact_id int unsigned, record_type_id varchar(16),
                  contact_name varchar(255), is_deleted int unsigned, counter int unsigned, INDEX index_activity_id( activity_id ) )
@@ -2537,7 +2536,10 @@ AND cl.modified_id  = c.id
       // my case hence we have defined fields as case_*
       if ($name == 'Activity') {
         $exportableFields = CRM_Activity_DAO_Activity::export();
-        $exportableFields['source_contact_id']['title'] = ts('Source Contact ID');
+        $exportableFields['source_contact_id'] = [
+          'title' => ts('Source Contact ID'),
+          'type' => CRM_Utils_Type::T_INT,
+        ];
         $exportableFields['source_contact'] = array(
           'title' => ts('Source Contact'),
           'type' => CRM_Utils_Type::T_STRING,
