@@ -590,7 +590,8 @@ class CRM_Case_Form_Activity extends CRM_Activity_Form_Activity {
     $selectedContacts = array('contact_check');
     $activityContacts = CRM_Activity_BAO_ActivityContact::buildOptions('record_type_id', 'validate');
     $assigneeID = CRM_Utils_Array::key('Activity Assignees', $activityContacts);
-    if (Civi::settings()->get('activity_assignee_notification')) {
+
+    if (Civi::settings()->get('activity_assignee_notification') && !in_array($params['activity_type_id'], Civi::settings()->get('do_not_notify_assignees_for'))) {
       $selectedContacts[] = 'assignee_contact_id';
     }
 
