@@ -66,6 +66,11 @@ class CRM_Report_Form_Case_Detail extends CRM_Report_Form {
       1 => ts('Yes'),
     );
 
+    $this->active_role_labels = array(
+      0 => ts('No'),
+      1 => ts('Yes'),
+    );
+
     $this->caseActivityTypes = array();
     foreach (CRM_Case_PseudoConstant::caseActivityType() as $typeDetail) {
       $this->caseActivityTypes[$typeDetail['id']] = $typeDetail['label'];
@@ -179,6 +184,12 @@ class CRM_Report_Form_Case_Detail extends CRM_Report_Form {
             'type' => CRM_Utils_Type::T_INT,
             'operatorType' => CRM_Report_Form::OP_MULTISELECT,
             'options' => $this->rel_types,
+          ),
+          'is_active' => array(
+            'title' => ts('Active Role?'),
+            'type' => CRM_Utils_Type::T_BOOLEAN,
+            'default' => TRUE,
+            'options' => $this->active_role_labels,
           ),
         ),
       ),
@@ -572,8 +583,9 @@ class CRM_Report_Form_Case_Detail extends CRM_Report_Form {
   }
 
   public function checkEnabledFields() {
-    if (isset($this->_params['case_role_value'])
-      && !empty($this->_params['case_role_value'])
+    if ((isset($this->_params['case_role_value'])
+        && !empty($this->_params['case_role_value'])) ||
+        (isset($this->_params['is_active_value']))
     ) {
       $this->_relField = TRUE;
     }

@@ -55,6 +55,11 @@ class CRM_Report_Form_Case_Summary extends CRM_Report_Form {
       1 => ts('Yes'),
     );
 
+    $this->active_relationship_labels = array(
+      0 => ts('No'),
+      1 => ts('Yes'),
+    );
+
     $this->_columns = array(
       'civicrm_c2' => array(
         'dao' => 'CRM_Contact_DAO_Contact',
@@ -181,6 +186,12 @@ class CRM_Report_Form_Case_Summary extends CRM_Report_Form {
             'type' => CRM_Utils_Type::T_INT,
             'operatorType' => CRM_Report_Form::OP_MULTISELECT,
             'options' => $this->rel_types,
+          ),
+          'is_active' => array(
+            'title' => ts('Active Relationship?'),
+            'type' => CRM_Utils_Type::T_BOOLEAN,
+            'default' => TRUE,
+            'options' => $this->active_relationship_labels,
           ),
         ),
       ),
