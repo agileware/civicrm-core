@@ -528,6 +528,11 @@ GROUP BY {$this->_aliases['civicrm_contribution']}.currency";
     // we inner join with temp1 to restrict soft contributions to those in temp1 table.
     // no group by here as we want to display as many soft credit rows as actually exist.
     $sql = "{$select} {$this->_from} {$this->_where} $this->_groupBy";
+    // Where no soft credits exist, this query can return a single row of all
+    // NULL values, which will lead to a single blank row in the report output.
+    // Prevent this by ensuring the (required, no_display) column contact.id is
+    // not NULL.
+    $sql .= " HAVING civicrm_contact_id IS NOT NULL";
     $tempQuery = "CREATE TEMPORARY TABLE civireport_contribution_detail_temp2 {$this->_databaseAttributes} AS {$sql}";
     $this->executeReportQuery($tempQuery);
     $this->temporaryTables['civireport_contribution_detail_temp2'] = ['name' => 'civireport_contribution_detail_temp2', 'temporary' => TRUE];
