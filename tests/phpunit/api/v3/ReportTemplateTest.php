@@ -364,7 +364,7 @@ class api_v3_ReportTemplateTest extends CiviUnitTestCase {
       SELECT SQL_CALC_FOUND_ROWS contact_civireport.id as cid  FROM civicrm_contact contact_civireport    INNER JOIN civicrm_contribution contribution_civireport USE index (received_date) ON contribution_civireport.contact_id = contact_civireport.id
          AND contribution_civireport.is_test = 0
          AND contribution_civireport.receive_date BETWEEN \'20140701000000\' AND \'20150630235959\'
-       
+
        LEFT JOIN civicrm_contribution cont_exclude ON cont_exclude.contact_id = contact_civireport.id
          AND cont_exclude.receive_date BETWEEN \'2015-7-1\' AND \'20160630235959\' WHERE cont_exclude.id IS NULL AND 1 AND ( contribution_civireport.contribution_status_id IN (1) )
       GROUP BY contact_civireport.id', $rows['metadata']['sql'][0]);
@@ -754,6 +754,179 @@ class api_v3_ReportTemplateTest extends CiviUnitTestCase {
     foreach ($rows['values'] as $row) {
       $this->assertEquals(array_pop($count), count($row['rows']), "Report failed to get row count");
     }
+  }
+
+  /**
+   * Test the group filter works on the various reports.
+   *
+   * @dataProvider getMembershipAndContributionReportTemplatesForGroupTests
+   *
+   * @param string $template
+   *   Report template unique identifier.
+   */
+  public function testReportsWithNoTInSmartGroupFilter($template) {
+    $groupID = $this->setUpPopulatedGroup();
+    $rows = $this->callAPISuccess('report_template', 'getrows', array(
+      'report_id' => $template,
+      'gid_value' => array($groupID),
+      'gid_op' => 'notin',
+      'options' => array('metadata' => array('sql')),
+    ));
+    $this->assertNumberOfContactsInResult(2, $rows, $template);
+  }
+
+  /**
+   * Test activity summary report - requiring all current fields to be output.
+   */
+  public function testActivitySummary() {
+    $this->createContactsWithActivities();
+    $fields = [
+      'contact_source' => '1',
+      'contact_assignee' => '1',
+      'contact_target' => '1',
+      'contact_source_email' => '1',
+      'contact_assignee_email' => '1',
+      'contact_target_email' => '1',
+      'contact_source_phone' => '1',
+      'contact_assignee_phone' => '1',
+      'contact_target_phone' => '1',
+      'activity_type_id' => '1',
+      'activity_subject' => '1',
+      'activity_date_time' => '1',
+      'status_id' => '1',
+      'duration' => '1',
+      'location' => '1',
+      'details' => '1',
+      'priority_id' => '1',
+      'result' => '1',
+      'engagement_level' => '1',
+      'address_name' => '1',
+      'street_address' => '1',
+      'supplemental_address_1' => '1',
+      'supplemental_address_2' => '1',
+      'supplemental_address_3' => '1',
+      'street_number' => '1',
+      'street_name' => '1',
+      'street_unit' => '1',
+      'city' => '1',
+      'postal_code' => '1',
+      'postal_code_suffix' => '1',
+      'country_id' => '1',
+      'state_province_id' => '1',
+      'county_id' => '1',
+    ];
+    $params = [
+      'fields' => $fields,
+      'current_user_op' => 'eq',
+      'current_user_value' => '0',
+      'include_case_activities_op' => 'eq',
+      'include_case_activities_value' => 0,
+      'order_bys' => [
+        1 => ['column' => 'activity_date_time', 'order' => 'ASC'],
+        2 => ['column' => 'activity_type_id', 'order' => 'ASC'],
+      ],
+    ];
+
+    $params['report_id'] = 'Activity';
+
+    $rows = $this->callAPISuccess('report_template', 'getrows', $params)['values'];
+    $expected = [
+      'civicrm_contact_contact_source' => 'Łąchowski-Roberts, Anthony',
+      'civicrm_contact_contact_assignee' => '<a title=\'View Contact Summary for this Contact\' href=\'/index.php?q=civicrm/contact/view&amp;reset=1&amp;cid=4\'>Łąchowski-Roberts, Anthony</a>',
+      'civicrm_contact_contact_target' => '<a title=\'View Contact Summary for this Contact\' href=\'/index.php?q=civicrm/contact/view&amp;reset=1&amp;cid=3\'>Brzęczysław, Anthony</a>; <a title=\'View Contact Summary for this Contact\' href=\'/index.php?q=civicrm/contact/view&amp;reset=1&amp;cid=4\'>Łąchowski-Roberts, Anthony</a>',
+      'civicrm_contact_contact_source_id' => $this->contactIDs[2],
+      'civicrm_contact_contact_assignee_id' => $this->contactIDs[1],
+      'civicrm_contact_contact_target_id' => $this->contactIDs[0] . ';' . $this->contactIDs[1],
+      'civicrm_email_contact_source_email' => 'anthony_anderson@civicrm.org',
+      'civicrm_email_contact_assignee_email' => 'anthony_anderson@civicrm.org',
+      'civicrm_email_contact_target_email' => 'techo@spying.com;anthony_anderson@civicrm.org',
+      'civicrm_phone_contact_source_phone' => NULL,
+      'civicrm_phone_contact_assignee_phone' => NULL,
+      'civicrm_phone_contact_target_phone' => NULL,
+      'civicrm_activity_id' => '1',
+      'civicrm_activity_source_record_id' => NULL,
+      'civicrm_activity_activity_type_id' => 'Meeting',
+      'civicrm_activity_activity_subject' => 'Very secret meeting',
+      'civicrm_activity_activity_date_time' => date('Y-m-d 23:59:58', strtotime('now')),
+      'civicrm_activity_status_id' => 'Scheduled',
+      'civicrm_activity_duration' => '120',
+      'civicrm_activity_location' => 'Pennsylvania',
+      'civicrm_activity_details' => 'a test activity',
+      'civicrm_activity_priority_id' => 'Normal',
+      'civicrm_address_address_name' => NULL,
+      'civicrm_address_street_address' => NULL,
+      'civicrm_address_supplemental_address_1' => NULL,
+      'civicrm_address_supplemental_address_2' => NULL,
+      'civicrm_address_supplemental_address_3' => NULL,
+      'civicrm_address_street_number' => NULL,
+      'civicrm_address_street_name' => NULL,
+      'civicrm_address_street_unit' => NULL,
+      'civicrm_address_city' => NULL,
+      'civicrm_address_postal_code' => NULL,
+      'civicrm_address_postal_code_suffix' => NULL,
+      'civicrm_address_country_id' => NULL,
+      'civicrm_address_state_province_id' => NULL,
+      'civicrm_address_county_id' => NULL,
+      'civicrm_contact_contact_source_link' => '/index.php?q=civicrm/contact/view&amp;reset=1&amp;cid=' . $this->contactIDs[2],
+      'civicrm_contact_contact_source_hover' => 'View Contact Summary for this Contact',
+      'civicrm_activity_activity_type_id_hover' => 'View Activity Record',
+    ];
+    $row = $rows[0];
+    // This link is not relative - skip for now
+    unset($row['civicrm_activity_activity_type_id_link']);
+    if ($row['civicrm_email_contact_target_email'] === 'anthony_anderson@civicrm.org;techo@spying.com') {
+      // order is unpredictable
+      $expected['civicrm_email_contact_target_email'] = 'anthony_anderson@civicrm.org;techo@spying.com';
+    }
+
+    $this->assertEquals($expected, $row);
+  }
+
+  /**
+   * Set up some activity data..... use some chars that challenge our utf handling.
+   */
+  public function createContactsWithActivities() {
+    $this->contactIDs[] = $this->individualCreate(['last_name' => 'Brzęczysław', 'email' => 'techo@spying.com']);
+    $this->contactIDs[] = $this->individualCreate(['last_name' => 'Łąchowski-Roberts']);
+    $this->contactIDs[] = $this->individualCreate(['last_name' => 'Łąchowski-Roberts']);
+
+    $this->callAPISuccess('Activity', 'create', [
+      'subject' => 'Very secret meeting',
+      'activity_date_time' => date('Y-m-d 23:59:58', strtotime('now')),
+      'duration' => 120,
+      'location' => 'Pennsylvania',
+      'details' => 'a test activity',
+      'status_id' => 1,
+      'activity_type_id' => 'Meeting',
+      'source_contact_id' => $this->contactIDs[2],
+      'target_contact_id' => array($this->contactIDs[0], $this->contactIDs[1]),
+      'assignee_contact_id' => $this->contactIDs[1],
+    ]);
+  }
+
+  /**
+   * Test the group filter works on the contribution summary.
+   */
+  public function testContributionDetailTotalHeader() {
+    $contactID = $this->individualCreate();
+    $contactID2 = $this->individualCreate();
+    $this->contributionCreate(['contact_id' => $contactID, 'api.ContributionSoft.create' => ['amount' => 5, 'contact_id' => $contactID2]]);
+    $template = 'contribute/detail';
+    $rows = $this->callAPISuccess('report_template', 'getrows', array(
+      'report_id' => $template,
+      'contribution_or_soft_value' => 'contributions_only',
+      'fields' => [
+        'sort_name' => '1',
+        'age' => '1',
+        'email' => '1',
+        'phone' => '1',
+        'financial_type_id' => '1',
+        'receive_date' => '1',
+        'total_amount' => '1',
+       ],
+      'order_bys' => [['column' => 'sort_name', 'order' => 'ASC', 'section' => '1']],
+      'options' => array('metadata' => array('sql')),
+    ));
   }
 
 }
