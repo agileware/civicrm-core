@@ -4621,12 +4621,13 @@ WHERE eft.financial_trxn_id IN ({$trxnId}, {$baseTrxnId['financialTrxnId']})
         $values['is_email_receipt'] = $recurContrib->is_email_receipt;
       }
 
-      self::updateMembershipBasedOnCompletionOfContribution(
-        $contribution,
-        $primaryContributionID,
-        $changeDate,
-        CRM_Core_PseudoConstant::getLabel('CRM_Contribute_BAO_Contribution', 'contribution_status_id', CRM_Utils_Array::value('contribution_status_id', $input))
-      );
+      if ($contributionParams['contribution_status_id'] === $completedContributionStatusID) {
+        self::updateMembershipBasedOnCompletionOfContribution(
+          $contribution,
+          $primaryContributionID,
+          $changeDate
+        );
+      }
     }
     else {
       if (empty($input['IAmAHorribleNastyBeyondExcusableHackInTheCRMEventFORMTaskClassThatNeedsToBERemoved'])) {
@@ -4854,7 +4855,7 @@ WHERE eft.financial_trxn_id IN ({$trxnId}, {$baseTrxnId['financialTrxnId']})
    *
    * @param array $params
    *
-   * @return object
+   * @return CRM_Financial_DAO_FinancialTrxn
    */
   public static function recordPartialPayment($contribution, $params) {
     $contributionStatuses = CRM_Contribute_PseudoConstant::contributionStatus(NULL, 'name');
@@ -5000,6 +5001,7 @@ WHERE eft.financial_trxn_id IN ({$trxnId}, {$baseTrxnId['financialTrxnId']})
   public static function checkLineItems(&$params) {
     $totalAmount = CRM_Utils_Array::value('total_amount', $params);
     $lineItemAmount = 0;
+
     foreach ($params['line_items'] as &$lineItems) {
       foreach ($lineItems['line_item'] as &$item) {
         if (empty($item['financial_type_id'])) {
@@ -5008,11 +5010,20 @@ WHERE eft.financial_trxn_id IN ({$trxnId}, {$baseTrxnId['financialTrxnId']})
         $lineItemAmount += $item['line_total'];
       }
     }
+
     if (!isset($totalAmount)) {
       $params['total_amount'] = $lineItemAmount;
     }
-    elseif ($totalAmount != $lineItemAmount) {
-      throw new API_Exception("Line item total doesn't match with total amount.");
+    else {
+      $currency = CRM_Utils_Array::value('currency', $params, '');
+
+      if (empty($currency)) {
+        $currency = CRM_Core_Config::singleton()->defaultCurrency;
+      }
+
+      if (!CRM_Utils_Money::equals($totalAmount, $lineItemAmount, $currency)) {
+        throw new CRM_Contribute_Exception_CheckLineItemsException();
+      }
     }
   }
 
@@ -5029,11 +5040,13 @@ WHERE eft.financial_trxn_id IN ({$trxnId}, {$baseTrxnId['financialTrxnId']})
     if (!empty($params['financial_account_id'])) {
       return $params['financial_account_id'];
     }
+
     $contributionStatus = CRM_Contribute_PseudoConstant::contributionStatus($params['contribution_status_id'], 'name');
     $preferredAccountsRelationships = array(
       'Refunded' => 'Credit/Contra Revenue Account is',
       'Chargeback' => 'Chargeback Account is',
     );
+
     if (in_array($contributionStatus, array_keys($preferredAccountsRelationships))) {
       $financialTypeID = !empty($params['financial_type_id']) ? $params['financial_type_id'] : $params['prevContribution']->financial_type_id;
       return CRM_Financial_BAO_FinancialAccount::getFinancialAccountForFinancialTypeByRelationship(
@@ -5041,6 +5054,7 @@ WHERE eft.financial_trxn_id IN ({$trxnId}, {$baseTrxnId['financialTrxnId']})
         $preferredAccountsRelationships[$contributionStatus]
       );
     }
+
     return $default;
   }
 
@@ -5391,12 +5405,11 @@ LEFT JOIN  civicrm_contribution on (civicrm_contribution.contact_id = civicrm_co
    * @param \CRM_Contribute_BAO_Contribution $contribution
    * @param int $primaryContributionID
    * @param string $changeDate
-   * @param string $contributionStatus
-   *   This shouldn't be required but historical function overload by repeattransaction probably requires it.
    *
-   * @todo investigate completely bypassing this function if $contributionStatus != Completed.
+   * @throws \CRM_Core_Exception
+   * @throws \CiviCRM_API3_Exception
    */
-  protected static function updateMembershipBasedOnCompletionOfContribution($contribution, $primaryContributionID, $changeDate, $contributionStatus = 'Completed') {
+  protected static function updateMembershipBasedOnCompletionOfContribution($contribution, $primaryContributionID, $changeDate) {
     $contribution->loadRelatedMembershipObjects();
     if (empty($contribution->_relatedObjects['membership'])) {
       return;
@@ -5436,55 +5449,50 @@ LIMIT 1;";
         }
         $dao->free();
 
-        // Unclear why this is here but this function is overloaded by repeattransaction.
-        if ($contributionStatus === 'Pending') {
-          $membershipParams['num_terms'] = 0;
-        }
-        else {
-          $membershipParams['num_terms'] = $contribution->getNumTermsByContributionAndMembershipType(
-            $membershipParams['membership_type_id'],
-            $primaryContributionID
+        $membershipParams['num_terms'] = $contribution->getNumTermsByContributionAndMembershipType(
+          $membershipParams['membership_type_id'],
+          $primaryContributionID
+        );
+        // @todo remove all this stuff in favour of letting the api call further down handle in
+        // (it is a duplication of what the api does).
+        $dates = array_fill_keys(array(
+          'join_date',
+          'start_date',
+          'end_date',
+        ), NULL);
+        if ($currentMembership) {
+          /*
+           * Fixed FOR CRM-4433
+           * In BAO/Membership.php(renewMembership function), we skip the extend membership date and status
+           * when Contribution mode is notify and membership is for renewal )
+           */
+          CRM_Member_BAO_Membership::fixMembershipStatusBeforeRenew($currentMembership, $changeDate);
+
+          // @todo - we should pass membership_type_id instead of null here but not
+          // adding as not sure of testing
+          $dates = CRM_Member_BAO_MembershipType::getRenewalDatesForMembershipType($membershipParams['id'],
+            $changeDate, NULL, $membershipParams['num_terms']
           );
-          // @todo remove all this stuff in favour of letting the api call further down handle in
-          // (it is a duplication of what the api does).
-          $dates = array_fill_keys(array(
-            'join_date',
-            'start_date',
-            'end_date',
-          ), NULL);
-          if ($currentMembership) {
-            /*
-             * Fixed FOR CRM-4433
-             * In BAO/Membership.php(renewMembership function), we skip the extend membership date and status
-             * when Contribution mode is notify and membership is for renewal )
-             */
-            CRM_Member_BAO_Membership::fixMembershipStatusBeforeRenew($currentMembership, $changeDate);
-
-            // @todo - we should pass membership_type_id instead of null here but not
-            // adding as not sure of testing
-            $dates = CRM_Member_BAO_MembershipType::getRenewalDatesForMembershipType($membershipParams['id'],
-              $changeDate, NULL, $membershipParams['num_terms']
-            );
-            $dates['join_date'] = $currentMembership['join_date'];
-          }
-
-          //get the status for membership.
-          $calcStatus = CRM_Member_BAO_MembershipStatus::getMembershipStatusByDate($dates['start_date'],
-            $dates['end_date'],
-            $dates['join_date'],
-            'today',
-            TRUE,
-            $membershipParams['membership_type_id'],
-            $membershipParams
-          );
-
-          unset($dates['end_date']);
-          $membershipParams['status_id'] = CRM_Utils_Array::value('id', $calcStatus, 'New');
-          //we might be renewing membership,
-          //so make status override false.
-          $membershipParams['is_override'] = FALSE;
-          $membershipParams['status_override_end_date'] = 'null';
+          $dates['join_date'] = $currentMembership['join_date'];
         }
+
+        //get the status for membership.
+        $calcStatus = CRM_Member_BAO_MembershipStatus::getMembershipStatusByDate($dates['start_date'],
+          $dates['end_date'],
+          $dates['join_date'],
+          'today',
+          TRUE,
+          $membershipParams['membership_type_id'],
+          $membershipParams
+        );
+
+        unset($dates['end_date']);
+        $membershipParams['status_id'] = CRM_Utils_Array::value('id', $calcStatus, 'New');
+        //we might be renewing membership,
+        //so make status override false.
+        $membershipParams['is_override'] = FALSE;
+        $membershipParams['status_override_end_date'] = 'null';
+
         //CRM-17723 - reset static $relatedContactIds array()
         // @todo move it to Civi Statics.
         $var = TRUE;

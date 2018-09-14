@@ -849,6 +849,9 @@ class CRM_Core_DAO extends DB_DataObject {
   /**
    * Check if there is a given column in a specific table.
    *
+   * @deprecated
+   * @see CRM_Core_BAO_SchemaHandler::checkIfFieldExists
+   *
    * @param string $tableName
    * @param string $columnName
    * @param bool $i18nRewrite
@@ -858,16 +861,7 @@ class CRM_Core_DAO extends DB_DataObject {
    *   true if exists, else false
    */
   public static function checkFieldExists($tableName, $columnName, $i18nRewrite = TRUE) {
-    $query = "
-SHOW COLUMNS
-FROM $tableName
-LIKE %1
-";
-    $params = array(1 => array($columnName, 'String'));
-    $dao = CRM_Core_DAO::executeQuery($query, $params, TRUE, NULL, FALSE, $i18nRewrite);
-    $result = $dao->fetch() ? TRUE : FALSE;
-    $dao->free();
-    return $result;
+    return CRM_Core_BAO_SchemaHandler::checkIfFieldExists($tableName, $columnName, $i18nRewrite);
   }
 
   /**
@@ -1112,6 +1106,29 @@ FROM   civicrm_domain
       $result[] = $this->toArray();
     }
     return $result;
+  }
+
+  /**
+   * Return the results as PHP generator.
+   *
+   * @param string $type
+   *   Whether the generator yields 'dao' objects or 'array's.
+   */
+  public function fetchGenerator($type = 'dao') {
+    while ($this->fetch()) {
+      switch ($type) {
+        case 'dao':
+          yield $this;
+          break;
+
+        case 'array':
+          yield $this->toArray();
+          break;
+
+        default:
+          throw new \RuntimeException("Invalid record type ($type)");
+      }
+    }
   }
 
   /**

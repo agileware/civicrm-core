@@ -230,6 +230,8 @@ class CRM_Core_BAO_CustomField extends CRM_Core_DAO_CustomField {
         $optionGroup->name = "{$columnName}_" . date('YmdHis');
         $optionGroup->title = $params['label'];
         $optionGroup->is_active = 1;
+        // Don't set reserved as it's not a built-in option group and may be useful for other custom fields.
+        $optionGroup->is_reserved = 0;
         $optionGroup->data_type = $dataType;
         $optionGroup->save();
         $params['option_group_id'] = $optionGroup->id;
@@ -400,6 +402,9 @@ class CRM_Core_BAO_CustomField extends CRM_Core_DAO_CustomField {
       $this->find(TRUE);
     }
 
+    // This will hold the list of options in format key => label
+    $options = [];
+
     if (!empty($this->option_group_id)) {
       $options = CRM_Core_OptionGroup::valuesByID(
         $this->option_group_id,
@@ -418,9 +423,6 @@ class CRM_Core_BAO_CustomField extends CRM_Core_DAO_CustomField {
     }
     elseif ($this->data_type === 'Boolean') {
       $options = $context == 'validate' ? array(0, 1) : CRM_Core_SelectValues::boolean();
-    }
-    else {
-      return FALSE;
     }
     CRM_Utils_Hook::customFieldOptions($this->id, $options, FALSE);
     CRM_Utils_Hook::fieldOptions($this->getEntity(), "custom_{$this->id}", $options, array('context' => $context));
@@ -2029,6 +2031,8 @@ AND    cf.id = %1";
 
   /**
    * Get custom option groups.
+   *
+   * @deprecated Use the API OptionGroup.get
    *
    * @param array $includeFieldIds
    *   Ids of custom fields for which option groups must be included.

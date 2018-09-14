@@ -123,7 +123,7 @@ class CRM_Admin_Page_AJAX {
           $ret['content'] = ts('Are you sure you want to disable this CiviCRM Profile field?');
           break;
 
-        case 'CRM_Contribute_BAO_ManagePremiums':
+        case 'CRM_Contribute_BAO_Product':
           $ret['content'] = ts('Are you sure you want to disable this premium? This action will remove the premium from any contribution pages that currently offer it. However it will not delete the premium record - so you can re-enable it and add it back to your contribution page(s) at a later time.');
           break;
 
@@ -265,8 +265,8 @@ class CRM_Admin_Page_AJAX {
     $recipientMapping = array_combine(array_keys($entityRecipientLabels), array_keys($entityRecipientLabels));
 
     $output = array(
-      'sel4' => CRM_Utils_Array::toKeyValueRows($dateFieldLabels),
-      'sel5' => CRM_Utils_Array::toKeyValueRows($entityRecipientLabels),
+      'sel4' => CRM_Utils_Array::makeNonAssociative($dateFieldLabels),
+      'sel5' => CRM_Utils_Array::makeNonAssociative($entityRecipientLabels),
       'recipientMapping' => $recipientMapping,
     );
 
@@ -291,7 +291,7 @@ class CRM_Admin_Page_AJAX {
     ));
 
     CRM_Utils_JSON::output(array(
-      'recipients' => CRM_Utils_Array::toKeyValueRows(CRM_Core_BAO_ActionSchedule::getRecipientListing($mappingID, $recipientType)),
+      'recipients' => CRM_Utils_Array::makeNonAssociative(CRM_Core_BAO_ActionSchedule::getRecipientListing($mappingID, $recipientType)),
     ));
   }
 

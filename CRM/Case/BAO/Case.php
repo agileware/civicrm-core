@@ -684,7 +684,7 @@ LEFT JOIN civicrm_option_group aog ON aog.name='activity_type'
 
       $casesList[$key]['activity_list'] = sprintf('<a title="%s" class="crm-expand-row" href="%s"></a>',
         ts('Activities'),
-        CRM_Utils_System::url('civicrm/case/details', array('caseid' => $case['case_id'], 'cid' => $case['contact_id'], 'type' => $type))
+        CRM_Utils_System::url('civicrm/case/details', array('caseId' => $case['case_id'], 'cid' => $case['contact_id'], 'type' => $type))
       );
 
       $phone = empty($case['phone']) ? '' : '<br /><span class="description">' . $case['phone'] . '</span>';
@@ -725,7 +725,7 @@ LEFT JOIN civicrm_option_group aog ON aog.name='activity_type'
         }
         if (self::checkPermission($actId, 'edit', $case['activity_type_id'], $userID)) {
           $casesList[$key]['date'] .= sprintf('<a class="action-item crm-hover-button" href="%s" title="%s"><i class="crm-i fa-pencil"></i></a>',
-            CRM_Utils_System::url('civicrm/case/activity', array('reset' => 1, 'cid' => $case['contact_id'], 'caseid' => $case['case_id'], 'action' => 'update')),
+            CRM_Utils_System::url('civicrm/case/activity', array('reset' => 1, 'cid' => $case['contact_id'], 'caseid' => $case['case_id'], 'action' => 'update', 'id' => $actId)),
             ts('Edit activity')
           );
         }
@@ -1590,7 +1590,7 @@ SELECT case_status.label AS case_status, status_id, civicrm_case_type.title AS c
  AND civicrm_case.id IN( {$caseID})
  AND civicrm_case.is_deleted     = {$cases['case_deleted']}";
 
-    $query = self::getCaseActivityQuery($type, $userID, $condition, $cases['case_deleted']);
+    $query = self::getCaseActivityQuery($type, $userID, $condition);
 
     $res = CRM_Core_DAO::executeQuery($query);
 
@@ -2744,6 +2744,12 @@ WHERE id IN (' . implode(',', $copiedActivityIds) . ')';
 
       //allow edit operation.
       $allowEditNames = array('Open Case');
+
+      if (CRM_Core_Permission::check('edit inbound email basic information') ||
+        CRM_Core_Permission::check('edit inbound email basic information and content')
+      ) {
+        $allowEditNames[] = 'Inbound Email';
+      }
 
       // do not allow File on Case
       $doNotFileNames = array(

@@ -813,6 +813,12 @@ WHERE  civicrm_contribution_contribution_id={$row['civicrm_contribution_contribu
       // pull section aliases out of $this->_sections
       $sectionAliases = array_keys($this->_sections);
 
+      // hack alert - but it's tested so go forth & make pretty, or whack the new mole that popped up with gay abandon.
+      if (in_array('civicrm_contribution_total_amount', $this->_selectAliases)) {
+        $keyToHack = array_search('civicrm_contribution_total_amount', $this->_selectAliases);
+        $this->_selectAliases[$keyToHack] = 'civicrm_contribution_total_amount_sum';
+      }
+
       $ifnulls = array();
       foreach (array_merge($sectionAliases, $this->_selectAliases) as $alias) {
         $ifnulls[] = "ifnull($alias, '') as $alias";
@@ -916,6 +922,10 @@ WHERE  civicrm_contribution_contribution_id={$row['civicrm_contribution_contribu
       {$this->_aclFrom}
     ";
 
+    //Join temp table if report is filtered by group. This is specific to 'notin' operator and covered in unit test(ref dev/core#212)
+    if (!empty($this->_params['gid_op']) && $this->_params['gid_op'] == 'notin') {
+      $this->joinGroupTempTable('civicrm_contact', 'id', $this->_aliases['civicrm_contact']);
+    }
     $this->appendAdditionalFromJoins();
   }
 
