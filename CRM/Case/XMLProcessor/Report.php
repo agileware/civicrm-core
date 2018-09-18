@@ -792,6 +792,9 @@ LIMIT  1
 
     // now run the template
     $contents = $template->fetch('CRM/Case/XMLProcessor/Report.tpl');
+    // SUP-6141: Sometimes pasted Word documents have characters that are
+    // rejected by the libXML parser, so make sure to filter them out.
+    $contents = preg_replace('/[^\x{0009}\x{000A}\x{000D}\x{0020}-\x{D7FF}\x{E000}-\x{FFFD}\x{10000}-\x{10FFFF}]/u', '', $contents);
     return $contents;
   }
 
