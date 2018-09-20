@@ -1,0 +1,9 @@
+[submodule "ext/org.civicrm.flexmailer"]
+	path = ext/org.civicrm.flexmailer
+	url = https://github.com/civicrm/org.civicrm.flexmailer
+[submodule "ext/org.civicrm.shoreditch"]
+	path = ext/org.civicrm.shoreditch
+	url = https://github.com/civicrm/org.civicrm.shoreditch
+[submodule "ext/au.com.agileware.ewayrecurring"]
+	path = ext/au.com.agileware.ewayrecurring
+	url = https://github.com/agileware/au.com.agileware.ewayrecurring.git
