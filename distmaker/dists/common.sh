@@ -253,3 +253,28 @@ function dm_preg_edit() {
   env RPAT="$1" RREPL="$2" RFILE="$3" \
     php -r '$c = file_get_contents(getenv("RFILE")); $c = preg_replace(getenv("RPAT"), getenv("RREPL"), $c); file_put_contents(getenv("RFILE"), $c);'
 }
+
+# Copy an extension from the designated
+function dm_install_cvext_bundled() {
+  local repo="$1"
+  local to="$2"
+
+  local excludes_rsync=""
+  for exclude in .git .github .svn _ORIGINAL_ SeleniumRC PHPUnit PhpDocumentor SymfonyComponents amavisd-new git-footnote PHP/CodeCoverage ; do
+    excludes_rsync="--exclude=${exclude} ${excludes_rsync}"
+  done
+
+  ## Note: These small folders have items that previously were not published,
+  ## but there's no real cost to including them, and excluding them seems
+  ## likely to cause confusion as the codebase evolves:
+  ##   packages/Files packages/PHP packages/Text
+
+  [ ! -d "$to" ] && mkdir "$to"
+  ${DM_RSYNC:-rsync} -avC $excludes_rsync --include=core "$repo/./" "$to/./"   
+}
+ 
+function dm_install_cvext_unsupported() {
+  local ext="$1"
+  local to="$2"
+  cv dl -b ${@:3} "$ext" --to="$to"
+}
