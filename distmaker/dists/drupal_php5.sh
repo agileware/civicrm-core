@@ -23,8 +23,12 @@ dm_install_packages "$SRC/packages" "$TRG/packages"
 dm_install_vendor "$SRC/vendor" "$TRG/vendor"
 dm_install_bower "$SRC/bower_components" "$TRG/bower_components"
 dm_install_drupal "$SRC/drupal" "$TRG/drupal"
+dm_install_cvext_bundled "$SRC/ext" "$TRG/ext"
+dm_install_cvext_unsupported org.civicrm.shoreditch "$TRG/ext/org.civicrm.shoreditch" --dev
+dm_install_cvext_unsupported org.civicrm.flexmailer "$TRG/ext/org.civicrm.flexmailer" --dev
+dm_install_cvext_unsupported uk.co.vedaconsulting.mosaico "$TRG/ext/uk.co.vedaconsulting.mosaico" --dev
 dm_install_cvext org.civicrm.api4 "$TRG/ext/api4"
-dm_install_cvext com.iatspayments.civicrm "$TRG/ext/iatspayments"
+dm_install_cvext biz.jmaconsulting.lineitemedit "$TRG/ext/biz.jmaconsulting.lineitemedit"
 
 # gen tarball
 cd $TRG/..
