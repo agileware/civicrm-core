@@ -1,3 +1,4 @@
+
 #!/bin/bash
 set -ex
 
@@ -23,8 +24,10 @@ dm_install_packages "$SRC/packages" "$TRG/civicrm/civicrm/packages"
 dm_install_vendor "$SRC/vendor" "$TRG/civicrm/civicrm/vendor"
 dm_install_bower "$SRC/bower_components" "$TRG/civicrm/civicrm/bower_components"
 dm_install_wordpress "$SRC/WordPress" "$TRG/civicrm"
+dm_install_cvext_bundled "$SRC/ext" "$TRG/civicrm/civicrm/ext"
+dm_install_cvext_unsupported 'uk.co.vedaconsulting.mosaico@https://storage.googleapis.com/civicrm/mosaico/2.0-beta4.1528762072/uk.co.vedaconsulting.mosaico-2.0-beta4.1528762072.zip' "$TRG/civicrm/civicrm/ext/uk.co.vedaconsulting.mosaico" --dev
 dm_install_cvext org.civicrm.api4 "$TRG/civicrm/civicrm/ext/api4"
-dm_install_cvext com.iatspayments.civicrm "$TRG/civicrm/civicrm/ext/iatspayments"
+dm_install_cvext biz.jmaconsulting.lineitemedit "$TRG/civicrm/civicrm/ext/biz.jmaconsulting.lineitemedit"
 
 # gen tarball
 cd $TRG
