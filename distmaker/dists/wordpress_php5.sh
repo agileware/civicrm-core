@@ -28,6 +28,9 @@ dm_install_cvext_bundled "$SRC/ext" "$TRG/civicrm/civicrm/ext"
 dm_install_cvext_unsupported 'uk.co.vedaconsulting.mosaico@https://storage.googleapis.com/civicrm/mosaico/2.0-beta4.1528762072/uk.co.vedaconsulting.mosaico-2.0-beta4.1528762072.zip' "$TRG/civicrm/civicrm/ext/uk.co.vedaconsulting.mosaico" --dev
 dm_install_cvext org.civicrm.api4 "$TRG/civicrm/civicrm/ext/api4"
 dm_install_cvext biz.jmaconsulting.lineitemedit "$TRG/civicrm/civicrm/ext/biz.jmaconsulting.lineitemedit"
+dm_install_cvext net.ourpowerbase.sumfields "$TRG/civicrm/civicrm/ext/net.ourpowerbase.sumfields"
+dm_install_cvext eu.tttp.noverwrite "$TRG/civicrm/civicrm/ext/eu.tttp.noverwrite"
+dm_install_cvext com.joineryhq.activityical "$TRG/civicrm/civicrm/ext/com.joineryhq.activityical"
 
 # gen tarball
 cd $TRG
