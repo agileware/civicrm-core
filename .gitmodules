@@ -7,3 +7,6 @@
 [submodule "ext/au.com.agileware.ewayrecurring"]
 	path = ext/au.com.agileware.ewayrecurring
 	url = https://github.com/agileware/au.com.agileware.ewayrecurring.git
+[submodule "ext/nz.co.fuzion.transactional"]
+	path = ext/nz.co.fuzion.transactional
+	url = https://github.com/fuzionnz/nz.co.fuzion.transactional.git
