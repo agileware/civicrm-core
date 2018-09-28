@@ -16,3 +16,6 @@
 [submodule "ext/cronplus"]
 	path = ext/cronplus
 	url = https://lab.civicrm.org/extensions/cronplus.git
+[submodule "ext/com.elisseck.civihoneypot"]
+	path = ext/com.elisseck.civihoneypot
+	url = https://github.com/elisseck/com.elisseck.civihoneypot.git
