@@ -68,7 +68,7 @@ class CRM_Utils_Check_Component_Env extends CRM_Utils_Check_Component {
     elseif (version_compare($phpVersion, CRM_Upgrade_Incremental_General::MIN_INSTALL_PHP_VER) >= 0) {
       $messages[] = new CRM_Utils_Check_Message(
         __FUNCTION__,
-        ts('This system uses PHP version %1. This meets the minimum requirements for CiviCRM to function but is not recommended. At least PHP version %2 is recommended; the preferrred version is %3.',
+        ts('This system uses PHP version %1. This meets the minimum requirements for CiviCRM to function but is not recommended. At least PHP version %2 is recommended; the preferred version is %3.',
           array(
             1 => $phpVersion,
             2 => CRM_Upgrade_Incremental_General::MIN_RECOMMENDED_PHP_VER,
@@ -539,26 +539,24 @@ class CRM_Utils_Check_Component_Env extends CRM_Utils_Check_Component {
     }
     elseif (!is_writable($basedir)) {
       $messages[] = new CRM_Utils_Check_Message(
-        __FUNCTION__,
+        __FUNCTION__ . 'Writable',
         ts('Your extensions directory (%1) is read-only. If you would like to perform downloads or upgrades, then change the file permissions.',
           array(1 => $basedir)),
         ts('Read-Only Extensions'),
         \Psr\Log\LogLevel::WARNING,
         'fa-plug'
       );
-      return $messages;
     }
 
     if (empty($extensionSystem->getDefaultContainer()->baseUrl)) {
       $messages[] = new CRM_Utils_Check_Message(
-        __FUNCTION__,
+        __FUNCTION__ . 'URL',
         ts('The extensions URL is not properly set. Please go to the <a href="%1">URL setting page</a> and correct it.',
           array(1 => CRM_Utils_System::url('civicrm/admin/setting/url', 'reset=1'))),
         ts('Extensions url missing'),
         \Psr\Log\LogLevel::ERROR,
         'fa-plug'
       );
-      return $messages;
     }
 
     if (!$extensionSystem->getBrowser()->isEnabled()) {
@@ -659,7 +657,7 @@ class CRM_Utils_Check_Component_Env extends CRM_Utils_Check_Component {
 
     if ($errors) {
       $messages[] = new CRM_Utils_Check_Message(
-        __FUNCTION__,
+        __FUNCTION__ . 'Error',
         '<ul><li>' . implode('</li><li>', $errors) . '</li></ul>',
         ts('Extension Error'),
         \Psr\Log\LogLevel::ERROR,
