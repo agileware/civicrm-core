@@ -1369,7 +1369,8 @@ SELECT case_status.label AS case_status, status_id, civicrm_case_type.title AS c
     if ($caseId) {
       $activityInfo['fields'][] = array('label' => 'Case ID', 'type' => 'String', 'value' => $caseId);
     }
-    $tplParams['activityTypeName'] = $nonCaseActivityTypes[$activityTypeId];
+    $allActivityTypes = CRM_Core_PseudoConstant::activityType(TRUE, TRUE);
+    $tplParams['activityTypeName'] = $allActivityTypes[$activityTypeId];
     $tplParams['activity'] = $activityInfo;
     foreach ($tplParams['activity']['fields'] as $k => $val) {
       if (CRM_Utils_Array::value('label', $val) == ts('Subject')) {
