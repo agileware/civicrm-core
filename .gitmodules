@@ -19,3 +19,9 @@
 [submodule "ext/com.elisseck.civihoneypot"]
 	path = ext/com.elisseck.civihoneypot
 	url = https://github.com/elisseck/com.elisseck.civihoneypot.git
+[submodule "ext/uk.co.nfpservices.module.memberonlyevent"]
+	path = ext/uk.co.nfpservices.module.memberonlyevent
+	url = https://github.com/MillerTech-CRM/uk.co.nfpservices.module.memberonlyevent.git
+[submodule "ext/au.com.agileware.removeactionlog"]
+	path = ext/au.com.agileware.removeactionlog
+	url = https://bitbucket.org/agileware/au.com.agileware.removeactionlog.git
