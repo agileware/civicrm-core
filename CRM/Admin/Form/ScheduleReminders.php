@@ -528,6 +528,11 @@ class CRM_Admin_Form_ScheduleReminders extends CRM_Admin_Form {
     else {
       $params['absolute_date'] = 'null';
     }
+
+    if (CRM_Utils_Array::value('start_action_offset', $values)  == '') {
+      $values['start_action_offset'] = 0;
+    }
+
     foreach ($moreKeys as $mkey) {
       if ($params['absolute_date'] != 'null' && CRM_Utils_String::startsWith($mkey, 'start_action')) {
         $params[$mkey] = 'null';
