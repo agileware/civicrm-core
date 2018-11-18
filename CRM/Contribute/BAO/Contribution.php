@@ -4284,11 +4284,13 @@ WHERE eft.financial_trxn_id IN ({$trxnId}, {$baseTrxnId['financialTrxnId']})
       $params['tax_amount'] = round($taxAmount['tax_amount'], 2);
 
       // Get Line Item on update of contribution
-      if (isset($params['id'])) {
-        CRM_Price_BAO_LineItem::getLineItemArray($params, array($params['id']));
-      }
-      else {
-        CRM_Price_BAO_LineItem::getLineItemArray($params);
+      if(empty($params['line_item'])) {
+        if (isset($params['id'])) {
+          CRM_Price_BAO_LineItem::getLineItemArray($params, array($params['id']));
+        }
+        else {
+          CRM_Price_BAO_LineItem::getLineItemArray($params);
+        }
       }
       foreach ($params['line_item'] as $setID => $priceField) {
         foreach ($priceField as $priceFieldID => $priceFieldValue) {
