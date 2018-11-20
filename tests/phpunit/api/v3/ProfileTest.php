@@ -741,6 +741,7 @@ class api_v3_ProfileTest extends CiviUnitTestCase {
 
     $tags = $this->callAPISuccess('entityTag', 'get', ['entity_id' => $contactId]);
     $this->assertEquals(0, $tags['count']);
+
   }
 
   /**

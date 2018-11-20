@@ -168,6 +168,7 @@ function _civicrm_api3_entity_tag_common($params, $op = 'add') {
 function civicrm_api3_entity_tag_replace($params) {
   $transaction = new CRM_Core_Transaction();
   try {
+
     $baseParams = _civicrm_api3_generic_replace_base_params($params);
     unset($baseParams['tag_id']);
 
