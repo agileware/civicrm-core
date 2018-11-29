@@ -555,7 +555,7 @@ GROUP BY {$this->_aliases['civicrm_contribution']}.currency";
     // NULL values, which will lead to a single blank row in the report output.
     // Prevent this by ensuring the (required, no_display) column contact.id is
     // not NULL.
-    $sql .= "HAVING civicrm_contact_id IS NOT NULL";
+    $sql .= " HAVING civicrm_contact_id IS NOT NULL";
     $tempQuery = "CREATE TEMPORARY TABLE civireport_contribution_detail_temp2 {$this->_databaseAttributes} AS {$sql}";
     $this->executeReportQuery($tempQuery);
     $this->temporaryTables['civireport_contribution_detail_temp2'] = ['name' => 'civireport_contribution_detail_temp2', 'temporary' => TRUE];
