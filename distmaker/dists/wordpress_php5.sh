@@ -31,6 +31,12 @@ dm_install_cvext biz.jmaconsulting.lineitemedit "$TRG/civicrm/civicrm/ext/biz.jm
 dm_install_cvext net.ourpowerbase.sumfields "$TRG/civicrm/civicrm/ext/net.ourpowerbase.sumfields"
 dm_install_cvext eu.tttp.noverwrite "$TRG/civicrm/civicrm/ext/eu.tttp.noverwrite"
 dm_install_cvext com.joineryhq.activityical "$TRG/civicrm/civicrm/ext/com.joineryhq.activityical"
+dm_install_cvext nz.co.fuzion.extendedreport "$TRG/civicrm/civicrm/ext/nz.co.fuzion.extendedreport"
+dm_install_cvext org.wikimedia.relationshipblock "$TRG/civicrm/civicrm/ext/org.wikimedia.relationshipblock"
+dm_install_cvext org.civicrm.contactlayout "$TRG/civicrm/civicrm/ext/org.civicrm.contactlayout"
+dm_install_cvext org.civicrm.tutorial "$TRG/civicrm/civicrm/ext/org.civicrm.tutorial"
+dm_install_cvext nz.co.fuzion.civitoken "$TRG/civicrm/civicrm/ext/nz.co.fuzion.civitoken"
+dm_install_cvext org.civicrm.module.cividiscount "$TRG/civicrm/civicrm/ext/org.civicrm.module.cividiscount"
 
 # gen tarball
 cd $TRG
