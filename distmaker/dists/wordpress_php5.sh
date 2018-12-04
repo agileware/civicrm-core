@@ -38,6 +38,7 @@ dm_install_cvext org.civicrm.contactlayout "$TRG/civicrm/civicrm/ext/org.civicrm
 dm_install_cvext org.civicrm.tutorial "$TRG/civicrm/civicrm/ext/org.civicrm.tutorial"
 dm_install_cvext nz.co.fuzion.civitoken "$TRG/civicrm/civicrm/ext/nz.co.fuzion.civitoken"
 dm_install_cvext org.civicrm.module.cividiscount "$TRG/civicrm/civicrm/ext/org.civicrm.module.cividiscount"
+dm_install_cvext org.civicoop.emailapi "$TRG/civicrm/civicrm/ext/org.civicoop.emailapi"
 
 # gen tarball
 cd $TRG
