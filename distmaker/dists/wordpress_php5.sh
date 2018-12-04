@@ -33,6 +33,7 @@ dm_install_cvext eu.tttp.noverwrite "$TRG/civicrm/civicrm/ext/eu.tttp.noverwrite
 dm_install_cvext com.joineryhq.activityical "$TRG/civicrm/civicrm/ext/com.joineryhq.activityical"
 dm_install_cvext nz.co.fuzion.extendedreport "$TRG/civicrm/civicrm/ext/nz.co.fuzion.extendedreport"
 dm_install_cvext org.wikimedia.relationshipblock "$TRG/civicrm/civicrm/ext/org.wikimedia.relationshipblock"
+dm_install_cvext org.civicrm.angularprofiles "$TRG/civicrm/civicrm/ext/org.civicrm.angularprofiles"
 dm_install_cvext org.civicrm.contactlayout "$TRG/civicrm/civicrm/ext/org.civicrm.contactlayout"
 dm_install_cvext org.civicrm.tutorial "$TRG/civicrm/civicrm/ext/org.civicrm.tutorial"
 dm_install_cvext nz.co.fuzion.civitoken "$TRG/civicrm/civicrm/ext/nz.co.fuzion.civitoken"
