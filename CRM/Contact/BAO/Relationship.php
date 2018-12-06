@@ -1749,8 +1749,18 @@ SELECT count(*)
     LEFT JOIN civicrm_membership_status ON (civicrm_membership_status.id = civicrm_membership.status_id)
  WHERE membership_type_id = {$membershipValues['membership_type_id']} AND owner_membership_id = {$membershipValues['owner_membership_id']}
     AND is_current_member = 1";
+
+            // check whether contact does not have similar membership inherited from parent membership.
+            $similarMembershipQuery = "
+SELECT count(*)
+  FROM civicrm_membership
+    LEFT JOIN civicrm_membership_status ON (civicrm_membership_status.id = civicrm_membership.status_id)
+ WHERE membership_type_id = {$membershipValues['membership_type_id']} AND owner_membership_id = {$membershipValues['owner_membership_id']}
+    AND is_current_member = 1 AND civicrm_membership.contact_id = {$membershipValues['contact_id']}";
+            $similarMembershipCount = CRM_Core_DAO::singleValueQuery($similarMembershipQuery);
+
             $result = CRM_Core_DAO::singleValueQuery($query);
-            if ($result < CRM_Utils_Array::value('max_related', $membershipValues, PHP_INT_MAX)) {
+            if ($result < CRM_Utils_Array::value('max_related', $membershipValues, PHP_INT_MAX) && $similarMembershipCount == 0) {
               CRM_Member_BAO_Membership::create($membershipValues, CRM_Core_DAO::$_nullArray);
             }
           }
