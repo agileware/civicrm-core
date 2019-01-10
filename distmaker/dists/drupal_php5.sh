@@ -24,7 +24,7 @@ dm_install_vendor "$SRC/vendor" "$TRG/vendor"
 dm_install_bower "$SRC/bower_components" "$TRG/bower_components"
 dm_install_drupal "$SRC/drupal" "$TRG/drupal"
 dm_install_cvext_bundled "$SRC/ext" "$TRG/ext"
-dm_install_cvext_unsupported 'uk.co.vedaconsulting.mosaico@https://storage.googleapis.com/civicrm/mosaico/2.0-beta4.1528762072/uk.co.vedaconsulting.mosaico-2.0-beta4.1528762072.zip' "$TRG/ext/uk.co.vedaconsulting.mosaico" --dev
+dm_install_cvext_unsupported 'uk.co.vedaconsulting.mosaico@https://download.civicrm.org/extension/uk.co.vedaconsulting.mosaico/latest/uk.co.vedaconsulting.mosaico-latest.zip' "$TRG/ext/uk.co.vedaconsulting.mosaico" --dev
 dm_install_cvext org.civicrm.api4 "$TRG/ext/api4"
 dm_install_cvext biz.jmaconsulting.lineitemedit "$TRG/ext/biz.jmaconsulting.lineitemedit"
 dm_install_cvext net.ourpowerbase.sumfields "$TRG/ext/net.ourpowerbase.sumfields"
