@@ -465,6 +465,7 @@ class api_v3_SyntaxConformanceTest extends CiviUnitTestCase {
       'ReportTemplate',
       'System',
       'Logging',
+      'Exception',
     );
     if ($sequential === TRUE) {
       return $entitiesWithoutGet;
@@ -573,6 +574,7 @@ class api_v3_SyntaxConformanceTest extends CiviUnitTestCase {
       'Extension', // can't handle creating 25
       'Note', // note has a default get that isn't implemented in createTestObject -meaning you don't 'get' them
       'Setting', //a bit of a pseudoapi - keys by domain
+      'Exception', // DB issue.
     );
     return $entitiesWithout;
   }
