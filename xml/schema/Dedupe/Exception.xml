@@ -22,6 +22,7 @@
     <title>First Dupe Contact ID</title>
     <type>int unsigned</type>
     <comment>FK to Contact ID</comment>
+    <required>TRUE</required>
     <add>3.3</add>
     <required>TRUE</required>
   </field>
@@ -37,6 +38,7 @@
     <title>Second Dupe Contact ID</title>
     <type>int unsigned</type>
     <comment>FK to Contact ID</comment>
+    <required>TRUE</required>
     <add>3.3</add>
     <required>TRUE</required>
   </field>
