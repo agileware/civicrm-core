@@ -38,3 +38,29 @@
 function civicrm_api3_exception_get($params) {
   return _civicrm_api3_basic_get(_civicrm_api3_get_BAO(__FUNCTION__), $params);
 }
+
+/**
+ * Create or update an dedupe exception.
+ *
+ * @param array $params
+ *          Array per getfields metadata.
+ *
+ * @return array api result array
+ */
+function civicrm_api3_exception_create($params) {
+  return _civicrm_api3_basic_create(_civicrm_api3_get_BAO(__FUNCTION__), $params, 'Exception');
+}
+
+/**
+ * Delete an existing Exception.
+ *
+ * This method is used to delete any existing Exception given its id.
+ *
+ * @param array $params
+ *          [id]
+ *
+ * @return array api result array
+ */
+function civicrm_api3_exception_delete($params) {
+  return _civicrm_api3_basic_delete(_civicrm_api3_get_BAO(__FUNCTION__), $params);
+}
