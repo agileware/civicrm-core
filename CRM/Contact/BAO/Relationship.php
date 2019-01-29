@@ -1657,13 +1657,24 @@ SELECT relationship_type_id, relationship_direction
           $dao = CRM_Core_DAO::executeQuery($query);
           $relTypeDirs = array();
           while ($dao->fetch()) {
-            $relTypeId = $dao->relationship_type_id;
-            $relDirection = $dao->relationship_direction;
+            $relTypeIdOfType = $dao->relationship_type_id;
+            $relDirectionOfType = $dao->relationship_direction;
           }
-          $relTypeIds = explode(CRM_Core_DAO::VALUE_SEPARATOR, $relTypeId);
+          $relTypeIds = explode(CRM_Core_DAO::VALUE_SEPARATOR, $relTypeIdOfType);
+
+          $relTypeIdsInQuery = implode(",", $relTypeIds);
+          $similarMemberships = "SELECT COUNT(id) 
+FROM civicrm_relationship 
+WHERE relationship_type_id IN ({$relTypeIdsInQuery}) AND 
+relationship_type_id != {$relTypeId} AND 
+(contact_id_b = {$mainRelatedContactId} OR contact_id_a = {$mainRelatedContactId}) AND 
+is_active = 1 AND 
+(end_date IS NULL OR end_date > CURRENT_DATE())";
+          $similarMemberships = CRM_Core_DAO::singleValueQuery($similarMemberships);
+
           if (in_array($values[$cid]['relationshipTypeId'], $relTypeIds
           //CRM-16300 check if owner membership exist for related membership
-          ) && !empty($membershipValues['owner_membership_id']) && !empty($values[$mainRelatedContactId]['memberships'][$membershipValues['owner_membership_id']])) {
+          ) && $similarMemberships == 0 && !empty($membershipValues['owner_membership_id']) && !empty($values[$mainRelatedContactId]['memberships'][$membershipValues['owner_membership_id']])) {
             CRM_Member_BAO_Membership::deleteRelatedMemberships($membershipValues['owner_membership_id'], $membershipValues['membership_contact_id']);
           }
           continue;
