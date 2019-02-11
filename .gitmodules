@@ -31,3 +31,45 @@
 [submodule "ext/nz.cofuzion.civixero"]
 	path = ext/nz.cofuzion.civixero
 	url = https://github.com/eileenmcnaughton/nz.co.fuzion.civixero.git
+[submodule "ext/au.com.agileware.elections"]
+	path = ext/au.com.agileware.elections
+	url = https://github.com/agileware/au.com.agileware.elections.git
+[submodule "ext/au.com.agileware.civiquickbooks"]
+	path = ext/au.com.agileware.civiquickbooks
+	url = https://github.com/agileware/au.com.agileware.civiquickbooks.git
+[submodule "ext/au.com.agileware.civicontact"]
+	path = ext/au.com.agileware.civicontact
+	url = https://github.com/agileware/au.com.agileware.civicontact.git
+[submodule "ext/au.com.agileware.scheduledcaserecipients"]
+	path = ext/au.com.agileware.scheduledcaserecipients
+	url = https://github.com/agileware/au.com.agileware.scheduledcaserecipients.git
+[submodule "ext/au.com.agileware.caseactivityduplicator"]
+	path = ext/au.com.agileware.caseactivityduplicator
+	url = https://github.com/agileware/au.com.agileware.caseactivityduplicator.git
+[submodule "ext/au.com.agileware.mailingsubscriptions"]
+	path = ext/au.com.agileware.mailingsubscriptions
+	url = https://github.com/agileware/au.com.agileware.mailingsubscriptions.git
+[submodule "ext/au.com.agileware.scheduledccrecipients"]
+	path = ext/au.com.agileware.scheduledccrecipients
+	url = https://github.com/agileware/au.com.agileware.scheduledccrecipients.git
+[submodule "ext/au.com.agileware.volunteeractivities"]
+	path = ext/au.com.agileware.volunteeractivities
+	url = https://github.com/agileware/au.com.agileware.volunteeractivities.git
+[submodule "ext/au.com.agileware.eventmanagelocations"]
+	path = ext/au.com.agileware.eventmanagelocations
+	url = https://github.com/agileware/au.com.agileware.eventmanagelocations.git
+[submodule "ext/au.com.agileware.activitycustomfieldsreport"]
+	path = ext/au.com.agileware.activitycustomfieldsreport
+	url = https://github.com/agileware/au.com.agileware.activitycustomfieldsreport.git
+[submodule "ext/au.com.agileware.contactsummarymembershipreport"]
+	path = ext/au.com.agileware.contactsummarymembershipreport
+	url = https://github.com/agileware/au.com.agileware.contactsummarymembershipreport.git
+[submodule "ext/au.com.agileware.membershipcustomfieldsreport"]
+	path = ext/au.com.agileware.membershipcustomfieldsreport
+	url = https://github.com/agileware/au.com.agileware.membershipcustomfieldsreport.git
+[submodule "ext/au.com.agileware.australiansenatorsandmembers"]
+	path = ext/au.com.agileware.australiansenatorsandmembers
+	url = https://github.com/agileware/au.com.agileware.australiansenatorsandmembers.git
+[submodule "ext/au.com.agileware.activitiesbyemployerreport"]
+	path = ext/au.com.agileware.activitiesbyemployerreport
+	url = https://github.com/agileware/au.com.agileware.activitiesbyemployerreport.git
