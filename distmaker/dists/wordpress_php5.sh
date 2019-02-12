@@ -45,7 +45,7 @@ dm_install_cvext org.civicrm.tutorial "$TRG/civicrm/civicrm/ext/org.civicrm.tuto
 dm_install_cvext org.wikimedia.relationshipblock "$TRG/civicrm/civicrm/ext/org.wikimedia.relationshipblock"
 dm_install_cvext uk.co.compucorp.civicrm.pivotreport "$TRG/civicrm/civicrm/ext/uk.co.compucorp.civicrm.pivotreport"
 dm_install_cvext uk.co.vedaconsulting.gdpr "$TRG/civicrm/civicrm/ext/uk.co.vedaconsulting.gdpr"
-dm_install_cvext uk.co.vedconsulting.mailchimp "$TRG/civicrm/civicrm/ext/uk.co.vedconsulting.mailchimp"
+dm_install_cvext uk.co.vedaconsulting.mailchimp "$TRG/civicrm/civicrm/ext/uk.co.vedaconsulting.mailchimp"
 dm_install_cvext uk.squiffle.kam "$TRG/civicrm/civicrm/ext/uk.squiffle.kam"
 
 # gen tarball
