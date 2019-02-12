@@ -1660,6 +1660,11 @@ SELECT relationship_type_id, relationship_direction
             $relTypeIdOfType = $dao->relationship_type_id;
             $relDirectionOfType = $dao->relationship_direction;
           }
+          if (!$relTypeIdOfType) {
+            // No applicable relationship types.
+            continue;
+          }
+
           $relTypeIds = explode(CRM_Core_DAO::VALUE_SEPARATOR, $relTypeIdOfType);
 
           $relTypeIdsInQuery = implode(",", $relTypeIds);
