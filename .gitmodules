@@ -73,3 +73,33 @@
 [submodule "ext/au.com.agileware.activitiesbyemployerreport"]
 	path = ext/au.com.agileware.activitiesbyemployerreport
 	url = https://github.com/agileware/au.com.agileware.activitiesbyemployerreport.git
+[submodule "ext/civicrm-recalculate-recipients"]
+	path = ext/civicrm-recalculate-recipients
+	url = https://github.com/3sd/civicrm-recalculate-recipients.git
+[submodule "ext/civicrm-recurring-mail"]
+	path = ext/civicrm-recurring-mail
+	url = https://github.com/3sd/civicrm-recurring-mail.git
+[submodule "ext/uk.co.vedaconsulting.outlookapi"]
+	path = ext/uk.co.vedaconsulting.outlookapi
+	url = https://github.com/veda-consulting/uk.co.vedaconsulting.outlookapi.git
+[submodule "ext/sharepoint"]
+	path = ext/sharepoint
+	url = https://lab.civicrm.org/extensions/sharepoint.git
+[submodule "ext/checksumexport"]
+	path = ext/checksumexport
+	url = https://lab.civicrm.org/extensions/checksumexport.git
+[submodule "ext/com.asludds.turfcutter"]
+	path = ext/com.asludds.turfcutter
+	url = https://gitlab.com/asludds/civicrm-turfcutter.git
+[submodule "ext/invoiceaddressapi"]
+	path = ext/invoiceaddressapi
+	url = https://lab.civicrm.org/extensions/invoiceaddressapi.git
+[submodule "ext/uk.co.mjwconsult.checksum"]
+	path = ext/uk.co.mjwconsult.checksum
+	url = https://github.com/mattwire/uk.co.mjwconsult.checksum.git
+[submodule "ext/de.systopia.contactinactive"]
+	path = ext/de.systopia.contactinactive
+	url = https://github.com/systopia/de.systopia.contactinactive.git
+[submodule "ext/org.civicoop.recurringcontributionsearch"]
+	path = ext/org.civicoop.recurringcontributionsearch
+	url = https://github.com/CiviCooP/org.civicoop.recurringcontributionsearch.git
