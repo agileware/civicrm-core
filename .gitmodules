@@ -103,3 +103,12 @@
 [submodule "ext/org.civicoop.recurringcontributionsearch"]
 	path = ext/org.civicoop.recurringcontributionsearch
 	url = https://github.com/CiviCooP/org.civicoop.recurringcontributionsearch.git
+[submodule "ext/au.com.agileware.xeroitems"]
+	path = ext/au.com.agileware.xeroitems
+	url = https://github.com/agileware/au.com.agileware.xeroitems.git
+[submodule "ext/au.com.agileware.ux"]
+	path = ext/au.com.agileware.ux
+	url = git@bitbucket.org:agileware/au.com.agileware.ux.git
+[submodule "ext/au.com.agileware.moretokens"]
+	path = ext/au.com.agileware.moretokens
+	url = https://github.com/agileware/au.com.agileware.moretokens.git
