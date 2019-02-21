@@ -112,3 +112,6 @@
 [submodule "ext/au.com.agileware.moretokens"]
 	path = ext/au.com.agileware.moretokens
 	url = https://github.com/agileware/au.com.agileware.moretokens.git
+[submodule "ext/org.civicoop.groupprotect"]
+	path = ext/org.civicoop.groupprotect
+	url = https://github.com/CiviCooP/org.civicoop.groupprotect.git
