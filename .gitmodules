@@ -118,3 +118,6 @@
 [submodule "ext/au.com.agileware.xerountax"]
 	path = ext/au.com.agileware.xerountax
 	url = https://github.com/agileware/au.com.agileware.xerountax.git
+[submodule "ext/com.megaphonetech.addressl10n"]
+	path = ext/com.megaphonetech.addressl10n
+	url = https://github.com/MegaphoneJon/com.megaphonetech.addressl10n
