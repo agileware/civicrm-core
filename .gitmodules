@@ -115,3 +115,6 @@
 [submodule "ext/org.civicoop.groupprotect"]
 	path = ext/org.civicoop.groupprotect
 	url = https://github.com/CiviCooP/org.civicoop.groupprotect.git
+[submodule "ext/au.com.agileware.xerountax"]
+	path = ext/au.com.agileware.xerountax
+	url = https://github.com/agileware/au.com.agileware.xerountax.git
