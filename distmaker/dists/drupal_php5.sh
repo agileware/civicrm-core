@@ -35,6 +35,7 @@ dm_install_cvext eu.tttp.bootstrapvisualize "$TRG/ext/eu.tttp.bootstrapvisualize
 dm_install_cvext eu.tttp.civisualize "$TRG/ext/eu.tttp.civisualize"
 dm_install_cvext net.ourpowerbase.sumfields "$TRG/ext/net.ourpowerbase.sumfields"
 dm_install_cvext nz.co.fuzion.civitoken "$TRG/ext/nz.co.fuzion.civitoken"
+dm_install_cvext nz.co.fuzion.csvimport "$TRG/ext/nz.co.fuzion.csvimport"
 dm_install_cvext nz.co.fuzion.entitysetting "$TRG/ext/nz.co.fuzion.entitysetting"
 dm_install_cvext nz.co.fuzion.extendedreport "$TRG/ext/nz.co.fuzion.extendedreport"
 dm_install_cvext nz.co.fuzion.relatedpermissions "$TRG/ext/nz.co.fuzion.relatedpermissions"
