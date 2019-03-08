@@ -121,3 +121,9 @@
 [submodule "ext/com.megaphonetech.addressl10n"]
 	path = ext/com.megaphonetech.addressl10n
 	url = https://github.com/MegaphoneJon/com.megaphonetech.addressl10n
+[submodule "ext/au.com.agileware.lineitemtweaks"]
+	path = ext/au.com.agileware.lineitemtweaks
+	url = https://github.com/agileware/au.com.agileware.lineitemtweaks.git
+[submodule "ext/au.com.agileware.xerotweaks"]
+	path = ext/au.com.agileware.xerotweaks
+	url = https://github.com/agileware/au.com.agileware.xerotweaks.git
