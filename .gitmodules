@@ -127,3 +127,6 @@
 [submodule "ext/au.com.agileware.xerotweaks"]
 	path = ext/au.com.agileware.xerotweaks
 	url = https://github.com/agileware/au.com.agileware.xerotweaks.git
+[submodule "ext/au.com.agileware.invoice-membership-contact"]
+	path = ext/au.com.agileware.invoice-membership-contact
+	url = https://github.com/agileware/au.com.agileware.invoice-membership-contact.git
