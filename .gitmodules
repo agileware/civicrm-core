@@ -25,12 +25,6 @@
 [submodule "ext/au.com.agileware.removeactionlog"]
 	path = ext/au.com.agileware.removeactionlog
 	url = https://bitbucket.org/agileware/au.com.agileware.removeactionlog.git
-[submodule "ext/nz.cofuzion.accountsync"]
-	path = ext/nz.cofuzion.accountsync
-	url = https://github.com/eileenmcnaughton/nz.co.fuzion.accountsync.git
-[submodule "ext/nz.cofuzion.civixero"]
-	path = ext/nz.cofuzion.civixero
-	url = https://github.com/eileenmcnaughton/nz.co.fuzion.civixero.git
 [submodule "ext/au.com.agileware.elections"]
 	path = ext/au.com.agileware.elections
 	url = https://github.com/agileware/au.com.agileware.elections.git
@@ -130,3 +124,9 @@
 [submodule "ext/au.com.agileware.invoice-membership-contact"]
 	path = ext/au.com.agileware.invoice-membership-contact
 	url = https://github.com/agileware/au.com.agileware.invoice-membership-contact.git
+[submodule "ext/nz.co.fuzion.accountsync"]
+	path = ext/nz.co.fuzion.accountsync
+	url = https://github.com/eileenmcnaughton/nz.co.fuzion.accountsync.git
+[submodule "ext/nz.co.fuzion.civixero"]
+	path = ext/nz.co.fuzion.civixero
+	url = https://github.com/eileenmcnaughton/nz.co.fuzion.civixero.git
