@@ -130,3 +130,6 @@
 [submodule "ext/nz.co.fuzion.civixero"]
 	path = ext/nz.co.fuzion.civixero
 	url = https://github.com/eileenmcnaughton/nz.co.fuzion.civixero.git
+[submodule "ext/biz.jmaconsulting.lineitemedit"]
+	path = ext/biz.jmaconsulting.lineitemedit
+	url = https://github.com/JMAConsulting/biz.jmaconsulting.lineitemedit.git
