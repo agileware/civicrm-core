@@ -27,7 +27,7 @@ dm_install_wordpress "$SRC/WordPress" "$TRG/civicrm"
 dm_install_cvext_bundled "$SRC/ext" "$TRG/civicrm/civicrm/ext"
 dm_install_cvext_unsupported 'uk.co.vedaconsulting.mosaico@https://download.civicrm.org/extension/uk.co.vedaconsulting.mosaico/latest/uk.co.vedaconsulting.mosaico-latest.zip' "$TRG/civicrm/civicrm/ext/uk.co.vedaconsulting.mosaico" --dev
 dm_install_cvext org.civicrm.api4 "$TRG/civicrm/civicrm/ext/api4"
-dm_install_cvext biz.jmaconsulting.lineitemedit "$TRG/civicrm/civicrm/ext/biz.jmaconsulting.lineitemedit"
+# Installing from git for bugfix # dm_install_cvext biz.jmaconsulting.lineitemedit "$TRG/civicrm/civicrm/ext/biz.jmaconsulting.lineitemedit"
 dm_install_cvext com.cividesk.apikey "$TRG/civicrm/civicrm/ext/com.cividesk.apikey"
 dm_install_cvext com.joineryhq.activityical "$TRG/civicrm/civicrm/ext/com.joineryhq.activityical"
 dm_install_cvext com.pogstone.contenttokens "$TRG/civicrm/civicrm/ext/com.pogstone.contenttokens"
