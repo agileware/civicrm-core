@@ -26,7 +26,7 @@ dm_install_drupal "$SRC/drupal" "$TRG/drupal"
 dm_install_cvext_bundled "$SRC/ext" "$TRG/ext"
 dm_install_cvext_unsupported 'uk.co.vedaconsulting.mosaico@https://download.civicrm.org/extension/uk.co.vedaconsulting.mosaico/latest/uk.co.vedaconsulting.mosaico-latest.zip' "$TRG/ext/uk.co.vedaconsulting.mosaico" --dev
 dm_install_cvext org.civicrm.api4 "$TRG/ext/api4"
-dm_install_cvext biz.jmaconsulting.lineitemedit "$TRG/ext/biz.jmaconsulting.lineitemedit"
+# Installing from git for bugfix # dm_install_cvext biz.jmaconsulting.lineitemedit "$TRG/ext/biz.jmaconsulting.lineitemedit"
 dm_install_cvext com.cividesk.apikey "$TRG/ext/com.cividesk.apikey"
 dm_install_cvext com.joineryhq.activityical "$TRG/ext/com.joineryhq.activityical"
 dm_install_cvext com.pogstone.contenttokens "$TRG/ext/com.pogstone.contenttokens"
