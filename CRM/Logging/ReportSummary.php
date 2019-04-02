@@ -131,6 +131,13 @@ class CRM_Logging_ReportSummary extends CRM_Report_Form {
           'column' => 'label_a_b',
         ),
       ),
+      'log_civicrm_membership' => array(
+        'fk' => 'contact_id',
+        'bracket_info' => array(
+          'entity_column' => 'membership_type_id',
+          'lookup_table' => 'log_civicrm_membership',
+        ),
+      ),
       'log_civicrm_activity_contact' => array(
         'fk' => 'contact_id',
         'table_name' => 'log_civicrm_activity_contact',
