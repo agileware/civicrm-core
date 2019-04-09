@@ -231,6 +231,11 @@ class CRM_Core_Payment_Form {
    */
   public static function buildPaymentForm(&$form, $processor, $billing_profile_id, $isBackOffice, $paymentInstrumentID = NULL) {
     //if the form has address fields assign to the template so the js can decide what billing fields to show
+    $addressFieldsSubmitted = CRM_Utils_Request::retrieve('profileAddressFields', 'Integer');
+    if (!$addressFieldsSubmitted) {
+      $addressFieldsSubmitted = 0;
+    }
+    $form->assign('addressFieldsSubmitted', $addressFieldsSubmitted);
     $profileAddressFields = $form->get('profileAddressFields');
     if (!empty($profileAddressFields)) {
       $form->assign('profileAddressFields', $profileAddressFields);
@@ -281,6 +286,18 @@ class CRM_Core_Payment_Form {
     $payment = Civi\Payment\System::singleton()->getById($payment_processor_id);
     $payment->setBillingProfile($billing_profile_id);
     $payment->validatePaymentInstrument($values, $errors);
+  }
+
+  /**
+   * Remove billing values if primary and billing addresses are same.
+   * @param $values
+   * @throws CiviCRM_API3_Exception
+   */
+  public function removeBillingValuesIfSameAddress(&$values) {
+    if (isset($values["billing_same_address"]) && $values["billing_same_address"] && isset($values["payment_processor_id"])) {
+      $payment = Civi\Payment\System::singleton()->getById($values["payment_processor_id"]);
+      $payment->removeBillingValues($values);
+    }
   }
 
   /**

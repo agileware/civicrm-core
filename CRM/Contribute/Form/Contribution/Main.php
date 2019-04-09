@@ -1026,12 +1026,23 @@ class CRM_Contribute_Form_Contribution_Main extends CRM_Contribute_Form_Contribu
 
     // get the submitted form values.
     $params = $this->controller->exportValues($this->_name);
+    $this->removeBillingValuesIfSameAddress($params);
     $this->submit($params);
 
     if (empty($this->_values['is_confirm_enabled'])) {
       $this->skipToThankYouPage();
     }
 
+  }
+
+  /**
+   * Remove billing values if primary and billing addresses are same.
+   * @param $params
+   */
+  private function removeBillingValuesIfSameAddress(&$params) {
+    CRM_Core_Payment_Form::removeBillingValuesIfSameAddress(
+      $params
+    );
   }
 
   /**

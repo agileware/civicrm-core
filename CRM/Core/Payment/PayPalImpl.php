@@ -226,9 +226,10 @@ class CRM_Core_Payment_PayPalImpl extends CRM_Core_Payment {
    * @throws \Civi\Payment\Exception\PaymentProcessorException
    */
   public function validatePaymentInstrument($values, &$errors) {
+    $is_billing_same_address = (isset($values["billing_same_address"]) && $values["billing_same_address"]);
     if ($this->isPayPalType($this::PAYPAL_PRO) && !$this->isPaypalExpress($values)) {
       CRM_Core_Payment_Form::validateCreditCard($values, $errors, $this->_paymentProcessor['id']);
-      CRM_Core_Form::validateMandatoryFields($this->getMandatoryFields(), $values, $errors);
+      CRM_Core_Form::validateMandatoryFields($this->getMandatoryFields($is_billing_same_address), $values, $errors);
     }
   }
 

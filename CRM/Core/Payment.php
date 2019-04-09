@@ -439,9 +439,22 @@ abstract class CRM_Core_Payment {
    * @param array $errors
    */
   public function validatePaymentInstrument($values, &$errors) {
-    CRM_Core_Form::validateMandatoryFields($this->getMandatoryFields(), $values, $errors);
+    $is_billing_same_address = (isset($values["billing_same_address"]) && $values["billing_same_address"]);
+    CRM_Core_Form::validateMandatoryFields($this->getMandatoryFields($is_billing_same_address), $values, $errors);
     if ($this->_paymentProcessor['payment_type'] == 1) {
       CRM_Core_Payment_Form::validateCreditCard($values, $errors, $this->_paymentProcessor['id']);
+    }
+  }
+
+  /**
+   * Remove billing related values.
+   * @param $values
+   */
+  public function removeBillingValues(&$values) {
+    foreach ($this->getBillingAddressFields() as $billingField) {
+      if ($billingField != "billing_same_address") {
+        $values[$billingField] = "";
+      }
     }
   }
 
@@ -626,9 +639,12 @@ abstract class CRM_Core_Payment {
    *
    * @return array;
    */
-  protected function getMandatoryFields() {
+  protected function getMandatoryFields($is_billing_same_address = FALSE) {
     $mandatoryFields = array();
     foreach ($this->getAllFields() as $field_name => $field_spec) {
+      if (isset($field_spec['is_billing_field']) && $field_spec['is_billing_field'] && $is_billing_same_address) {
+        $field_spec['is_required'] = FALSE;
+      }
       if (!empty($field_spec['is_required'])) {
         $mandatoryFields[$field_name] = $field_spec;
       }
@@ -860,6 +876,7 @@ abstract class CRM_Core_Payment {
       return array();
     }
     return array(
+      'same_address' => 'billing_same_address',
       'first_name' => 'billing_first_name',
       'middle_name' => 'billing_middle_name',
       'last_name' => 'billing_last_name',
@@ -898,6 +915,21 @@ abstract class CRM_Core_Payment {
         'autocomplete' => 'off',
       ),
       'is_required' => TRUE,
+      'is_billing_field' => TRUE,
+    );
+
+    $metadata['billing_same_address'] = array(
+      'htmlType' => 'checkbox',
+      'name' => 'billing_same_address',
+      'title' => ts('Billing Same Address'),
+      'cc_field' => TRUE,
+      'attributes' => array(
+        'size' => 30,
+        'maxlength' => 60,
+        'autocomplete' => 'off',
+      ),
+      'is_required' => FALSE,
+      'is_billing_field' => TRUE,
     );
 
     $metadata['billing_middle_name'] = array(
@@ -911,6 +943,7 @@ abstract class CRM_Core_Payment {
         'autocomplete' => 'off',
       ),
       'is_required' => FALSE,
+      'is_billing_field' => TRUE,
     );
 
     $metadata['billing_last_name'] = array(
@@ -924,6 +957,7 @@ abstract class CRM_Core_Payment {
         'autocomplete' => 'off',
       ),
       'is_required' => TRUE,
+      'is_billing_field' => TRUE,
     );
 
     $metadata["billing_street_address-{$billingLocationID}"] = array(
@@ -937,6 +971,7 @@ abstract class CRM_Core_Payment {
         'autocomplete' => 'off',
       ),
       'is_required' => TRUE,
+      'is_billing_field' => TRUE,
     );
 
     $metadata["billing_city-{$billingLocationID}"] = array(
@@ -950,6 +985,7 @@ abstract class CRM_Core_Payment {
         'autocomplete' => 'off',
       ),
       'is_required' => TRUE,
+      'is_billing_field' => TRUE,
     );
 
     $metadata["billing_state_province_id-{$billingLocationID}"] = array(
@@ -958,6 +994,7 @@ abstract class CRM_Core_Payment {
       'name' => "billing_state_province_id-{$billingLocationID}",
       'cc_field' => TRUE,
       'is_required' => TRUE,
+      'is_billing_field' => TRUE,
     );
 
     $metadata["billing_postal_code-{$billingLocationID}"] = array(
@@ -971,6 +1008,7 @@ abstract class CRM_Core_Payment {
         'autocomplete' => 'off',
       ),
       'is_required' => TRUE,
+      'is_billing_field' => TRUE,
     );
 
     $metadata["billing_country_id-{$billingLocationID}"] = array(
@@ -982,6 +1020,7 @@ abstract class CRM_Core_Payment {
         '' => ts('- select -'),
       ) + CRM_Core_PseudoConstant::country(),
       'is_required' => TRUE,
+      'is_billing_field' => TRUE,
     );
     return $metadata;
   }
