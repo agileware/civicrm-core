@@ -24,4 +24,13 @@ CRM.$(function($) {
       CRM.menubar.open('Home');
       return false;
     });
+  // Fix header for WordPress shorcode: CiviCRM Form headings should start from h2 and not h1
+  if ($('h1').length > 1) {
+    let target = $('.crm-title .title');
+    if (target.length > 0) {
+      $(target).each(function (_, value) {
+        $(value).replaceWith($(value)[0].outerHTML.replace(/h1/g, 'h2'));
+      });
+    }
+  }
 });
