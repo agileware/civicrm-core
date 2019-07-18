@@ -1666,13 +1666,27 @@ SELECT relationship_type_id, relationship_direction
           }
 
           $relTypeIds = explode(CRM_Core_DAO::VALUE_SEPARATOR, $relTypeIdOfType);
+          $relTypeDirs = explode(CRM_Core_DAO::VALUE_SEPARATOR, $relDirectionOfType);
+          $relquery = '(';
+          foreach ($relTypeIds as $key => $reltype_id) {
+            if ($reltype_id == $relTypeId) {
+              continue;
+            }
+            if ($relTypeDirs[$key] == 'b_a') {
+              $relquery .= "(relationship_type_id = $reltype_id AND contact_id_a = $cid AND contact_id_b = $mainRelatedContactId)";
+            }
+            else {
+              $relquery .= "(relationship_type_id = $reltype_id AND contact_id_a = $mainRelatedContactId AND contact_id_b = $cid)";
+            }
+            $relquery .= ' OR ';
+          }
+
+          $relquery = substr($relquery, 0, strlen($relquery) - 4) . ')';
 
           $relTypeIdsInQuery = implode(",", $relTypeIds);
           $similarMemberships = "SELECT COUNT(id) 
 FROM civicrm_relationship 
-WHERE relationship_type_id IN ({$relTypeIdsInQuery}) AND 
-relationship_type_id != {$relTypeId} AND 
-(contact_id_b = {$mainRelatedContactId} OR contact_id_a = {$mainRelatedContactId}) AND 
+WHERE $relquery AND 
 is_active = 1 AND 
 (end_date IS NULL OR end_date > CURRENT_DATE())";
           $similarMemberships = CRM_Core_DAO::singleValueQuery($similarMemberships);
