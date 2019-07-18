@@ -1667,16 +1667,18 @@ SELECT relationship_type_id, relationship_direction
 
           $relTypeIds = explode(CRM_Core_DAO::VALUE_SEPARATOR, $relTypeIdOfType);
           $relTypeDirs = explode(CRM_Core_DAO::VALUE_SEPARATOR, $relDirectionOfType);
+
+          // Check if there are other relationships can inherit this membership
           $relquery = '(';
           foreach ($relTypeIds as $key => $reltype_id) {
             if ($reltype_id == $relTypeId) {
               continue;
             }
-            if ($relTypeDirs[$key] == 'b_a') {
-              $relquery .= "(relationship_type_id = $reltype_id AND contact_id_a = $cid AND contact_id_b = $mainRelatedContactId)";
-            }
-            else {
-              $relquery .= "(relationship_type_id = $reltype_id AND contact_id_a = $mainRelatedContactId AND contact_id_b = $cid)";
+            // b to a relationship
+            $relquery .= "(relationship_type_id = $reltype_id AND contact_id_a = $cid AND contact_id_b = $mainRelatedContactId)";
+            if ($relTypeDirs[$key] == 'a_b') {
+              // a_b may be a_b or any direction
+              $relquery .= " OR (relationship_type_id = $reltype_id AND contact_id_a = $mainRelatedContactId AND contact_id_b = $cid)";
             }
             $relquery .= ' OR ';
           }
