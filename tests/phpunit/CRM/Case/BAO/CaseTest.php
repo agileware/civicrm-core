@@ -179,6 +179,7 @@ class CRM_Case_BAO_CaseTest extends CiviUnitTestCase {
       'extends' => 'Case',
     ));
     $customGroup = $customGroup['values'][$customGroup['id']];
+
     $customFileFieldA = $this->customFieldCreate(array(
       'custom_group_id' => $customGroup['id'],
       'html_type'       => 'File',
@@ -187,6 +188,7 @@ class CRM_Case_BAO_CaseTest extends CiviUnitTestCase {
       'label'           => 'Custom File A',
       'data_type'       => 'File',
     ));
+
     $customFileFieldB = $this->customFieldCreate(array(
       'custom_group_id' => $customGroup['id'],
       'html_type'       => 'File',
@@ -196,12 +198,9 @@ class CRM_Case_BAO_CaseTest extends CiviUnitTestCase {
       'data_type'       => 'File',
     ));
 
-    $fileA = $this->callAPISuccess('File', 'create', array(
-      'uri' => 'test_file_uri',
-    ));
-    $fileB = $this->callAPISuccess('File', 'create', array(
-      'uri' => 'test_file_uri_2',
-    ));
+    // Create two files to attach to the new case
+    $fileA = $this->callAPISuccess('File', 'create', ['uri' => 'dummy_data_a.txt', 'name' => 'dummy_data_a.txt']);
+    $fileB = $this->callAPISuccess('File', 'create', ['uri' => 'dummy_data_b.txt', 'name' => 'dummy_data_b.txt']);
 
     $caseObj = $this->createCase($individual);
 
