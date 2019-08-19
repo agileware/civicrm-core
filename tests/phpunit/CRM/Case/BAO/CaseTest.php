@@ -200,12 +200,13 @@ class CRM_Case_BAO_CaseTest extends CiviUnitTestCase {
 
     // Create two files to attach to the new case
     $fileNameA = CRM_Utils_File::makeFileName('i_bend_bananas_' . rand(100, 999) . ".txt");
-    CRM_Utils_File::createFakeFile('/tmp', 'Bananas do not bend themselves without a little help.', $fileNameA);
-    $fileA = $this->callAPISuccess('File', 'create', ['uri' => "/tmp/$fileNameA"]);
+    $path = Civi::paths()->getPath('[civicrm.files]/custom/');
+    CRM_Utils_File::createFakeFile($path, 'Bananas do not bend themselves without a little help.', $fileNameA);
+    $fileA = $this->callAPISuccess('File', 'create', ['uri' => "{$path}/$fileNameA"]);
 
     $fileNameB = CRM_Utils_File::makeFileName('wombats_bite_your_ankles_' . rand(100, 999) . ".txt");
-    CRM_Utils_File::createFakeFile('/tmp', 'Wombats will bite your ankles if you run from them.', $fileNameB);
-    $fileB = $this->callAPISuccess('File', 'create', ['uri' => "/tmp/$fileNameB"]);
+    CRM_Utils_File::createFakeFile($path, 'Wombats will bite your ankles if you run from them.', $fileNameB);
+    $fileB = $this->callAPISuccess('File', 'create', ['uri' => "{$path}/$fileNameB"]);
 
     $caseObj = $this->createCase($individual);
 
