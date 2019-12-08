@@ -139,6 +139,10 @@ class CRM_Contact_Form_Task_AddToGroup extends CRM_Contact_Form_Task {
     }
 
     $defaults['group_option'] = 0;
+
+    $groupTypes = CRM_Core_OptionGroup::values('group_type', TRUE);
+    $defaults['group_type'][$groupTypes['Mailing List']]= 1;
+
     return $defaults;
   }
 

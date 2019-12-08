@@ -198,6 +198,8 @@ class CRM_Group_Form_Edit extends CRM_Core_Form {
     }
     else {
       $defaults['is_active'] = 1;
+      $groupTypes = CRM_Core_OptionGroup::values('group_type', TRUE);
+      $defaults['group_type'][$groupTypes['Mailing List']]= 1;
     }
 
     if (!((CRM_Core_Permission::check('access CiviMail')) ||
