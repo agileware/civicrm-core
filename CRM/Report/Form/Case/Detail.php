@@ -235,6 +235,10 @@ class CRM_Report_Form_Case_Detail extends CRM_Report_Form {
             'name' => 'subject',
             'title' => ts('Subject of the last activity in the case'),
           ],
+          'last_activity_activity_details' => [
+            'name' => 'details',
+            'title' => ts('Details of the last activity in the case'),
+          ],
           'last_activity_activity_type' => [
             'name' => 'activity_type_id',
             'title' => ts('Activity type of the last activity'),
@@ -260,6 +264,10 @@ class CRM_Report_Form_Case_Detail extends CRM_Report_Form {
           'last_completed_activity_subject' => [
             'name' => 'subject',
             'title' => ts('Subject of the last completed activity in the case'),
+          ],
+          'last_completed_activity_details' => [
+            'name' => 'details',
+            'title' => ts('Details of the last completed activity in the case'),
           ],
           'last_completed_activity_type' => [
             'name' => 'activity_type_id',
