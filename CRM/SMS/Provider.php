@@ -325,6 +325,10 @@ INNER JOIN civicrm_mailing_job mj ON mj.mailing_id = m.id AND mj.id = %1";
 
       default:
         $kind = "Unknown";
+        // Australian number
+        if (strpos($phone, '61') === 0) {
+          return substr($phone, -9);
+        }
         return $phone;
     }
 
