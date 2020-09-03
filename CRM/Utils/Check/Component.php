@@ -126,9 +126,12 @@ abstract class CRM_Utils_Check_Component {
    * @throws \GuzzleHttp\Exception\GuzzleException
    */
   public function fileExists($url, $timeoutOverride = FALSE) {
-    // Timeout past in maybe 0 in which case we should still permit it (0 is infinite).
-    if (!$timeoutOverride && $timeoutOverride !== 0) {
-      $timeoutOverride = (float) Civi::settings()->get('http_timeout');
+    // Always get the http_timeout if defined, overriding any other timeout passed to this function
+    $timeoutOverride = (float) Civi::settings()->get('http_timeout');
+
+    // If undefined or set 0 (infinite) then force a 0.5s timeout
+    if (!$timeoutOverride || $timeoutOverride === 0) {
+      $timeoutOverride = 0.5;
     }
     $fileExists = FALSE;
     try {
