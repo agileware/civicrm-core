@@ -255,7 +255,7 @@ INNER JOIN civicrm_mailing_job mj ON mj.mailing_id = m.id AND mj.id = %1";
         'target_contact_id' => $message->fromContactID,
         'activity_type_id' => CRM_Core_PseudoConstant::getKey('CRM_Activity_BAO_Activity', 'activity_type_id', 'Inbound SMS'),
         'activity_date_time' => date('YmdHis'),
-        'status_id' => CRM_Core_PseudoConstant::getKey('CRM_Activity_BAO_Activity', 'activity_status_id', 'Completed'),
+        'status_id' => CRM_Core_PseudoConstant::getKey('CRM_Activity_BAO_Activity', 'activity_status_id', 'Left Message'),
         'details' => $message->body,
         'phone_number' => $message->from,
       );
