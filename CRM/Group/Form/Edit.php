@@ -226,6 +226,10 @@ class CRM_Group_Form_Edit extends CRM_Core_Form {
 
     $groupTypes = CRM_Core_OptionGroup::values('group_type', TRUE);
 
+    if (!CRM_Core_Permission::check('administer CiviCRM')) {
+      unset($groupTypes['Access Control']);
+    }
+
     if (isset($this->_id) && !empty($this->_groupValues['saved_search_id'])) {
       unset($groupTypes['Access Control']);
     }
@@ -238,16 +242,20 @@ class CRM_Group_Form_Edit extends CRM_Core_Form {
       );
     }
 
-    $this->add('select', 'visibility', ts('Visibility'), CRM_Core_SelectValues::groupVisibility(), TRUE);
+    if (CRM_Core_Permission::check('administer CiviCRM')) {
+      $this->add('select', 'visibility', ts('Visibility'), CRM_Core_SelectValues::groupVisibility(), TRUE);
+    }
 
     //CRM-14190
     $parentGroups = self::buildParentGroups($this);
     self::buildGroupOrganizations($this);
 
-    // is_reserved property CRM-9936
-    $this->addElement('checkbox', 'is_reserved', ts('Reserved Group?'));
-    if (!CRM_Core_Permission::check('administer reserved groups')) {
-      $this->freeze('is_reserved');
+    if (CRM_Core_Permission::check('administer CiviCRM') || CRM_Core_Permission::check('administer reserved groups')) {
+      // is_reserved property CRM-9936
+      $this->addElement('checkbox', 'is_reserved', ts('Reserved Group?'));
+      if (!CRM_Core_Permission::check('administer reserved groups')) {
+        $this->freeze('is_reserved');
+      }
     }
     $this->addElement('checkbox', 'is_active', ts('Is active?'));
 
