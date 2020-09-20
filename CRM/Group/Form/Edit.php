@@ -137,14 +137,7 @@ class CRM_Group_Form_Edit extends CRM_Core_Form {
           'saved_search_id' => $this->_groupValues['saved_search_id'] ?? '',
         );
         if (isset($this->_groupValues['saved_search_id'])) {
-          $groupValues['mapping_id'] = CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_SavedSearch',
-            $this->_groupValues['saved_search_id'],
-            'mapping_id'
-          );
-          $groupValues['search_custom_id'] = CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_SavedSearch',
-            $this->_groupValues['saved_search_id'],
-            'search_custom_id'
-          );
+          $this->assign('editSmartGroupURL', CRM_Contact_BAO_SavedSearch::getEditSearchUrl($this->_groupValues['saved_search_id']));
         }
         if (!empty($this->_groupValues['created_id'])) {
           $groupValues['created_by'] = CRM_Core_DAO::getFieldValue("CRM_Contact_DAO_Contact", $this->_groupValues['created_id'], 'sort_name', 'id');
@@ -191,8 +184,6 @@ class CRM_Group_Form_Edit extends CRM_Core_Form {
     }
     else {
       $defaults['is_active'] = 1;
-      $groupTypes = CRM_Core_OptionGroup::values('group_type', TRUE);
-      $defaults['group_type'][$groupTypes['Mailing List']]= 1;
     }
 
     if (!((CRM_Core_Permission::check('access CiviMail')) ||
@@ -235,10 +226,6 @@ class CRM_Group_Form_Edit extends CRM_Core_Form {
 
     $groupTypes = CRM_Core_OptionGroup::values('group_type', TRUE);
 
-    if (!CRM_Core_Permission::check('administer CiviCRM')) {
-      unset($groupTypes['Access Control']);
-    }
-
     if (isset($this->_id) && !empty($this->_groupValues['saved_search_id'])) {
       unset($groupTypes['Access Control']);
     }
@@ -251,20 +238,16 @@ class CRM_Group_Form_Edit extends CRM_Core_Form {
       );
     }
 
-    if (CRM_Core_Permission::check('administer CiviCRM')) {
-      $this->add('select', 'visibility', ts('Visibility'), CRM_Core_SelectValues::groupVisibility(), TRUE);
-    }
+    $this->add('select', 'visibility', ts('Visibility'), CRM_Core_SelectValues::groupVisibility(), TRUE);
 
     //CRM-14190
     $parentGroups = self::buildParentGroups($this);
     self::buildGroupOrganizations($this);
 
-    if (CRM_Core_Permission::check('administer CiviCRM') || CRM_Core_Permission::check('administer reserved groups')) {
-      // is_reserved property CRM-9936
-      $this->addElement('checkbox', 'is_reserved', ts('Reserved Group?'));
-      if (!CRM_Core_Permission::check('administer reserved groups')) {
-        $this->freeze('is_reserved');
-      }
+    // is_reserved property CRM-9936
+    $this->addElement('checkbox', 'is_reserved', ts('Reserved Group?'));
+    if (!CRM_Core_Permission::check('administer reserved groups')) {
+      $this->freeze('is_reserved');
     }
     $this->addElement('checkbox', 'is_active', ts('Is active?'));
 
@@ -381,7 +364,8 @@ WHERE  title = %1
       );
 
       $group = CRM_Contact_BAO_Group::create($params);
-
+      // Set the entity id so it is available to postProcess hook consumers
+      $this->setEntityId($group->id);
       //Remove any parent groups requested to be removed
       if (!empty($this->_groupValues['parents'])) {
         $parentGroupIds = explode(',', $this->_groupValues['parents']);
