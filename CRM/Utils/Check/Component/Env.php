@@ -477,41 +477,6 @@ class CRM_Utils_Check_Component_Env extends CRM_Utils_Check_Component {
    */
   public function checkVersion($force = FALSE) {
     $messages = [];
-    try {
-      $vc = new CRM_Utils_VersionCheck();
-      $vc->initialize($force);
-    }
-    catch (Exception $e) {
-      $messages[] = new CRM_Utils_Check_Message(
-        'checkVersionError',
-        ts('Directory %1 is not writable.  Please change your file permissions.',
-          [1 => dirname($vc->cacheFile)]),
-        ts('Directory not writable'),
-        \Psr\Log\LogLevel::ERROR,
-        'fa-times-circle-o'
-      );
-      return $messages;
-    }
-
-    // Show a notice if the version_check job is disabled
-    if (!$force && empty($vc->cronJob['is_active'])) {
-      $args = empty($vc->cronJob['id']) ? ['reset' => 1] : ['reset' => 1, 'action' => 'update', 'id' => $vc->cronJob['id']];
-      $messages[] = new CRM_Utils_Check_Message(
-        'checkVersionDisabled',
-        ts('The check for new versions of CiviCRM has been disabled. <a %1>Re-enable the scheduled job</a> to receive important security update notifications.', [1 => 'href="' . CRM_Utils_System::url('civicrm/admin/job', $args) . '"']),
-        ts('Update Check Disabled'),
-        \Psr\Log\LogLevel::NOTICE,
-        'fa-times-circle-o'
-      );
-    }
-
-    if ($vc->isInfoAvailable) {
-      foreach ($vc->getVersionMessages() ?? [] as $msg) {
-        $messages[] = new CRM_Utils_Check_Message(__FUNCTION__ . '_' . $msg['name'],
-          $msg['message'], $msg['title'], $msg['severity'], 'fa-cloud-upload');
-      }
-    }
-
     return $messages;
   }
 
