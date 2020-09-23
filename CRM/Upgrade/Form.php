@@ -774,6 +774,9 @@ SET    version = '$version'
     CRM_Core_Invoke::rebuildMenuAndCaches(FALSE, TRUE);
     // NOTE: triggerRebuild is FALSE becaues it will run again in a moment (via fixSchemaDifferences).
 
+    $versionCheck = new CRM_Utils_VersionCheck();
+    $versionCheck->flushCache();
+
     // Rebuild all triggers and re-enable logging if needed
     $logging = new CRM_Logging_Schema();
     $logging->fixSchemaDifferences();
