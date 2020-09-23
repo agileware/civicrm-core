@@ -725,3 +725,14 @@ function civicrm_api3_job_group_cache_flush($params) {
   CRM_Contact_BAO_GroupContactCache::deterministicCacheFlush();
   return civicrm_api3_create_success();
 }
+
+/**
+ * Check for CiviCRM software updates.
+ *
+ * Anonymous site statistics are sent back to civicrm.org during this check.
+ */
+function civicrm_api3_job_version_check() {
+  $vc = new CRM_Utils_VersionCheck();
+  $vc->fetch();
+  return civicrm_api3_create_success();
+}
