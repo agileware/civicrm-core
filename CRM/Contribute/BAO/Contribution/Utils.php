@@ -522,12 +522,8 @@ LIMIT 1
 
         case 'Failed':
           $statusNamesToUnset = array_merge($statusNamesToUnset, [
-            'Pending',
-            'Refunded',
             'Chargeback',
-            'Completed',
             'In Progress',
-            'Cancelled',
           ]);
           break;
       }
