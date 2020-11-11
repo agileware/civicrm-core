@@ -167,6 +167,7 @@ class CRM_Custom_Form_Field extends CRM_Core_Form {
       $defaults['note_columns'] = 60;
       $defaults['note_rows'] = 4;
       $defaults['is_view'] = 0;
+      $defaults['is_searchable'] = 1;
 
       if (CRM_Core_DAO::getFieldValue('CRM_Core_DAO_CustomGroup', $this->_gid, 'is_multiple')) {
         $defaults['in_selector'] = 1;
