@@ -169,7 +169,7 @@ class CRM_Contribute_BAO_Contribution extends CRM_Contribute_DAO_Contribution {
     }
 
     // Get Line Items if we don't have them already.
-    if (empty($param['line_item']) && isset($param['financial_type_id']) && empty($params['skipLineItem'])) {
+    if (empty($param['line_item']) && isset($param['financial_type_id'])) {
       if (isset($params['id'])) {
         CRM_Price_BAO_LineItem::getLineItemArray($params, [$params['id']]);
       }
