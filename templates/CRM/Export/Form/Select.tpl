@@ -11,15 +11,9 @@
 {* @var $form Contains the array for the form elements and other form associated information assigned to the template by the controller *}
 <div class="crm-block crm-form-block crm-export-form-block">
 
- <div class="help">
-    <p>{ts}<strong>Export PRIMARY fields</strong> provides the most commonly used data values. This includes primary address information, preferred phone and email.{/ts}</p>
-    <p>{ts}Click <strong>Select fields for export</strong> and then <strong>Continue</strong> to choose a subset of fields for export. This option allows you to export multiple specific locations (Home, Work, etc.) as well as custom data. You can also save your selections as a 'field mapping' so you can use it again later.{/ts}</p>
- </div>
-
  {* WizardHeader.tpl provides visual display of steps thru the wizard as well as title for current step *}
  {include file="CRM/common/WizardHeader.tpl"}
 
- <div class="crm-submit-buttons">{include file="CRM/common/formButtons.tpl" location="top"}</div>
  <div id="export-type">
   <div class="crm-section crm-exportOption-section">
     <h3>{ts count=$totalSelectedRecords plural='%count records selected for export.'}One record selected for export.{/ts}</h3>
@@ -93,18 +87,6 @@
 </div>
 {literal}
   <script type="text/javascript">
-     function showMappingOption( )
-     {
-  var element = document.getElementsByName("exportOption");
-
-  if ( element[1].checked ) {
-    cj('#map').show();
-        } else {
-    cj('#map').hide();
-  }
-     }
-     showMappingOption( );
-
      var matchingContacts = '';
      {/literal}{if $matchingContacts}{literal}
        matchingContacts = {/literal}'{$matchingContacts}'{literal};
