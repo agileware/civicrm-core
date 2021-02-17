@@ -49,7 +49,7 @@ trait CRM_Core_Payment_PaypalProTrait {
    */
   public function getExpectedSinglePaymentRequests() {
     return [
-      'user=sunil._1183377782_biz_api1.webaccess.co.in&pwd=1183377788&version=3&signature=APixCoQ-Zsaj-u3IH7mD5Do-7HUqA9loGnLSzsZga9Zr-aNmaJa3WGPH&subject=&method=DoDirectPayment&paymentAction=Sale&amt=5.24&currencyCode=USD&invnum=xyz&ipaddress=127.0.0.1&creditCardType=Visa&acct=4444333322221111&expDate=102022&cvv2=123&firstName=John&lastName=O%27Connor&email=&street=8+Hobbitton+Road&city=The+Shire&state=IL&countryCode=US&zip=5010&desc=&custom=&BUTTONSOURCE=',
+      'user=sunil._1183377782_biz_api1.webaccess.co.in&pwd=1183377788&version=3&signature=APixCoQ-Zsaj-u3IH7mD5Do-7HUqA9loGnLSzsZga9Zr-aNmaJa3WGPH&subject=&method=DoDirectPayment&paymentAction=Sale&amt=5.24&currencyCode=USD&invnum=xyz&ipaddress=127.0.0.1&creditCardType=Visa&acct=4444333322221111&expDate=102022&cvv2=123&firstName=John&lastName=O%27Connor&email=&street=8+Hobbitton+Road&city=The+Shire&state=IL&countryCode=US&zip=5010&desc=&custom=&BUTTONSOURCE=CiviCRM_SP',
       'TRANSACTIONID=9TU23130NB247535M&user=sunil._1183377782_biz_api1.webaccess.co.in&pwd=1183377788&version=3&signature=APixCoQ-Zsaj-u3IH7mD5Do-7HUqA9loGnLSzsZga9Zr-aNmaJa3WGPH&subject=&method=GetTransactionDetails',
     ];
   }
