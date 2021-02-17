@@ -362,7 +362,7 @@ class CRM_Core_Payment_PayPalImpl extends CRM_Core_Payment {
     $args['desc'] = $params['description'];
 
     // add CiviCRM BN code
-    $args['BUTTONSOURCE'] = 'CiviCRM_SP';
+    $args['BUTTONSOURCE'] = '';
 
     $result = $this->invokeAPI($args);
 
@@ -424,7 +424,7 @@ class CRM_Core_Payment_PayPalImpl extends CRM_Core_Payment {
       "&p={$params['contributionPageID']}";
 
     // add CiviCRM BN code
-    $args['BUTTONSOURCE'] = 'CiviCRM_SP';
+    $args['BUTTONSOURCE'] = '';
 
     $result = $this->invokeAPI($args);
 
@@ -531,7 +531,7 @@ class CRM_Core_Payment_PayPalImpl extends CRM_Core_Payment {
     $args['custom'] = $params['accountingCode'] ?? NULL;
 
     // add CiviCRM BN code
-    $args['BUTTONSOURCE'] = 'CiviCRM_SP';
+    $args['BUTTONSOURCE'] = '';
 
     if (CRM_Utils_Array::value('is_recur', $params) == 1) {
       $start_time = strtotime(date('m/d/Y'));
@@ -909,7 +909,7 @@ class CRM_Core_Payment_PayPalImpl extends CRM_Core_Payment {
       'lc' => substr($config->lcMessages, -2),
       'charset' => function_exists('mb_internal_encoding') ? mb_internal_encoding() : 'UTF-8',
       'custom' => json_encode($notifyParameters),
-      'bn' => 'CiviCRM_SP',
+      'bn' => '',
     ];
 
     // add name and address if available, CRM-3130
