@@ -614,7 +614,7 @@ return [
       'maxlength' => 8,
     ],
     'html_type' => 'text',
-    'default' => 7,
+    'default' => 90,
     'add' => '4.3',
     'title' => ts('Checksum Lifespan'),
     'is_domain' => 1,
