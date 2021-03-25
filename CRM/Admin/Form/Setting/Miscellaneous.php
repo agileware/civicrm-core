@@ -111,21 +111,7 @@ class CRM_Admin_Form_Setting_Miscellaneous extends CRM_Admin_Form_Setting {
     if ($fields['recentItemsMaxCount'] && ($fields['recentItemsMaxCount'] < 1 || $fields['recentItemsMaxCount'] > CRM_Utils_Recent::MAX_ITEMS)) {
       $errors['recentItemsMaxCount'] = ts("Illegal stack size. Use values between 1 and %1.", [1 => CRM_Utils_Recent::MAX_ITEMS]);
     }
-
-    if (!empty($fields['wkhtmltopdfPath'])) {
-      // check and ensure that thi leads to the wkhtmltopdf binary
-      // and it is a valid executable binary
-      // Only check the first space separated piece to allow for a value
-      // such as /usr/bin/xvfb-run -- wkhtmltopdf (CRM-13292)
-      $pieces = explode(' ', $fields['wkhtmltopdfPath']);
-      $path = $pieces[0];
-      if (
-        !file_exists($path) ||
-        !is_executable($path)
-      ) {
-        $errors['wkhtmltopdfPath'] = ts('The wkhtmltodfPath does not exist or is not valid');
-      }
-    }
+    
     return $errors;
   }
 
