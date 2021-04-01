@@ -238,15 +238,6 @@ class CRM_Utils_Check_Component_Security extends CRM_Utils_Check_Component {
   }
 
   /**
-   * Discourage use of remote profile forms.
-   * @return CRM_Utils_Check_Message[]
-   */
-  public function checkRemoteProfile() {
-    $messages = [];
-    return $messages;
-  }
-
-  /**
    * Check that the sysadmin has not modified the Cxn security setup.
    * @return CRM_Utils_Check_Message[]
    */
