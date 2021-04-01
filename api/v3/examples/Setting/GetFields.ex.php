@@ -505,7 +505,7 @@ function setting_getfields_expectedresult() {
         'name' => 'remote_profile_submissions',
         'type' => 'Boolean',
         'quick_form_type' => 'YesNo',
-        'default' => '',
+        'default' => FALSE,
         'html_type' => 'radio',
         'add' => '4.7',
         'title' => 'Accept profile submissions from external sites',
