@@ -27,7 +27,7 @@ class api_v3_AddressTest extends CiviUnitTestCase {
 
   protected $_entity;
 
-  public function setUp() {
+  public function setUp(): void {
     $this->_entity = 'Address';
     parent::setUp();
 
@@ -48,7 +48,7 @@ class api_v3_AddressTest extends CiviUnitTestCase {
     ];
   }
 
-  public function tearDown() {
+  public function tearDown(): void {
     $this->locationTypeDelete($this->_locationTypeID);
     $this->contactDelete($this->_contactID);
     $this->quickCleanup(['civicrm_address', 'civicrm_relationship']);

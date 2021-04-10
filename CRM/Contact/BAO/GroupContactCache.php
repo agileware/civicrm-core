@@ -9,6 +9,7 @@
  +--------------------------------------------------------------------+
  */
 
+use Civi\Api4\Group;
 use Civi\Api4\Query\SqlExpression;
 
 /**
@@ -67,7 +68,7 @@ class CRM_Contact_BAO_GroupContactCache extends CRM_Contact_DAO_GroupContactCach
    * @return string
    *   the sql query which lists the groups that need to be refreshed
    */
-  public static function groupRefreshedClause($groupIDClause = NULL, $includeHiddenGroups = FALSE) {
+  public static function groupRefreshedClause($groupIDClause = NULL, $includeHiddenGroups = FALSE): string {
     $smartGroupCacheTimeoutDateTime = self::getCacheInvalidDateTime();
 
     $query = "
@@ -78,7 +79,6 @@ AND     g.is_active = 1
 AND (
   g.cache_date IS NULL
   OR cache_date <= $smartGroupCacheTimeoutDateTime
-  OR NOW() >= g.refresh_date
 )";
 
     if (!$includeHiddenGroups) {
@@ -152,7 +152,7 @@ AND (
     $limitClause = $orderClause = NULL;
     if ($limit > 0) {
       $limitClause = " LIMIT 0, $limit";
-      $orderClause = " ORDER BY g.cache_date, g.refresh_date";
+      $orderClause = " ORDER BY g.cache_date";
     }
     // We ignore hidden groups and disabled groups
     $query .= "
@@ -177,12 +177,10 @@ AND (
 
     if (!empty($refreshGroupIDs)) {
       $refreshGroupIDString = CRM_Core_DAO::escapeString(implode(', ', $refreshGroupIDs));
-      $time = self::getRefreshDateTime();
       $query = "
 UPDATE civicrm_group g
-SET    g.refresh_date = $time
+SET    g.cache_date = NOW()
 WHERE  g.id IN ( {$refreshGroupIDString} )
-AND    g.refresh_date IS NULL
 ";
       CRM_Core_DAO::executeQuery($query);
     }
@@ -252,17 +250,15 @@ AND    g.refresh_date IS NULL
     if ($processed) {
       // also update the group with cache date information
       $now = date('YmdHis');
-      $refresh = 'null';
     }
     else {
       $now = 'null';
-      $refresh = 'null';
     }
 
     $groupIDs = implode(',', $groupID);
     $sql = "
 UPDATE civicrm_group
-SET    cache_date = $now, refresh_date = $refresh
+SET    cache_date = $now
 WHERE  id IN ( $groupIDs )
 ";
     CRM_Core_DAO::executeQuery($sql);
@@ -284,7 +280,7 @@ WHERE  id IN ( $groupIDs )
 
     $update = "
   UPDATE civicrm_group g
-    SET    cache_date = null, refresh_date = null
+    SET    cache_date = null
     WHERE  id = %1 ";
 
     $params = [
@@ -327,7 +323,7 @@ WHERE  id IN ( $groupIDs )
 
       // Clear these out without resetting them because we are not building caches here, only clearing them,
       // so the state is 'as if they had never been built'.
-      CRM_Core_DAO::executeQuery("UPDATE civicrm_group SET cache_date = NULL, refresh_date = NULL WHERE id IN ({$expiredGroups})");
+      CRM_Core_DAO::executeQuery("UPDATE civicrm_group SET cache_date = NULL WHERE id IN ({$expiredGroups})");
     }
     $lock->release();
   }
@@ -381,7 +377,7 @@ WHERE  id IN ( $groupIDs )
   public static function deterministicCacheFlush() {
     if (self::smartGroupCacheTimeout() == 0) {
       CRM_Core_DAO::executeQuery("TRUNCATE civicrm_group_contact_cache");
-      CRM_Core_DAO::executeQuery("UPDATE civicrm_group SET cache_date = NULL, refresh_date = NULL");
+      CRM_Core_DAO::executeQuery("UPDATE civicrm_group SET cache_date = NULL");
     }
     else {
       self::flushCaches();
@@ -423,11 +419,12 @@ WHERE  id IN ( $groupIDs )
    * @param bool $force
    *   Should we force a search through.
    *
+   * @throws \API_Exception
    * @throws \CRM_Core_Exception
+   * @throws \CiviCRM_API3_Exception
    */
-  public static function load(&$group, $force = FALSE) {
-    $groupID = $group->id;
-    $savedSearchID = $group->saved_search_id;
+  public static function load($group, $force = FALSE) {
+    $groupID = (int) $group->id;
     if (array_key_exists($groupID, self::$_alreadyLoaded) && !$force) {
       return;
     }
@@ -440,90 +437,15 @@ WHERE  id IN ( $groupIDs )
       return;
     }
 
-    $customClass = NULL;
-    if ($savedSearchID) {
-      $ssParams = CRM_Contact_BAO_SavedSearch::getSearchParams($savedSearchID);
-      $groupID = CRM_Utils_Type::escape($groupID, 'Integer');
-
-      $excludeClause = "NOT IN (
-                        SELECT contact_id FROM civicrm_group_contact
-                        WHERE civicrm_group_contact.status = 'Removed'
-                        AND civicrm_group_contact.group_id = $groupID )";
-      $addSelect = "$groupID AS group_id";
-
-      if (!empty($ssParams['api_entity'])) {
-        $sql = self::getApiSQL($ssParams, $addSelect, $excludeClause);
-      }
-      else {
-        // CRM-7021 rectify params to what proximity search expects if there is a value for prox_distance
-        if (!empty($ssParams)) {
-          CRM_Contact_BAO_ProximityQuery::fixInputParams($ssParams);
-        }
-        if (isset($ssParams['customSearchID'])) {
-          $sql = self::getCustomSearchSQL($savedSearchID, $ssParams, $addSelect, $excludeClause);
-        }
-        else {
-          $sql = self::getQueryObjectSQL($savedSearchID, $ssParams, $addSelect, $excludeClause);
-        }
-      }
-    }
-
-    $groupContactsTempTable = CRM_Utils_SQL_TempTable::build()->setCategory('gccache')->setMemory();
+    $groupContactsTempTable = CRM_Utils_SQL_TempTable::build()
+      ->setCategory('gccache')
+      ->setMemory();
+    self::buildGroupContactTempTable([$groupID], $groupContactsTempTable);
     $tempTable = $groupContactsTempTable->getName();
-    $groupContactsTempTable->createWithColumns('contact_id int, group_id int, UNIQUE UI_contact_group (contact_id,group_id)');
-
-    if (!empty($sql)) {
-      $contactQueries[] = $sql;
-    }
-    // lets also store the records that are explicitly added to the group
-    // this allows us to skip the group contact LEFT JOIN
-    $contactQueries[] =
-      "SELECT $groupID as group_id, contact_id as contact_id
-       FROM   civicrm_group_contact
-       WHERE  civicrm_group_contact.status = 'Added' AND civicrm_group_contact.group_id = $groupID ";
-
-    self::clearGroupContactCache($groupID);
-
-    foreach ($contactQueries as $contactQuery) {
-      CRM_Core_DAO::executeQuery("INSERT IGNORE INTO $tempTable (group_id, contact_id) {$contactQuery}");
-    }
-
-    if ($group->children) {
-
-      // Store a list of contacts who are removed from the parent group
-      $sqlContactsRemovedFromGroup = "
-SELECT contact_id
-FROM civicrm_group_contact
-WHERE  civicrm_group_contact.status = 'Removed'
-AND  civicrm_group_contact.group_id = $groupID ";
-      $dao = CRM_Core_DAO::executeQuery($sqlContactsRemovedFromGroup);
-      $removed_contacts = [];
-      while ($dao->fetch()) {
-        $removed_contacts[] = $dao->contact_id;
-      }
-
-      $childrenIDs = explode(',', $group->children);
-      foreach ($childrenIDs as $childID) {
-        $contactIDs = CRM_Contact_BAO_Group::getMember($childID, FALSE);
-        // Unset each contact that is removed from the parent group
-        foreach ($removed_contacts as $removed_contact) {
-          unset($contactIDs[$removed_contact]);
-        }
-        if (empty($contactIDs)) {
-          // This child group has no contact IDs so we don't need to add them to
-          continue;
-        }
-        $values = [];
-        foreach ($contactIDs as $contactID => $dontCare) {
-          $values[] = "({$groupID},{$contactID})";
-        }
-        $str = implode(',', $values);
-        CRM_Core_DAO::executeQuery("INSERT IGNORE INTO $tempTable (group_id, contact_id) VALUES $str");
-      }
-    }
 
     // grab a lock so other processes don't compete and do the same query
     $lock = Civi::lockManager()->acquire("data.core.group.{$groupID}");
+
     if (!$lock->isAcquired()) {
       // this can cause inconsistent results since we don't know if the other process
       // will fill up the cache before our calling routine needs it.
@@ -584,38 +506,20 @@ AND  civicrm_group_contact.group_id = $groupID ";
    * it ensure that all contact groups are loaded in the cache
    *
    * @param int $contactID
-   * @param bool $showHidden
-   *   Hidden groups are shown only if this flag is set.
    *
    * @return array
    *   an array of groups that this contact belongs to
    */
-  public static function contactGroup($contactID, $showHidden = FALSE) {
-    if (empty($contactID)) {
-      return NULL;
-    }
-
-    if (is_array($contactID)) {
-      $contactIDs = $contactID;
-    }
-    else {
-      $contactIDs = [$contactID];
-    }
+  public static function contactGroup(int $contactID): array {
 
     self::loadAll();
 
-    $hiddenClause = '';
-    if (!$showHidden) {
-      $hiddenClause = ' AND (g.is_hidden = 0 OR g.is_hidden IS NULL) ';
-    }
-
-    $contactIDString = CRM_Core_DAO::escapeString(implode(', ', $contactIDs));
     $sql = "
 SELECT     gc.group_id, gc.contact_id, g.title, g.children, g.description
 FROM       civicrm_group_contact_cache gc
 INNER JOIN civicrm_group g ON g.id = gc.group_id
-WHERE      gc.contact_id IN ($contactIDString)
-           $hiddenClause
+WHERE      gc.contact_id = $contactID
+            AND (g.is_hidden = 0 OR g.is_hidden IS NULL)
 ORDER BY   gc.contact_id, g.children
 ";
 
@@ -649,12 +553,10 @@ ORDER BY   gc.contact_id, g.children
       $contactGroup[$prevContactID]['groupTitle'] = implode(', ', $contactGroup[$prevContactID]['groupTitle']);
     }
 
-    if ((!empty($contactGroup[$contactID]) && is_numeric($contactID))) {
+    if ((!empty($contactGroup[$contactID]))) {
       return $contactGroup[$contactID];
     }
-    else {
-      return $contactGroup;
-    }
+    return $contactGroup;
   }
 
   /**
@@ -670,23 +572,12 @@ ORDER BY   gc.contact_id, g.children
   }
 
   /**
-   * Get the date when the cache should be refreshed from.
-   *
-   * Ie. now + the offset & we will delete anything prior to then.
-   *
-   * @return string
-   */
-  public static function getRefreshDateTime() {
-    return date('YmdHis', strtotime("+ " . self::smartGroupCacheTimeout() . " Minutes"));
-  }
-
-  /**
    * Invalidates the smart group cache for a particular group
    * @param int $groupID - Group to invalidate
    */
   public static function invalidateGroupContactCache($groupID) {
     CRM_Core_DAO::executeQuery("UPDATE civicrm_group
-      SET cache_date = NULL, refresh_date = NULL
+      SET cache_date = NULL
       WHERE id = %1", [
         1 => [$groupID, 'Positive'],
       ]);
@@ -729,7 +620,7 @@ ORDER BY   gc.contact_id, g.children
    * @param string $excludeClause
    *
    * @return string
-   * @throws \Exception
+   * @throws CRM_Core_Exception
    */
   protected static function getCustomSearchSQL($savedSearchID, array $ssParams, string $addSelect, string $excludeClause) {
     $searchSQL = CRM_Contact_BAO_SearchCustom::customClass($ssParams['customSearchID'], $savedSearchID)->contactIDs();
@@ -790,6 +681,106 @@ ORDER BY   gc.contact_id, g.children
     $select = preg_replace("/^\s*SELECT /", "SELECT $addSelect, ", $sqlParts['select']);
 
     return "$select {$sqlParts['from']} {$sqlParts['where']} {$sqlParts['group_by']} {$sqlParts['having']}";
+  }
+
+  /**
+   * Build a temporary table for the contacts in the specified group.
+   *
+   * @param array $groupIDs
+   *   Currently only one id is build but this has been written
+   *   to make it easy to switch to multiple.
+   * @param CRM_Utils_SQL_TempTable $tempTableObject
+   *
+   * @throws \API_Exception
+   * @throws \CRM_Core_Exception
+   * @throws \CiviCRM_API3_Exception
+   */
+  protected static function buildGroupContactTempTable(array $groupIDs, $tempTableObject): void {
+    $group = Group::get(FALSE)->addWhere('id', 'IN', $groupIDs)
+      ->setSelect(['saved_search_id', 'children'])->execute()->first();
+    $groupID = (int) $group['id'];
+
+    $customClass = NULL;
+    if ($group['saved_search_id']) {
+      $ssParams = CRM_Contact_BAO_SavedSearch::getSearchParams($group['saved_search_id']);
+
+      $excludeClause = "NOT IN (
+                        SELECT contact_id FROM civicrm_group_contact
+                        WHERE civicrm_group_contact.status = 'Removed'
+                        AND civicrm_group_contact.group_id = $groupID )";
+      $addSelect = "$groupID AS group_id";
+
+      if (!empty($ssParams['api_entity'])) {
+        $sql = self::getApiSQL($ssParams, $addSelect, $excludeClause);
+      }
+      else {
+        // CRM-7021 rectify params to what proximity search expects if there is a value for prox_distance
+        if (!empty($ssParams)) {
+          CRM_Contact_BAO_ProximityQuery::fixInputParams($ssParams);
+        }
+        if (isset($ssParams['customSearchID'])) {
+          $sql = self::getCustomSearchSQL($group['saved_search_id'], $ssParams, $addSelect, $excludeClause);
+        }
+        else {
+          $sql = self::getQueryObjectSQL($group['saved_search_id'], $ssParams, $addSelect, $excludeClause);
+        }
+      }
+    }
+
+    $tempTableName = $tempTableObject->getName();
+    $tempTableObject->createWithColumns('contact_id int, group_id int, UNIQUE UI_contact_group (contact_id,group_id)');
+
+    if (!empty($sql)) {
+      $contactQueries[] = $sql;
+    }
+    // lets also store the records that are explicitly added to the group
+    // this allows us to skip the group contact LEFT JOIN
+    $contactQueries[] =
+      "SELECT $groupID as group_id, contact_id as contact_id
+       FROM   civicrm_group_contact
+       WHERE  civicrm_group_contact.status = 'Added' AND civicrm_group_contact.group_id = $groupID ";
+
+    self::clearGroupContactCache($groupID);
+
+    foreach ($contactQueries as $contactQuery) {
+      CRM_Core_DAO::executeQuery("INSERT IGNORE INTO $tempTableName (group_id, contact_id) {$contactQuery}");
+    }
+
+    CRM_Core_DAO::reenableFullGroupByMode();
+
+    if ($group['children']) {
+
+      // Store a list of contacts who are removed from the parent group
+      $sqlContactsRemovedFromGroup = "
+SELECT contact_id
+FROM civicrm_group_contact
+WHERE  civicrm_group_contact.status = 'Removed'
+AND  civicrm_group_contact.group_id = $groupID ";
+      $dao = CRM_Core_DAO::executeQuery($sqlContactsRemovedFromGroup);
+      $removed_contacts = [];
+      while ($dao->fetch()) {
+        $removed_contacts[] = $dao->contact_id;
+      }
+
+      $childrenIDs = explode(',', $group['children']);
+      foreach ($childrenIDs as $childID) {
+        $contactIDs = CRM_Contact_BAO_Group::getMember($childID, FALSE);
+        // Unset each contact that is removed from the parent group
+        foreach ($removed_contacts as $removed_contact) {
+          unset($contactIDs[$removed_contact]);
+        }
+        if (empty($contactIDs)) {
+          // This child group has no contact IDs so we don't need to add them to
+          continue;
+        }
+        $values = [];
+        foreach ($contactIDs as $contactID => $dontCare) {
+          $values[] = "({$groupID},{$contactID})";
+        }
+        $str = implode(',', $values);
+        CRM_Core_DAO::executeQuery("INSERT IGNORE INTO $tempTableName (group_id, contact_id) VALUES $str");
+      }
+    }
   }
 
 }

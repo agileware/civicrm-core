@@ -16,7 +16,7 @@ trait AfformSaveTrait {
 
     // If no name given, create a unique name based on the title
     if (empty($item['name'])) {
-      $prefix = !empty($item['join']) ? "afjoin-{$item['join']}" : !empty($item['block']) ? 'afblock-' . str_replace('*', 'all', $item['block']) : 'afform';
+      $prefix = !empty($item['join']) ? "afjoin-{$item['join']}" : (!empty($item['block']) ? ('afblock-' . str_replace('*', 'all', $item['block'])) : 'afform');
       $item['name'] = _afform_angular_module_name($prefix . '-' . \CRM_Utils_String::munge($item['title'], '-'));
       $suffix = '';
       while (
@@ -69,7 +69,7 @@ trait AfformSaveTrait {
       // FIXME: more targetted reconciliation
       \CRM_Core_ManagedEntities::singleton()->reconcile();
     }
-    elseif ($orig['is_dashlet'] && $isChanged('title')) {
+    elseif (array_key_exists('is_dashlet', (array) $orig) && $orig['is_dashlet'] && $isChanged('title')) {
       // FIXME: more targetted reconciliation
       \CRM_Core_ManagedEntities::singleton()->reconcile();
     }
@@ -79,7 +79,6 @@ trait AfformSaveTrait {
       \CRM_Core_Menu::store();
       \CRM_Core_BAO_Navigation::resetNavigation();
     }
-    // FIXME if asset-caching is enabled, then flush the asset cache.
 
     $item['module_name'] = _afform_angular_module_name($item['name'], 'camel');
     $item['directive_name'] = _afform_angular_module_name($item['name'], 'dash');

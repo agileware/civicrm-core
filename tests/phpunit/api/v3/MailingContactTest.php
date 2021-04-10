@@ -26,7 +26,7 @@
 class api_v3_MailingContactTest extends CiviUnitTestCase {
   protected $_entity = 'mailing';
 
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     $params = [
       'first_name' => 'abc1',
@@ -36,7 +36,7 @@ class api_v3_MailingContactTest extends CiviUnitTestCase {
     $this->_contact = $this->callAPISuccess("contact", "create", $params);
   }
 
-  public function tearDown() {
+  public function tearDown(): void {
     $this->callAPISuccess("contact", "delete", ['id' => $this->_contact['id']]);
     parent::tearDown();
   }

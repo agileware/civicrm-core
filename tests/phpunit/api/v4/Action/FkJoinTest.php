@@ -25,6 +25,7 @@ use Civi\Api4\Contact;
 use Civi\Api4\Email;
 use Civi\Api4\EntityTag;
 use Civi\Api4\Phone;
+use Civi\Api4\Relationship;
 use Civi\Api4\Tag;
 
 /**
@@ -33,15 +34,19 @@ use Civi\Api4\Tag;
 class FkJoinTest extends UnitTestCase {
 
   public function setUpHeadless() {
+    $this->loadDataSet('DefaultDataSet');
+
+    return parent::setUpHeadless();
+  }
+
+  public function tearDown(): void {
     $relatedTables = [
       'civicrm_activity',
       'civicrm_phone',
       'civicrm_activity_contact',
     ];
     $this->cleanup(['tablesToTruncate' => $relatedTables]);
-    $this->loadDataSet('DefaultDataSet');
-
-    return parent::setUpHeadless();
+    parent::tearDown();
   }
 
   /**
@@ -98,6 +103,24 @@ class FkJoinTest extends UnitTestCase {
     $this->assertEquals('1', $contacts[0]['phone.location_type_id']);
   }
 
+  public function testImplicitJoinOnExplicitJoin() {
+    $contacts = Contact::get(FALSE)
+      ->addWhere('id', '=', $this->getReference('test_contact_1')['id'])
+      ->addJoin('Address AS address', TRUE, ['id', '=', 'address.contact_id'], ['address.location_type_id', '=', 1])
+      ->addSelect('id', 'address.country.iso_code')
+      ->execute();
+    $this->assertCount(1, $contacts);
+    $this->assertEquals('US', $contacts[0]['address.country.iso_code']);
+  }
+
+  public function testExcludeJoin() {
+    $contacts = Contact::get(FALSE)
+      ->addJoin('Address AS address', 'EXCLUDE', ['id', '=', 'address.contact_id'], ['address.location_type_id', '=', 1])
+      ->addSelect('id')
+      ->execute()->column('id');
+    $this->assertNotContains($this->getReference('test_contact_1')['id'], $contacts);
+  }
+
   public function testJoinToTheSameTableTwice() {
     $cid1 = Contact::create(FALSE)
       ->addValue('first_name', 'Aaa')
@@ -122,8 +145,8 @@ class FkJoinTest extends UnitTestCase {
     $contacts = Contact::get(FALSE)
       ->addSelect('id', 'first_name', 'any_email.email', 'any_email.location_type_id:name', 'any_email.is_primary', 'primary_email.email')
       ->setJoin([
-        ['Email AS any_email', TRUE, NULL],
-        ['Email AS primary_email', FALSE, ['primary_email.is_primary', '=', TRUE]],
+        ['Email AS any_email', 'INNER', NULL],
+        ['Email AS primary_email', 'LEFT', ['primary_email.is_primary', '=', TRUE]],
       ])
       ->addWhere('id', 'IN', [$cid1, $cid2, $cid3])
       ->addOrderBy('any_email.id')
@@ -200,6 +223,91 @@ class FkJoinTest extends UnitTestCase {
     $this->assertEquals(2, (int) $reverse[$tag1]['contacts']);
     $this->assertEquals(1, (int) $reverse[$tag2]['contacts']);
     $this->assertEquals(1, (int) $reverse[$tag3]['contacts']);
+  }
+
+  public function testBridgeJoinRelationshipContactActivity() {
+    $cid1 = Contact::create()->setCheckPermissions(FALSE)
+      ->addValue('first_name', 'Aaa')
+      ->addChain('activity', Activity::create()
+        ->addValue('activity_type_id:name', 'Meeting')
+        ->addValue('source_contact_id', '$id')
+        ->addValue('target_contact_id', '$id')
+      )
+      ->execute()
+      ->first()['id'];
+    $cid2 = Contact::create()->setCheckPermissions(FALSE)
+      ->addValue('first_name', 'Bbb')
+      ->addChain('activity', Activity::create()
+        ->addValue('activity_type_id:name', 'Phone Call')
+        ->addValue('source_contact_id', $cid1)
+        ->addValue('target_contact_id', '$id')
+      )
+      ->addChain('r1', Relationship::create()
+        ->setValues(['contact_id_a' => '$id', 'contact_id_b' => $cid1, 'relationship_type_id' => 1])
+      )
+      ->execute()
+      ->first()['id'];
+    $cid3 = Contact::create()->setCheckPermissions(FALSE)
+      ->addValue('first_name', 'Ccc')
+      ->addChain('activity', Activity::create()
+        ->addValue('activity_type_id:name', 'Meeting')
+        ->addValue('source_contact_id', $cid1)
+        ->addValue('target_contact_id', '$id')
+      )
+      ->addChain('activity2', Activity::create()
+        ->addValue('activity_type_id:name', 'Phone Call')
+        ->addValue('source_contact_id', $cid1)
+        ->addValue('target_contact_id', '$id')
+      )
+      ->addChain('r1', Relationship::create()
+        ->setValues(['contact_id_a' => '$id', 'contact_id_b' => $cid1, 'relationship_type_id' => 1])
+      )
+      ->addChain('r2', Relationship::create()
+        ->setValues(['contact_id_a' => '$id', 'contact_id_b' => $cid2, 'relationship_type_id' => 2])
+      )
+      ->execute()
+      ->first()['id'];
+
+    $result = Contact::get(FALSE)
+      ->addSelect('id', 'act.id')
+      ->addJoin('Activity AS act', TRUE, 'ActivityContact', ['act.record_type_id:name', '=', "'Activity Targets'"])
+      ->addWhere('id', 'IN', [$cid1, $cid2, $cid3])
+      ->execute();
+    $this->assertCount(4, $result);
+
+    $result = Contact::get(FALSE)
+      ->addSelect('id', 'act.id')
+      ->addJoin('Activity AS act', TRUE, 'ActivityContact', ['act.activity_type_id:name', '=', "'Meeting'"], ['act.record_type_id:name', '=', "'Activity Targets'"])
+      ->addWhere('id', 'IN', [$cid1, $cid2, $cid3])
+      ->execute();
+    $this->assertCount(2, $result);
+
+    $result = Activity::get(FALSE)
+      ->addSelect('id', 'contact.id')
+      ->addJoin('Contact', FALSE, 'ActivityContact')
+      ->addWhere('contact.id', 'IN', [$cid1, $cid2, $cid3])
+      ->execute();
+    $this->assertCount(8, $result);
+
+    $result = Activity::get(FALSE)
+      ->addSelect('id', 'contact.id', 'rel.id')
+      ->addJoin('Contact', FALSE, 'ActivityContact', ['contact.record_type_id:name', '=', "'Activity Targets'"])
+      ->addJoin('Contact AS rel', FALSE, 'RelationshipCache', ['rel.far_contact_id', '=', 'contact.id'], ['rel.near_relation:name', '=', '"Child of"'])
+      ->addWhere('contact.id', 'IN', [$cid1, $cid2, $cid3])
+      ->addOrderBy('id')
+      ->execute();
+    $this->assertCount(5, $result);
+    $this->assertEquals($cid1, $result[0]['contact.id']);
+    $this->assertEquals($cid2, $result[0]['rel.id']);
+    $this->assertEquals($cid1, $result[1]['contact.id']);
+    $this->assertEquals($cid3, $result[1]['rel.id']);
+    $this->assertEquals($cid2, $result[2]['contact.id']);
+    $this->assertNull($result[2]['rel.id']);
+    $this->assertEquals($cid3, $result[3]['contact.id']);
+    $this->assertNull($result[3]['rel.id']);
+    $this->assertEquals($cid3, $result[4]['contact.id']);
+    $this->assertNull($result[3]['rel.id']);
+
   }
 
 }

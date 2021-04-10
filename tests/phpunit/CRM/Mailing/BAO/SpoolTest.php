@@ -14,12 +14,12 @@ class CRM_Mailing_BAO_SpoolTest extends CiviUnitTestCase {
 
   protected static $bodytext = 'Unit tests keep children safe.';
 
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     $this->_mut = new CiviMailUtils($this, TRUE);
   }
 
-  public function tearDown() {
+  public function tearDown(): void {
     $this->_mut->stop();
     parent::tearDown();
   }

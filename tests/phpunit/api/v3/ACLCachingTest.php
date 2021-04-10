@@ -21,7 +21,7 @@ class api_v3_ACLCachingTest extends CiviUnitTestCase {
 
   public $DBResetRequired = FALSE;
 
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
   }
 
@@ -29,7 +29,7 @@ class api_v3_ACLCachingTest extends CiviUnitTestCase {
    * (non-PHPdoc)
    * @see CiviUnitTestCase::tearDown()
    */
-  public function tearDown() {
+  public function tearDown(): void {
     $tablesToTruncate = [
       'civicrm_activity',
     ];

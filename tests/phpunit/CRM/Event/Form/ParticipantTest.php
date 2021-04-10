@@ -15,7 +15,7 @@ class CRM_Event_Form_ParticipantTest extends CiviUnitTestCase {
    */
   protected $fromEmailAddressOptions = [];
 
-  public function setUp() {
+  public function setUp(): void {
     $this->useTransaction(TRUE);
     parent::setUp();
   }
@@ -351,6 +351,7 @@ class CRM_Event_Form_ParticipantTest extends CiviUnitTestCase {
       $form->_bltID = 5;
       $form->_isPaidEvent = TRUE;
       CRM_Event_Form_EventFees::preProcess($form);
+      $form->assignProcessors();
       $form->buildEventFeeForm($form);
     }
     else {

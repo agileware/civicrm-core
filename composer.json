@@ -38,13 +38,14 @@
   "include-path": ["vendor/tecnickcom"],
   "config": {
     "platform": {
-      "php": "7.1"
+      "php": "7.2"
     }
   },
   "require": {
-    "php": "~7.1",
+    "php": "~7.2",
     "cache/integration-tests": "~0.17.0",
     "dompdf/dompdf" : "~0.8",
+    "firebase/php-jwt": ">=3 <6",
     "electrolinux/phpquery": "^0.9.6",
     "symfony/config": "~3.0 || ~4.4",
     "symfony/polyfill-iconv": "~1.0",
@@ -62,7 +63,7 @@
     "marcj/topsort": "~1.1",
     "phpoffice/phpword": "^0.15.0",
     "pear/validate_finance_creditcard": "dev-master",
-    "civicrm/civicrm-cxn-rpc": "~0.19.01.08",
+    "civicrm/civicrm-cxn-rpc": "~0.20.12.01 || ~0.19.01.10",
     "pear/auth_sasl": "1.1.0",
     "pear/net_smtp": "1.9.*",
     "pear/net_socket": "1.0.*",
@@ -83,7 +84,8 @@
     "ext-intl": "*",
     "pear/mail_mime": "~1.10",
     "pear/db": "1.10",
-    "civicrm/composer-compile-lib": "~0.3 || ~1.0"
+    "civicrm/composer-compile-lib": "~0.3 || ~1.0",
+    "ext-json": "*"
   },
   "scripts": {
     "post-install-cmd": [
@@ -128,7 +130,7 @@
         "path": "bower_components/{$id}"
       },
       "angular": {
-        "url": "https://github.com/angular/bower-angular/archive/v1.8.0.zip"
+        "url": "https://github.com/angular/bower-angular/archive/v1.8.2.zip"
       },
       "angular-bootstrap": {
         "url": "https://github.com/angular-ui/bootstrap-bower/archive/2.5.0.zip"
@@ -215,7 +217,8 @@
       },
       "monaco-editor": {
         "url": "https://registry.npmjs.org/monaco-editor/-/monaco-editor-0.16.2.tgz",
-        "path": "ext/afform/html/bower_components/monaco-editor"
+        "path": "bower_components/monaco-editor",
+        "ignore": ["dev", "esm"]
       },
       "google-code-prettify": {
         "url": "https://github.com/tcollard/google-code-prettify/archive/v1.0.5.zip",
@@ -228,7 +231,7 @@
         "url": "https://github.com/components/jqueryui/archive/1.12.1.zip"
       },
       "jquery-validation": {
-        "url": "https://github.com/jquery-validation/jquery-validation/archive/1.19.1.zip",
+        "url": "https://github.com/jquery-validation/jquery-validation/archive/1.19.3.zip",
         "ignore": [".*", "node_modules", "bower_components", "test", "demo", "lib"]
       },
       "json-formatter": {

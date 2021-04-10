@@ -17,13 +17,13 @@
 class api_v3_PaymentProcessorTypeTest extends CiviUnitTestCase {
   protected $_ppTypeID;
 
-  public function setUp() {
+  public function setUp(): void {
 
     parent::setUp();
     $this->useTransaction(TRUE);
   }
 
-  //  function tearDown() {
+  //  function tearDown(): void {
   //
   //    $tablesToTruncate = array(
   //      'civicrm_payment_processor_type',
@@ -53,7 +53,7 @@ class api_v3_PaymentProcessorTypeTest extends CiviUnitTestCase {
    *
    * @param int $version
    */
-  public function testPaymentProcessorTypeCreate($version) {
+  public function testPaymentProcessorTypeCreate($version): void {
     $this->_apiversion = $version;
     $params = [
       'sequential' => 1,

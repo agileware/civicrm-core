@@ -38,13 +38,6 @@ class CRM_Activity_BAO_Activity extends CRM_Activity_DAO_Activity {
   public static $_exportableFields = NULL;
 
   /**
-   * Static field for all the activity information that we can potentially import.
-   *
-   * @var array
-   */
-  public static $_importableFields = NULL;
-
-  /**
    * Check if there is absolute minimum of data to add the object.
    *
    * @param array $params
@@ -1024,7 +1017,9 @@ class CRM_Activity_BAO_Activity extends CRM_Activity_DAO_Activity {
    * @param int $caseId
    *
    * @return array
-   *   ( sent, activityId) if any email is sent and activityId
+   *   bool $sent FIXME: this only indicates the status of the last email sent.
+   *   array $activityIds The activity ids created, one per "To" recipient.
+   *
    * @throws \CRM_Core_Exception
    * @throws \CiviCRM_API3_Exception
    */
@@ -1069,9 +1064,6 @@ class CRM_Activity_BAO_Activity extends CRM_Activity_DAO_Activity {
     if (!$from) {
       $from = "$fromDisplayName <$fromEmail>";
     }
-
-    //create the meta level record first ( email activity )
-    $activityID = self::createEmailActivity($userID, $subject, $html, $text, $additionalDetails, $campaignId, $attachments, $caseId);
 
     $returnProperties = [];
     if (isset($messageToken['contact'])) {
@@ -1125,6 +1117,9 @@ class CRM_Activity_BAO_Activity extends CRM_Activity_DAO_Activity {
     }
 
     $sent = $notSent = [];
+    $attachmentFileIds = [];
+    $activityIds = [];
+    $firstActivityCreated = FALSE;
     foreach ($contactDetails as $values) {
       $contactId = $values['contact_id'];
       $emailAddress = $values['email'];
@@ -1178,6 +1173,21 @@ class CRM_Activity_BAO_Activity extends CRM_Activity_DAO_Activity {
       }
 
       $sent = FALSE;
+      // To minimize storage requirements, only one copy of any file attachments uploaded to CiviCRM is kept,
+      // even when multiple contacts will receive separate emails from CiviCRM.
+      if (!empty($attachmentFileIds)) {
+        $attachments = array_merge_recursive($attachments, $attachmentFileIds);
+      }
+
+      // Create email activity.
+      $activityID = self::createEmailActivity($userID, $tokenSubject, $tokenHtml, $tokenText, $additionalDetails, $campaignId, $attachments, $caseId);
+      $activityIds[] = $activityID;
+
+      if ($firstActivityCreated == FALSE && !empty($attachments)) {
+        $attachmentFileIds = self::getAttachmentFileIds($activityID, $attachments);
+        $firstActivityCreated = TRUE;
+      }
+
       if (self::sendMessage(
         $from,
         $userID,
@@ -1197,7 +1207,49 @@ class CRM_Activity_BAO_Activity extends CRM_Activity_DAO_Activity {
       }
     }
 
-    return [$sent, $activityID];
+    return [$sent, $activityIds];
+  }
+
+  /**
+   * Returns a array of attachment key with matching file ID.
+   *
+   * The function searches for all file Ids added for the activity and returns an array that
+   * uses the attachment key as the key and the file ID in the database for that matching attachment
+   * key by comparing the file URI for that attachment to the matching file URI fetched from the
+   * database. Having the file id matched per attachment key helps not to create a new file entry
+   * when a new activity with these attachments when the email activity is created.
+   *
+   * @param int $activityID
+   *   Activity Id.
+   * @param array $attachments
+   *   Attachments.
+   *
+   * @return array
+   *   Array of attachment key versus file Id.
+   */
+  private static function getAttachmentFileIds($activityID, $attachments) {
+    $queryParams = [1 => [$activityID, 'Positive'], 2 => [CRM_Activity_DAO_Activity::getTableName(), 'String']];
+    $query = "SELECT file_id, uri FROM civicrm_entity_file INNER JOIN civicrm_file ON civicrm_entity_file.file_id = civicrm_file.id
+WHERE entity_id =%1 AND entity_table = %2";
+    $dao = CRM_Core_DAO::executeQuery($query, $queryParams);
+
+    $fileDetails = [];
+    while ($dao->fetch()) {
+      $fileDetails[$dao->uri] = $dao->file_id;
+    }
+
+    $activityAttachments = [];
+    foreach ($attachments as $attachmentKey => $attachment) {
+      foreach ($fileDetails as $keyUri => $fileId) {
+        $path = explode('/', $attachment['uri']);
+        $filename = $path[count($path) - 1];
+        if ($filename == $keyUri) {
+          $activityAttachments[$attachmentKey]['id'] = $fileId;
+        }
+      }
+    }
+
+    return $activityAttachments;
   }
 
   /**
@@ -1398,9 +1450,6 @@ class CRM_Activity_BAO_Activity extends CRM_Activity_DAO_Activity {
 
     $providerObj = CRM_SMS_Provider::singleton(['provider_id' => $smsProviderParams['provider_id']]);
     $sendResult = $providerObj->send($recipient, $smsProviderParams, $tokenText, NULL, $sourceContactID);
-    if (PEAR::isError($sendResult)) {
-      throw new CRM_Core_Exception($sendResult->getMessage());
-    }
 
     // add activity target record for every sms that is sent
     $targetID = CRM_Core_PseudoConstant::getKey('CRM_Activity_BAO_ActivityContact', 'record_type_id', 'Activity Targets');
@@ -1508,10 +1557,8 @@ class CRM_Activity_BAO_Activity extends CRM_Activity_DAO_Activity {
    *   array of importable Fields
    */
   public static function &importableFields($status = FALSE) {
-    if (!self::$_importableFields) {
-      if (!self::$_importableFields) {
-        self::$_importableFields = [];
-      }
+    if (empty(Civi::$statics[__CLASS__][__FUNCTION__])) {
+      Civi::$statics[__CLASS__][__FUNCTION__] = [];
       if (!$status) {
         $fields = ['' => ['title' => ts('- do not import -')]];
       }
@@ -1547,9 +1594,9 @@ class CRM_Activity_BAO_Activity extends CRM_Activity_DAO_Activity {
       $fields = array_merge($fields, $tmpConatctField);
       $fields = array_merge($fields, $tmpFields);
       $fields = array_merge($fields, CRM_Core_BAO_CustomField::getFieldsForImport('Activity'));
-      self::$_importableFields = $fields;
+      Civi::$statics[__CLASS__][__FUNCTION__] = $fields;
     }
-    return self::$_importableFields;
+    return Civi::$statics[__CLASS__][__FUNCTION__];
   }
 
   /**
@@ -1793,46 +1840,6 @@ WHERE      activity.id IN ($activityIds)";
     }
 
     return $parentActivities[$activityId];
-  }
-
-  /**
-   * Get total count of prior revision of currently viewed activity.
-   *
-   * @param $activityID
-   *   Current activity id.
-   * @deprecated
-   * @return int
-   *   $params  count of prior activities otherwise false.
-   * @throws \CRM_Core_Exception
-   */
-  public static function getPriorCount($activityID) {
-    CRM_Core_Error::deprecatedFunctionWarning('unused function to be removed');
-    static $priorCounts = [];
-
-    $activityID = CRM_Utils_Type::escape($activityID, 'Integer');
-
-    if (!array_key_exists($activityID, $priorCounts)) {
-      $priorCounts[$activityID] = [];
-      $originalID = CRM_Core_DAO::getFieldValue('CRM_Activity_DAO_Activity',
-        $activityID,
-        'original_id'
-      );
-      $count = 0;
-      if ($originalID) {
-        $query = "
-SELECT count( id ) AS cnt
-FROM civicrm_activity
-WHERE ( id = {$originalID} OR original_id = {$originalID} )
-AND is_current_revision = 0
-AND id < {$activityID}
-";
-        $params = [1 => [$originalID, 'Integer']];
-        $count = CRM_Core_DAO::singleValueQuery($query, $params);
-      }
-      $priorCounts[$activityID] = $count ? $count : 0;
-    }
-
-    return $priorCounts[$activityID];
   }
 
   /**

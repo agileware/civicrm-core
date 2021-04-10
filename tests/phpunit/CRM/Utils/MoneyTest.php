@@ -6,10 +6,6 @@
  */
 class CRM_Utils_MoneyTest extends CiviUnitTestCase {
 
-  public function setUp() {
-    parent::setUp();
-  }
-
   /**
    * @dataProvider subtractCurrenciesDataProvider
    * @param string $leftOp
@@ -102,13 +98,6 @@ class CRM_Utils_MoneyTest extends CiviUnitTestCase {
     $result = CRM_Utils_Money::formatLocaleNumericRoundedByOptionalPrecision(123456789.987654321, 9);
     $expected = ($thousandSeparator === ',') ? '123,456,789.98765' : '123.456.789,98765';
     $this->assertEquals($result, $expected);
-  }
-
-  /**
-   * Test that using the space character as a currency works
-   */
-  public function testSpaceCurrency() {
-    $this->assertEquals('  8,950.37', CRM_Utils_Money::format(8950.37, ' '));
   }
 
   /**

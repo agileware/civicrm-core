@@ -5,14 +5,8 @@
  * @group headless
  */
 class CRM_Utils_Migrate_ImportExportTest extends CiviUnitTestCase {
-  protected $_apiversion;
 
-  public function setUp() {
-    $this->_apiversion = 3;
-    parent::setUp();
-  }
-
-  public function tearDown() {
+  public function tearDown(): void {
     $tablesToTruncate = [
       'civicrm_custom_group',
       'civicrm_custom_field',

@@ -5,7 +5,7 @@ class SettingsBagTest extends \CiviUnitTestCase {
 
   protected $origSetting;
 
-  protected function setUp() {
+  protected function setUp(): void {
     $this->origSetting = $GLOBALS['civicrm_setting'];
 
     parent::setUp();
@@ -14,7 +14,7 @@ class SettingsBagTest extends \CiviUnitTestCase {
     $this->mandates = [];
   }
 
-  public function tearDown() {
+  public function tearDown(): void {
     $GLOBALS['civicrm_setting'] = $this->origSetting;
     parent::tearDown();
   }

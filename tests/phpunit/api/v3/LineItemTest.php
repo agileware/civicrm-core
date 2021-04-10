@@ -24,7 +24,7 @@ class api_v3_LineItemTest extends CiviUnitTestCase {
    *
    * @throws \CRM_Core_Exception
    */
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     $this->useTransaction();
     $contributionParams = [
@@ -78,7 +78,7 @@ class api_v3_LineItemTest extends CiviUnitTestCase {
    */
   public function enableSalesTaxOnFinancialType($type) {
     $this->enableTaxAndInvoicing();
-    $this->relationForFinancialTypeWithFinancialAccount(CRM_Core_PseudoConstant::getKey('CRM_Contribute_BAO_Contribution', 'financial_type_id', $type));
+    $this->addTaxAccountToFinancialType(CRM_Core_PseudoConstant::getKey('CRM_Contribute_BAO_Contribution', 'financial_type_id', $type));
   }
 
   /**

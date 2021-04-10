@@ -401,6 +401,7 @@ function civicrm_api3_contribution_sendconfirmation($params) {
     'cc_receipt',
     'bcc_receipt',
     'receipt_text',
+    'pay_later_receipt',
     'payment_processor_id',
   ];
   $input = array_intersect_key($params, array_flip($allowedParams));
@@ -439,6 +440,10 @@ function _civicrm_api3_contribution_sendconfirmation_spec(&$params) {
   ];
   $params['receipt_text'] = [
     'title' => ts('Message (string)'),
+    'type' => CRM_Utils_Type::T_STRING,
+  ];
+  $params['pay_later_receipt'] = [
+    'title' => ts('Pay Later Message (string)'),
     'type' => CRM_Utils_Type::T_STRING,
   ];
   $params['receipt_update'] = [
@@ -679,7 +684,7 @@ function _ipn_process_transaction($params, $contribution, $input, $ids) {
     'related_contact' => $ids['related_contact'] ?? NULL,
     'participant' => !empty($objects['participant']) ? $objects['participant']->id : NULL,
     'contributionRecur' => !empty($objects['contributionRecur']) ? $objects['contributionRecur']->id : NULL,
-  ], $objects['contribution'],
+  ], $objects['contribution']->id ?? NULL,
     $params['is_post_payment_create'] ?? NULL);
 }
 

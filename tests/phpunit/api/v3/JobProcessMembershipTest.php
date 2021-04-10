@@ -60,7 +60,7 @@ class api_v3_JobProcessMembershipTest extends CiviUnitTestCase {
    */
   public $_tomorrow;
 
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     $this->loadReferenceDates();
     $this->loadMembershipStatuses();
@@ -95,7 +95,7 @@ class api_v3_JobProcessMembershipTest extends CiviUnitTestCase {
     $this->_tomorrow = date('Y-m-d', time() + 60 * 60 * 24);
   }
 
-  public function tearDown() {
+  public function tearDown(): void {
     parent::tearDown();
 
     // For each case, the `old` membershipt type must start as

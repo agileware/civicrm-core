@@ -20,14 +20,14 @@ class api_v3_RelationshipTypeTest extends CiviUnitTestCase {
   protected $_relTypeID;
   protected $_apiversion = 3;
 
-  public function setUp() {
+  public function setUp(): void {
 
     parent::setUp();
     $this->_cId_a = $this->individualCreate();
     $this->_cId_b = $this->organizationCreate();
   }
 
-  public function tearDown() {
+  public function tearDown(): void {
 
     $tablesToTruncate = [
       'civicrm_contact',

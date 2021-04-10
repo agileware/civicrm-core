@@ -23,7 +23,7 @@ class CRM_SMS_ProviderTest extends CiviUnitTestCase {
   /**
    * Set Up Funtion
    */
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     $option = $this->callAPISuccess('option_value', 'create', ['option_group_id' => 'sms_provider_name', 'name' => 'test_provider_name', 'label' => 'test_provider_name', 'value' => 1]);
     $this->option_value = $option['id'];
@@ -32,7 +32,7 @@ class CRM_SMS_ProviderTest extends CiviUnitTestCase {
   /**
    * Clean up after each test.
    */
-  public function tearDown() {
+  public function tearDown(): void {
     parent::tearDown();
     $this->quickCleanup(['civicrm_email', 'civicrm_phone', 'civicrm_activity', 'civicrm_activity_contact']);
     $this->callAPISuccess('option_value', 'delete', ['id' => $this->option_value]);

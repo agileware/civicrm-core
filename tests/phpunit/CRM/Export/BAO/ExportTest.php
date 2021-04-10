@@ -73,7 +73,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    *
    * @throws \Exception
    */
-  public function tearDown() {
+  public function tearDown(): void {
     $this->quickCleanUpFinancialEntities();
     $this->quickCleanup([
       'civicrm_contact',
@@ -108,7 +108,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    * @throws \CRM_Core_Exception
    * @throws \League\Csv\Exception
    */
-  public function testExportComponentsNull() {
+  public function testExportComponentsNull(): void {
     $this->doExportTest([]);
   }
 
@@ -118,7 +118,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    * @throws \CRM_Core_Exception
    * @throws \League\Csv\Exception
    */
-  public function testExportComponentsContribution() {
+  public function testExportComponentsContribution(): void {
     $this->setUpContributionExportData();
     $selectedFields = [
       ['contact_type' => 'Individual', 'name' => 'first_name'],
@@ -141,15 +141,14 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
       'componentClause' => 'civicrm_contribution.id IN ( ' . implode(',', $this->contributionIDs) . ')',
     ]);
     $this->assertContains('display', array_values($this->csv->getHeader()));
-    $row = $this->csv->fetchOne(0);
+    $row = $this->csv->fetchOne();
     $this->assertEquals('This is a test', $row['display']);
   }
 
   /**
    * Implements hook_civicrm_export().
-   *
    */
-  public function confirmHookWasCalled(&$exportTempTable, &$headerRows, &$sqlColumns, $exportMode, $componentTable, $ids) {
+  public function confirmHookWasCalled($exportTempTable, &$headerRows, &$sqlColumns, $exportMode, $componentTable, $ids): void {
     $sqlColumns['display'] = 'display varchar(255)';
     $headerRows[] = 'display';
     CRM_Core_DAO::executeQuery("ALTER TABLE $exportTempTable ADD COLUMN display varchar(255)");
@@ -162,7 +161,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    * @throws \CRM_Core_Exception
    * @throws \League\Csv\Exception
    */
-  public function testExportComponentsContributionSoftCredits() {
+  public function testExportComponentsContributionSoftCredits(): void {
     $this->setUpContributionExportData();
     $this->callAPISuccess('ContributionSoft', 'create', ['contact_id' => $this->contactIDs[1], 'contribution_id' => $this->contributionIDs[0], 'amount' => 5]);
     $params = [
@@ -185,7 +184,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
 
     $this->assertEquals(array_merge($this->getBasicHeaderDefinition(FALSE), $this->getContributeHeaderDefinition()), $this->csv->getHeader());
     $this->assertCount(3, $this->csv);
-    $row = $this->csv->fetchOne(0);
+    $row = $this->csv->fetchOne();
     $this->assertEquals(95, $row['Net Amount']);
     $this->assertEquals('', $row['Soft Credit Amount']);
     $row = $this->csv->fetchOne(1);
@@ -206,7 +205,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    * @throws \CRM_Core_Exception
    * @throws \League\Csv\Exception
    */
-  public function testExportComponentsMembership() {
+  public function testExportComponentsMembership(): void {
     $this->setUpMembershipExportData();
     $this->doExportTest([
       'selectAll' => TRUE,
@@ -281,7 +280,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
       'Latitude' => '',
       'Longitude' => '',
       'Address Name' => '',
-      'Master Address Belongs To' => '',
+      'Master Address ID' => '',
       'County' => '',
       'State' => '',
       'Country' => 'Netherlands',
@@ -310,7 +309,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
       'Membership ID' => '2',
       'Primary Member ID' => '',
       'Max Related' => '',
-      'Membership Recurring Contribution' => 1,
+      'Recurring Contribution ID' => 1,
       'Campaign ID' => '',
       'Status Override' => '',
       'Total Amount' => '200.00',
@@ -326,9 +325,10 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    * Basic test to ensure the exportComponents function can export selected fields for activity
    *
    * @throws \CRM_Core_Exception
+   * @throws \CiviCRM_API3_Exception
    * @throws \League\Csv\Exception
    */
-  public function testExportComponentsActivity() {
+  public function testExportComponentsActivity(): void {
     $this->setUpActivityExportData();
     $selectedFields = [
       ['contact_type' => 'Individual', 'name' => 'display_name'],
@@ -356,7 +356,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    * repeated 100,000 times and in general we should simply be able to match the query fields to
    * our expected rows & do a little pseudoconstant mapping.
    */
-  public function testGetExportStructureArrays() {
+  public function testGetExportStructureArrays(): void {
     // This is how return properties are formatted internally within the function for passing to the BAO query.
     $returnProperties = [
       'first_name' => 1,
@@ -384,21 +384,21 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
       FALSE, TRUE, TRUE, NULL, 'AND'
     );
 
-    list($select) = $query->query();
+    [$select] = $query->query();
     $pattern = '/as `?([^`,]*)/';
     $queryFieldAliases = [];
-    preg_match_all($pattern, $select, $queryFieldAliases, PREG_PATTERN_ORDER);
+    preg_match_all($pattern, $select, $queryFieldAliases);
     $processor = new CRM_Export_BAO_ExportProcessor(CRM_Contact_BAO_Query::MODE_CONTRIBUTE, NULL, 'AND');
     $processor->setQueryFields($query->_fields);
     $processor->setReturnProperties($returnProperties);
 
-    list($outputFields) = $processor->getExportStructureArrays();
+    [$outputFields] = $processor->getExportStructureArrays();
     foreach (array_keys($outputFields) as $fieldAlias) {
       if ($fieldAlias === 'Home-country') {
-        $this->assertTrue(in_array($fieldAlias . '_id', $queryFieldAliases[1]), 'Country is subject to some funky translate so we make sure country id is present');
+        $this->assertContains($fieldAlias . '_id', $queryFieldAliases[1], 'Country is subject to some funky translate so we make sure country id is present');
       }
       else {
-        $this->assertTrue(in_array($fieldAlias, $queryFieldAliases[1]), 'looking for field ' . $fieldAlias . ' in generaly the alias fields need to match the outputfields');
+        $this->assertContains($fieldAlias, $queryFieldAliases[1], 'looking for field ' . $fieldAlias . ' in generaly the alias fields need to match the outputfields');
       }
     }
 
@@ -408,8 +408,9 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    * Set up some data for us to do testing on.
    *
    * @throws \CRM_Core_Exception
+   * @throws \CiviCRM_API3_Exception
    */
-  public function setUpContributionExportData() {
+  public function setUpContributionExportData(): void {
     $this->setUpContactExportData();
     $this->contributionIDs[] = $this->contributionCreate(['contact_id' => $this->contactIDs[0], 'trxn_id' => 'null', 'invoice_id' => 'null', 'receive_date' => '2019-07-25 07:34:23']);
     $this->contributionIDs[] = $this->contributionCreate(['contact_id' => $this->contactIDs[1], 'trxn_id' => 'null', 'invoice_id' => 'null', 'receive_date' => '2018-12-01 00:00:00']);
@@ -419,8 +420,9 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    * Set up some data for us to do testing on.
    *
    * @throws \CRM_Core_Exception
+   * @throws \CiviCRM_API3_Exception
    */
-  public function setUpMembershipExportData() {
+  public function setUpMembershipExportData(): void {
     $this->setUpContactExportData();
     // Create an extra so we don't get false passes due to 1
     $this->contactMembershipCreate(['contact_id' => $this->contactIDs[0]]);
@@ -440,8 +442,9 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    * Set up data to test case export.
    *
    * @throws \CRM_Core_Exception
+   * @throws \CiviCRM_API3_Exception
    */
-  public function setupCaseExportData() {
+  public function setupCaseExportData(): void {
     $contactID1 = $this->individualCreate();
     $contactID2 = $this->individualCreate([], 1);
 
@@ -460,8 +463,9 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    * Set up some data for us to do testing on.
    *
    * @throws \CRM_Core_Exception
+   * @throws \CiviCRM_API3_Exception
    */
-  public function setUpActivityExportData() {
+  public function setUpActivityExportData(): void {
     $this->setUpContactExportData();
     $this->activityIDs[] = $this->activityCreate(['contact_id' => $this->contactIDs[0]])['id'];
   }
@@ -470,8 +474,9 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    * Set up some data for us to do testing on.
    *
    * @throws \CRM_Core_Exception
+   * @throws \CiviCRM_API3_Exception
    */
-  public function setUpContactExportData() {
+  public function setUpContactExportData(): void {
     $this->contactIDs[] = $contactA = $this->individualCreate(['gender_id' => 'Female']);
     // Create address for contact A.
     $params = [
@@ -513,12 +518,13 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    *
    * @param int $isPrimaryOnly
    *
-   * @dataProvider getBooleanDataProvider
    * @throws \CRM_Core_Exception
+   * @throws \CiviCRM_API3_Exception
    * @throws \League\Csv\Exception
+   * @dataProvider getBooleanDataProvider
    */
-  public function testExportPrimaryAddress($isPrimaryOnly) {
-    \Civi::settings()->set('searchPrimaryDetailsOnly', $isPrimaryOnly);
+  public function testExportPrimaryAddress($isPrimaryOnly): void {
+    Civi::settings()->set('searchPrimaryDetailsOnly', $isPrimaryOnly);
     $this->setUpContactExportData();
 
     $selectedFields = [
@@ -540,8 +546,8 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
       'Home-Email' => 'home@example.com',
       'Work-Email' => 'work@example.com',
     ], $row);
-    $this->assertEquals(2, count($this->csv));
-    \Civi::settings()->set('searchPrimaryDetailsOnly', FALSE);
+    $this->assertCount(2, $this->csv);
+    Civi::settings()->set('searchPrimaryDetailsOnly', FALSE);
   }
 
   /**
@@ -551,9 +557,10 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    * does NOT retain the gender of the former.
    *
    * @throws \CRM_Core_Exception
+   * @throws \CiviCRM_API3_Exception
    * @throws \League\Csv\Exception
    */
-  public function testExportPseudoField() {
+  public function testExportPseudoField(): void {
     $this->setUpContactExportData();
     $this->callAPISuccess('OptionValue', 'create', ['option_group_id' => 'gender', 'name' => 'Really long string', 'value' => 678, 'label' => 'Really long string']);
     $selectedFields = [['contact_type' => 'Individual', 'name' => 'gender_id']];
@@ -571,10 +578,10 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    * @throws \CRM_Core_Exception
    * @throws \League\Csv\Exception
    */
-  public function testExportPseudoFieldCampaign() {
+  public function testExportPseudoFieldCampaign(): void {
     $this->setUpContributionExportData();
     $campaign = $this->callAPISuccess('Campaign', 'create', ['title' => 'Big campaign and kinda long too']);
-    $this->callAPISuccess('Contribution', 'create', ['campaign_id' => 'Big_campaign_and_kinda_long_too', 'id' => $this->contributionIDs[0]]);
+    $this->callAPISuccess('Contribution', 'create', ['campaign_id' => $campaign['id'], 'id' => $this->contributionIDs[0]]);
     $selectedFields = [
       ['contact_type' => 'Individual', 'name' => 'gender_id'],
       ['contact_type' => 'Contribution', 'name' => 'contribution_campaign_title'],
@@ -595,9 +602,10 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    * Test exporting relationships.
    *
    * @throws \CRM_Core_Exception
+   * @throws \CiviCRM_API3_Exception
    * @throws \League\Csv\Exception
    */
-  public function testExportRelationships() {
+  public function testExportRelationships(): void {
     $organization1 = $this->organizationCreate(['organization_name' => 'Org 1', 'legal_name' => 'pretty legal', 'contact_source' => 'friend who took a law paper once']);
     $organization2 = $this->organizationCreate(['organization_name' => 'Org 2', 'legal_name' => 'well dodgey']);
     $contact1 = $this->individualCreate(['employer_id' => $organization1, 'first_name' => 'one']);
@@ -638,8 +646,8 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    * @throws CRM_Core_Exception
    * @throws \League\Csv\Exception
    */
-  public function testExportRelationshipsMergeToHousehold($includeHouseHold) {
-    list($householdID, $houseHoldTypeID) = $this->setUpHousehold();
+  public function testExportRelationshipsMergeToHousehold($includeHouseHold): void {
+    [$householdID, $houseHoldTypeID] = $this->setUpHousehold();
 
     if ($includeHouseHold) {
       $this->contactIDs[] = $householdID;
@@ -665,13 +673,47 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
   }
 
   /**
+   * Test exporting contacts merged into households
+   *
+   * This is to ensure that dev/core#2272 remains fixed.
+   *
+   * @dataProvider getBooleanDataProvider
+   *
+   * @param bool $includeHouseHold
+   *
+   * @throws CRM_Core_Exception
+   * @throws \League\Csv\Exception
+   */
+  public function testExportMergeToHousehold($includeHouseHold): void {
+    [$householdID, $houseHoldTypeID] = $this->setUpHousehold();
+
+    if ($includeHouseHold) {
+      $this->contactIDs[] = $householdID;
+    }
+    $selectedFields = [
+      ['contact_type' => 'Individual', 'name' => 'contact_source', 'location_type_id' => ''],
+    ];
+    $this->doExportTest([
+      'ids' => $this->contactIDs,
+      'fields' => $selectedFields,
+      'mergeSameHousehold' => TRUE,
+      'componentTable' => 'civicrm_contact',
+      'componentClause' => 'contact_a.id IN (' . implode(',', $this->contactIDs) . ')',
+    ]);
+    $row = $this->csv->fetchOne();
+    $this->assertCount(1, $this->csv);
+    $this->assertEquals($householdID, $row['Household ID']);
+
+  }
+
+  /**
    * Test exporting relationships.
    *
    * @throws \CRM_Core_Exception
    * @throws \League\Csv\Exception
    */
-  public function testExportRelationshipsMergeToHouseholdAllFields() {
-    list($householdID) = $this->setUpHousehold();
+  public function testExportRelationshipsMergeToHouseholdAllFields(): void {
+    [$householdID] = $this->setUpHousehold();
     $this->doExportTest(['ids' => $this->contactIDs, 'mergeSameHousehold' => TRUE]);
     $row = $this->csv->fetchOne();
     $this->assertCount(1, $this->csv);
@@ -688,10 +730,11 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    *
    * @throws \API_Exception
    * @throws \CRM_Core_Exception
+   * @throws \CiviCRM_API3_Exception
    * @throws \Civi\API\Exception\UnauthorizedException
    * @throws \League\Csv\Exception
    */
-  public function testExportCustomData() {
+  public function testExportCustomData(): void {
     $this->setUpContactExportData();
     $this->entity = 'Contact';
     $this->createCustomGroupWithFieldsOfAllTypes();
@@ -700,6 +743,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
       $longString .= 'Blah';
     }
     $this->addOptionToCustomField('select_string', ['label' => $longString, 'name' => 'blah']);
+    $longUrl = 'https://stage.example.org/system/files/webform/way_too_long_url_that_still_fits_in_a_link_custom_field_but_would_fail_to_export_with_html.jpg';
 
     $this->callAPISuccess('Contact', 'create', [
       'id' => $this->contactIDs[1],
@@ -707,12 +751,14 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
       $this->getCustomFieldName('country') => 'LA',
       $this->getCustomFieldName('select_string') => 'blah',
       'api.Address.create' => ['location_type_id' => 'Billing', 'city' => 'Waipu'],
+      $this->getCustomFieldName('link') => $longUrl,
     ]);
     $selectedFields = [
       ['name' => 'city', 'location_type_id' => CRM_Core_PseudoConstant::getKey('CRM_Core_BAO_Address', 'location_type_id', 'Billing')],
       ['name' => $this->getCustomFieldName('text')],
       ['name' => $this->getCustomFieldName('country')],
       ['name' => $this->getCustomFieldName('select_string')],
+      ['name' => $this->getCustomFieldName('link')],
     ];
 
     $this->doExportTest([
@@ -724,17 +770,19 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
     $this->assertEquals('Waipu', $row['Billing-City']);
     $this->assertEquals("Lao People's Democratic Republic", $row['Country']);
     $this->assertEquals($longString, $row['Pick Color']);
+    $this->assertEquals($longUrl, $row['test_link']);
   }
 
   /**
    * Attempt to do a fairly full export of location data.
    *
    * @throws \CRM_Core_Exception
+   * @throws \CiviCRM_API3_Exception
    * @throws \League\Csv\Exception
    */
-  public function testExportIMData() {
+  public function testExportIMData(): void {
     // Use default providers.
-    $providers = ['Aim', 'Gtalk', 'Jabber', 'Msn', 'Skype', 'Yahoo'];
+    $providers = ['AIM' => 'Aim', 'GTalk' => 'Gtalk', 'Jabber' => 'Jabber', 'MSN' => 'Msn', 'Skype' => 'Skype', 'Yahoo' => 'Yahoo'];
     // Main sure labels are not all anglo chars.
     $this->diversifyLocationTypes();
 
@@ -795,8 +843,11 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
 
     foreach ($this->csv->getRecords() as $row) {
       $id = $row['Contact ID'];
-      $this->assertEquals('AIM', $row['Billing-IM Provider']);
-      $this->assertEquals('AIM', $row['Whare Kai-IM Provider']);
+      // The provider could be any of them as we created multiple ims for each location
+      // type. In earlier mysql versions it gets a somewhat consistent result but there
+      // is no 'right' provider so we just check it is a resolved pseudoconstant.
+      $this->assertContains($row['Billing-IM Provider'], array_keys($providers));
+      $this->assertContains($row['Whare Kai-IM Provider'], array_keys($providers));
       $this->assertEquals('BillingJabber' . $id, $row['Billing-IM Screen Name-Jabber']);
       $this->assertEquals('Whare KaiJabber' . $id, $row['Whare Kai-IM Screen Name-Jabber']);
       $this->assertEquals('BillingSkype' . $id, $row['Billing-IM Screen Name-Skype']);
@@ -814,10 +865,11 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    *
    * @throws \API_Exception
    * @throws \CRM_Core_Exception
+   * @throws \CiviCRM_API3_Exception
    * @throws \Civi\API\Exception\UnauthorizedException
    * @throws \League\Csv\Exception
    */
-  public function testExportPhoneData() {
+  public function testExportPhoneData(): void {
     $this->contactIDs[] = $this->individualCreate();
     $this->contactIDs[] = $this->individualCreate();
 
@@ -890,9 +942,10 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    * Export City against multiple location types.
    *
    * @throws \CRM_Core_Exception
+   * @throws \CiviCRM_API3_Exception
    * @throws \League\Csv\Exception
    */
-  public function testExportAddressData() {
+  public function testExportAddressData(): void {
     $this->diversifyLocationTypes();
 
     $locationTypes = ['Billing' => 'Billing', 'Home' => 'Home', 'Main' => 'Méin', 'Other' => 'Other', 'Whare Kai' => 'Whare Kai'];
@@ -961,7 +1014,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
     }
 
     $this->assertEquals([
-      'contact_id' => '`contact_id` varchar(16)',
+      'contact_id' => '`contact_id` varchar(64)',
       'billing_city' => '`billing_city` varchar(64)',
       'billing_street_address' => '`billing_street_address` varchar(96)',
       'billing_postal_code' => '`billing_postal_code` varchar(64)',
@@ -1002,9 +1055,10 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    * Test master_address_id field when no merge is in play.
    *
    * @throws \CRM_Core_Exception
+   * @throws \CiviCRM_API3_Exception
    * @throws \League\Csv\Exception
    */
-  public function testExportMasterAddress() {
+  public function testExportMasterAddress(): void {
     $this->setUpContactExportData();
 
     //export the master address for contact B
@@ -1016,16 +1070,17 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
       'ids' => [$this->contactIDs[1]],
     ]);
     $row = $this->csv->fetchOne();
-    $this->assertEquals(CRM_Contact_BAO_Contact::getMasterDisplayName($this->masterAddressID), $row['Home-Master Address Belongs To']);
+    $this->assertEquals(CRM_Contact_BAO_Contact::getMasterDisplayName($this->masterAddressID), $row['Home-Master Address ID']);
   }
 
   /**
    * Test merging same address when specifying fields.
    *
    * @throws \CRM_Core_Exception
+   * @throws \CiviCRM_API3_Exception
    * @throws \League\Csv\Exception
    */
-  public function testMergeSameAddressSpecifyFields() {
+  public function testMergeSameAddressSpecifyFields(): void {
     $this->setUpContactSameAddressExportData();
     $this->doExportTest(['mergeSameAddress' => TRUE, 'fields' => [['contact_type' => 'Individual', 'name' => 'master_id', 'location_type_id' => 1]]]);
   }
@@ -1034,9 +1089,10 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    * Test the merge same address option.
    *
    * @throws \CRM_Core_Exception
+   * @throws \CiviCRM_API3_Exception
    * @throws \League\Csv\Exception
    */
-  public function testMergeSameAddress() {
+  public function testMergeSameAddress(): void {
     $this->setUpContactSameAddressExportData();
     $this->doExportTest(['mergeSameAddress' => TRUE]);
     // ie 2 merged, one extra.
@@ -1105,7 +1161,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
       'Latitude' => '',
       'Longitude' => '',
       'Address Name' => '',
-      'Master Address Belongs To' => '',
+      'Master Address ID' => '',
       'County' => '',
       'State' => '',
       'Country' => 'Netherlands',
@@ -1138,9 +1194,10 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    * Tests the options for greeting templates when choosing to merge same address.
    *
    * @throws \CRM_Core_Exception
+   * @throws \CiviCRM_API3_Exception
    * @throws \League\Csv\Exception
    */
-  public function testMergeSameAddressGreetingOptions() {
+  public function testMergeSameAddressGreetingOptions(): void {
     $this->setUpContactSameAddressExportData();
     $this->callAPISuccess('OptionValue', 'create', [
       'option_group_id' => 'postal_greeting',
@@ -1175,7 +1232,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    * @throws \CRM_Core_Exception
    * @throws \League\Csv\Exception
    */
-  public function testExportNoRows() {
+  public function testExportNoRows(): void {
     $contactA = $this->callAPISuccess('contact', 'create', [
       'first_name' => 'John',
       'last_name' => 'Doe',
@@ -1205,9 +1262,10 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    * So C take preference over A and thus C is exported as result.
    *
    * @throws \CRM_Core_Exception
+   * @throws \CiviCRM_API3_Exception
    * @throws \League\Csv\Exception
    */
-  public function testMergeSameAddressOnExport() {
+  public function testMergeSameAddressOnExport(): void {
     $this->individualCreate();
     $householdID = $this->setUpHousehold()[0];
     $contactIDs = array_merge($this->contactIDs, [$householdID]);
@@ -1245,7 +1303,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    * @throws \CRM_Core_Exception
    * @throws \League\Csv\Exception
    */
-  public function testExportDeceasedDoNotMail($reason, $addressReason) {
+  public function testExportDeceasedDoNotMail($reason, $addressReason): void {
     $contactA = $this->callAPISuccess('contact', 'create', [
       'first_name' => 'John',
       'last_name' => 'Doe',
@@ -1305,9 +1363,9 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
         'mergeSameAddress' => TRUE,
       ],
     ]);
-    $row = $this->csv->fetchOne(0);
+    $row = $this->csv->fetchOne();
 
-    $this->assertTrue(!in_array('Stage', $this->processor->getHeaderRows()));
+    $this->assertNotTrue(in_array('Stage', $this->processor->getHeaderRows()));
     $this->assertEquals('Dear John', $row['Email Greeting']);
     $this->assertCount(1, $this->csv);
   }
@@ -1317,7 +1375,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    *
    * @return array
    */
-  public function getReasonsNotToMail() {
+  public function getReasonsNotToMail(): array {
     return [
       [['is_deceased' => 1], []],
       [['do_not_mail' => 1], []],
@@ -1330,9 +1388,10 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    *
    * @return array
    *
-   * @throws CRM_Core_Exception
+   * @throws \CRM_Core_Exception
+   * @throws \CiviCRM_API3_Exception
    */
-  protected function setUpHousehold() {
+  protected function setUpHousehold(): array {
     $this->setUpContactExportData();
     $householdID = $this->householdCreate([
       'source' => 'household sauce',
@@ -1368,7 +1427,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    *
    * @param int $exportMode
    */
-  public function ensureComponentIsEnabled($exportMode) {
+  public function ensureComponentIsEnabled($exportMode): void {
     if ($exportMode === CRM_Export_Form_Select::CASE_EXPORT) {
       CRM_Core_BAO_ConfigSetting::enableComponent('CiviCase');
     }
@@ -1382,7 +1441,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    * @param int $exportMode
    * @param $expected
    */
-  public function testAdditionalReturnProperties($exportMode, $expected) {
+  public function testAdditionalReturnProperties($exportMode, $expected): void {
     $this->ensureComponentIsEnabled($exportMode);
     $processor = new CRM_Export_BAO_ExportProcessor($exportMode, NULL, 'AND');
     $metadata = $processor->getAdditionalReturnProperties();
@@ -1397,7 +1456,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    * @param int $exportMode
    * @param $expected
    */
-  public function testDefaultReturnProperties($exportMode, $expected) {
+  public function testDefaultReturnProperties($exportMode, $expected): void {
     $this->ensureComponentIsEnabled($exportMode);
     $processor = new CRM_Export_BAO_ExportProcessor($exportMode, NULL, 'AND');
     $metadata = $processor->getDefaultReturnProperties();
@@ -1409,7 +1468,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    *
    * @return array
    */
-  public function additionalFieldsDataProvider() {
+  public function additionalFieldsDataProvider(): array {
     return [
       [
         'anything that will then be defaulting ton contact',
@@ -1446,7 +1505,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
   /**
    * get data for testing field metadata by query mode.
    */
-  public function allFieldsDataProvider() {
+  public function allFieldsDataProvider(): array {
     return [
       [
         'anything that will then be defaulting ton contact',
@@ -1482,7 +1541,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
   /**
    * Get return properties manually added in.
    */
-  public function getExtraReturnProperties() {
+  public function getExtraReturnProperties(): array {
     return [];
   }
 
@@ -1494,7 +1553,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    *
    * @return array
    */
-  protected function getBasicReturnProperties($isContactMode) {
+  protected function getBasicReturnProperties($isContactMode): array {
     $returnProperties = [
       'id' => 1,
       'contact_type' => 1,
@@ -1596,7 +1655,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    *
    * @return array
    */
-  public function getPledgeReturnProperties() {
+  public function getPledgeReturnProperties(): array {
     return [
       'contact_type' => 1,
       'contact_sub_type' => 1,
@@ -1634,7 +1693,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    *
    * @return array
    */
-  public function getMembershipReturnProperties() {
+  public function getMembershipReturnProperties(): array {
     return [
       'contact_type' => 1,
       'contact_sub_type' => 1,
@@ -1662,7 +1721,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    *
    * @return array
    */
-  public function getEventReturnProperties() {
+  public function getEventReturnProperties(): array {
     return [
       'contact_type' => 1,
       'contact_sub_type' => 1,
@@ -1697,7 +1756,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    *
    * @return array
    */
-  public function getActivityReturnProperties() {
+  public function getActivityReturnProperties(): array {
     return [
       'activity_id' => 1,
       'contact_type' => 1,
@@ -1728,7 +1787,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    *
    * @return array
    */
-  public function getCaseReturnProperties() {
+  public function getCaseReturnProperties(): array {
     return [
       'contact_type' => 1,
       'contact_sub_type' => 1,
@@ -1761,7 +1820,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    *
    * @return array
    */
-  public function getContributionReturnProperties() {
+  public function getContributionReturnProperties(): array {
     return [
       'contact_type' => 1,
       'contact_sub_type' => 1,
@@ -1815,7 +1874,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    *
    * @dataProvider getSqlColumnsOutput
    */
-  public function testGetSQLColumnsAndHeaders($exportMode, $expected, $expectedHeaders) {
+  public function testGetSQLColumnsAndHeaders($exportMode, $expected, $expectedHeaders): void {
     $this->ensureComponentIsEnabled($exportMode);
     // We need some data so that we can get to the end of the export
     // function. Hopefully one day that won't be required to get metadata info out.
@@ -1835,9 +1894,10 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    * https://lab.civicrm.org/dev/core/issues/819
    *
    * @throws \CRM_Core_Exception
+   * @throws \CiviCRM_API3_Exception
    * @throws \League\Csv\Exception
    */
-  public function testExportIncompleteSubmission() {
+  public function testExportIncompleteSubmission(): void {
     $this->setUpContactExportData();
     $this->doExportTest(['fields' => [['contact_type' => 'Individual', 'name' => '']], 'ids' => [$this->contactIDs[1]]]);
   }
@@ -1854,7 +1914,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    * @throws \CRM_Core_Exception
    * @throws \League\Csv\Exception
    */
-  public function testExportSpecifyFields($exportMode, $selectedFields, $expected) {
+  public function testExportSpecifyFields($exportMode, $selectedFields, $expected): void {
     $this->ensureComponentIsEnabled($exportMode);
     $this->setUpContributionExportData();
     $this->doExportTest(['fields' => $selectedFields, 'ids' => [$this->contactIDs[1]], 'exportMode' => $exportMode]);
@@ -1867,7 +1927,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    * @throws \CRM_Core_Exception
    * @throws \League\Csv\Exception
    */
-  public function textExportParticipantSpecifyFieldsNoPayment() {
+  public function textExportParticipantSpecifyFieldsNoPayment(): void {
     $selectedFields = $this->getAllSpecifiableParticipantReturnFields();
     foreach ($selectedFields as $index => $field) {
       if (substr($field[1], 0, 22) === 'componentPaymentField_') {
@@ -1891,7 +1951,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    * @todo - still being built up.
    *
    */
-  public function getAllSpecifiableReturnFields() {
+  public function getAllSpecifiableReturnFields(): array {
     return [
       [
         CRM_Export_Form_Select::EVENT_EXPORT,
@@ -1906,16 +1966,16 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    *
    * @return array
    */
-  public function getAllSpecifiableParticipantReturnColumns() {
+  public function getAllSpecifiableParticipantReturnColumns(): array {
     return [
-      'participant_campaign_id' => '`participant_campaign_id` varchar(16)',
-      'participant_contact_id' => '`participant_contact_id` varchar(16)',
+      'participant_campaign_id' => '`participant_campaign_id` varchar(64)',
+      'participant_contact_id' => '`participant_contact_id` varchar(64)',
       'componentpaymentfield_contribution_status' => '`componentpaymentfield_contribution_status` varchar(255)',
       'currency' => '`currency` varchar(3)',
       'componentpaymentfield_received_date' => '`componentpaymentfield_received_date` varchar(32)',
-      'default_role_id' => '`default_role_id` varchar(16)',
-      'participant_discount_name' => '`participant_discount_name` varchar(16)',
-      'event_id' => '`event_id` varchar(16)',
+      'default_role_id' => '`default_role_id` varchar(64)',
+      'participant_discount_name' => '`participant_discount_name` varchar(64)',
+      'event_id' => '`event_id` varchar(64)',
       'event_end_date' => '`event_end_date` varchar(32)',
       'event_start_date' => '`event_start_date` varchar(32)',
       'template_title' => '`template_title` varchar(255)',
@@ -1924,27 +1984,27 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
       'participant_fee_currency' => '`participant_fee_currency` varchar(3)',
       'fee_label' => '`fee_label` varchar(255)',
       'participant_fee_level' => '`participant_fee_level` longtext',
-      'participant_is_pay_later' => '`participant_is_pay_later` varchar(16)',
-      'participant_id' => '`participant_id` varchar(16)',
+      'participant_is_pay_later' => '`participant_is_pay_later` varchar(64)',
+      'participant_id' => '`participant_id` varchar(64)',
       'participant_note' => '`participant_note` longtext',
       'participant_role_id' => '`participant_role_id` varchar(128)',
       'participant_role' => '`participant_role` varchar(255)',
       'participant_source' => '`participant_source` varchar(128)',
-      'participant_status_id' => '`participant_status_id` varchar(16)',
+      'participant_status_id' => '`participant_status_id` varchar(64)',
       'participant_status' => '`participant_status` varchar(255)',
       'participant_register_date' => '`participant_register_date` varchar(32)',
-      'participant_registered_by_id' => '`participant_registered_by_id` varchar(16)',
-      'participant_is_test' => '`participant_is_test` varchar(16)',
+      'participant_registered_by_id' => '`participant_registered_by_id` varchar(64)',
+      'participant_is_test' => '`participant_is_test` varchar(64)',
       'componentpaymentfield_total_amount' => '`componentpaymentfield_total_amount` varchar(32)',
       'componentpaymentfield_transaction_id' => '`componentpaymentfield_transaction_id` varchar(255)',
-      'transferred_to_contact_id' => '`transferred_to_contact_id` varchar(16)',
+      'transferred_to_contact_id' => '`transferred_to_contact_id` varchar(64)',
     ];
   }
 
   /**
    * @return array
    */
-  public function getAllSpecifiableParticipantReturnFields() {
+  public function getAllSpecifiableParticipantReturnFields(): array {
     return [
       0 =>
         [
@@ -2111,8 +2171,11 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
 
   /**
    * @param string $exportMode
+   *
+   * @throws \CRM_Core_Exception
+   * @throws \CiviCRM_API3_Exception
    */
-  public function setupBaseExportData($exportMode) {
+  public function setupBaseExportData($exportMode): void {
     $this->createLoggedInUser();
     if ($exportMode === CRM_Export_Form_Select::CASE_EXPORT) {
       $this->setupCaseExportData();
@@ -2133,7 +2196,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    *
    * @return array
    */
-  public function getSqlColumnsOutput() {
+  public function getSqlColumnsOutput(): array {
     return [
       [
         'anything that will then be defaulting ton contact',
@@ -2181,7 +2244,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    *
    * @return array
    */
-  protected function getBasicHeaderDefinition($isContactExport) {
+  protected function getBasicHeaderDefinition($isContactExport): array {
     $headers = [
       0 => 'Contact ID',
       1 => 'Contact Type',
@@ -2248,7 +2311,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
       62 => 'Longitude',
       63 => 'Is Manually Geocoded',
       64 => 'Address Name',
-      65 => 'Master Address Belongs To',
+      65 => 'Master Address ID',
       66 => 'County',
       67 => 'State',
       68 => 'Country',
@@ -2283,7 +2346,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    *
    * @return array
    */
-  protected function getActivityHeaderDefinition() {
+  protected function getActivityHeaderDefinition(): array {
     return [
       82 => 'Activity ID',
       83 => 'Activity Type',
@@ -2310,7 +2373,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    *
    * @return array
    */
-  protected function getCaseHeaderDefinition() {
+  protected function getCaseHeaderDefinition(): array {
     return [
       82 => 'Contact ID',
       83 => 'Case ID',
@@ -2338,7 +2401,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    *
    * @return array
    */
-  protected function getContributeHeaderDefinition() {
+  protected function getContributeHeaderDefinition(): array {
     return [
       82 => 'Financial Type',
       83 => 'Contribution Source',
@@ -2381,9 +2444,9 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    *
    * @return array
    */
-  protected function getParticipantHeaderDefinition() {
+  protected function getParticipantHeaderDefinition(): array {
     return [
-      82 => 'Event',
+      82 => 'Event ID',
       83 => 'Event Title',
       84 => 'Event Start Date',
       85 => 'Event End Date',
@@ -2400,9 +2463,9 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
       96 => 'Test',
       97 => 'Is Pay Later',
       98 => 'Fee Amount',
-      99 => 'Discount Name',
+      99 => 'Price Set ID',
       100 => 'Fee Currency',
-      101 => 'Registered By ID',
+      101 => 'Registered By Participant ID',
       102 => 'Campaign ID',
     ];
   }
@@ -2412,7 +2475,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    *
    * @return array
    */
-  protected function getMemberHeaderDefinition() {
+  protected function getMemberHeaderDefinition(): array {
     return [
       82 => 'Membership Type',
       83 => 'Test',
@@ -2425,7 +2488,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
       90 => 'Membership ID',
       91 => 'Primary Member ID',
       92 => 'Max Related',
-      93 => 'Membership Recurring Contribution',
+      93 => 'Recurring Contribution ID',
       94 => 'Campaign ID',
       95 => 'Status Override',
     ];
@@ -2436,7 +2499,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    *
    * @return array
    */
-  protected function getPledgeHeaderDefinition() {
+  protected function getPledgeHeaderDefinition(): array {
     return [
       82 => 'Pledge ID',
       83 => 'Total Pledged',
@@ -2472,17 +2535,17 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    *
    * @return array
    */
-  protected function getBasicSqlColumnDefinition($isContactExport) {
+  protected function getBasicSqlColumnDefinition($isContactExport): array {
     $columns = [
-      'civicrm_primary_id' => '`civicrm_primary_id` varchar(16)',
+      'civicrm_primary_id' => '`civicrm_primary_id` varchar(64)',
       'contact_type' => '`contact_type` varchar(64)',
       'contact_sub_type' => '`contact_sub_type` varchar(255)',
-      'do_not_email' => '`do_not_email` varchar(16)',
-      'do_not_phone' => '`do_not_phone` varchar(16)',
-      'do_not_mail' => '`do_not_mail` varchar(16)',
-      'do_not_sms' => '`do_not_sms` varchar(16)',
-      'do_not_trade' => '`do_not_trade` varchar(16)',
-      'is_opt_out' => '`is_opt_out` varchar(16)',
+      'do_not_email' => '`do_not_email` varchar(64)',
+      'do_not_phone' => '`do_not_phone` varchar(64)',
+      'do_not_mail' => '`do_not_mail` varchar(64)',
+      'do_not_sms' => '`do_not_sms` varchar(64)',
+      'do_not_trade' => '`do_not_trade` varchar(64)',
+      'is_opt_out' => '`is_opt_out` varchar(64)',
       'legal_identifier' => '`legal_identifier` varchar(32)',
       'external_identifier' => '`external_identifier` varchar(64)',
       'sort_name' => '`sort_name` varchar(128)',
@@ -2502,20 +2565,20 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
       'suffix_id' => '`suffix_id` varchar(255)',
       'formal_title' => '`formal_title` varchar(64)',
       'communication_style_id' => '`communication_style_id` varchar(255)',
-      'email_greeting_id' => '`email_greeting_id` varchar(16)',
-      'postal_greeting_id' => '`postal_greeting_id` varchar(16)',
-      'addressee_id' => '`addressee_id` varchar(16)',
+      'email_greeting_id' => '`email_greeting_id` varchar(64)',
+      'postal_greeting_id' => '`postal_greeting_id` varchar(64)',
+      'addressee_id' => '`addressee_id` varchar(64)',
       'job_title' => '`job_title` varchar(255)',
       'gender_id' => '`gender_id` varchar(255)',
       'birth_date' => '`birth_date` varchar(32)',
-      'is_deceased' => '`is_deceased` varchar(16)',
+      'is_deceased' => '`is_deceased` varchar(64)',
       'deceased_date' => '`deceased_date` varchar(32)',
       'household_name' => '`household_name` varchar(128)',
       'organization_name' => '`organization_name` varchar(128)',
       'sic_code' => '`sic_code` varchar(8)',
       'user_unique_id' => '`user_unique_id` varchar(255)',
-      'current_employer_id' => '`current_employer_id` varchar(16)',
-      'contact_is_deleted' => '`contact_is_deleted` varchar(16)',
+      'current_employer_id' => '`current_employer_id` varchar(64)',
+      'contact_is_deleted' => '`contact_is_deleted` varchar(64)',
       'created_date' => '`created_date` varchar(32)',
       'modified_date' => '`modified_date` varchar(32)',
       'addressee' => '`addressee` varchar(255)',
@@ -2523,9 +2586,9 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
       'postal_greeting' => '`postal_greeting` varchar(255)',
       'current_employer' => '`current_employer` varchar(255)',
       'location_type' => '`location_type` varchar(255)',
-      'address_id' => '`address_id` varchar(16)',
+      'address_id' => '`address_id` varchar(64)',
       'street_address' => '`street_address` varchar(96)',
-      'street_number' => '`street_number` varchar(16)',
+      'street_number' => '`street_number` varchar(64)',
       'street_number_suffix' => '`street_number_suffix` varchar(8)',
       'street_name' => '`street_name` varchar(64)',
       'street_unit' => '`street_unit` varchar(16)',
@@ -2537,7 +2600,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
       'postal_code' => '`postal_code` varchar(64)',
       'geo_code_1' => '`geo_code_1` varchar(32)',
       'geo_code_2' => '`geo_code_2` varchar(32)',
-      'manual_geo_code' => '`manual_geo_code` varchar(16)',
+      'manual_geo_code' => '`manual_geo_code` varchar(64)',
       'address_name' => '`address_name` varchar(255)',
       'master_id' => '`master_id` varchar(128)',
       'county' => '`county` varchar(64)',
@@ -2545,10 +2608,10 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
       'country' => '`country` varchar(64)',
       'phone' => '`phone` varchar(32)',
       'phone_ext' => '`phone_ext` varchar(16)',
-      'phone_type_id' => '`phone_type_id` varchar(16)',
+      'phone_type_id' => '`phone_type_id` varchar(64)',
       'email' => '`email` varchar(254)',
-      'on_hold' => '`on_hold` varchar(16)',
-      'is_bulkmail' => '`is_bulkmail` varchar(16)',
+      'on_hold' => '`on_hold` varchar(64)',
+      'is_bulkmail' => '`is_bulkmail` varchar(64)',
       'signature_text' => '`signature_text` longtext',
       'signature_html' => '`signature_html` longtext',
       'im_provider' => '`im_provider` varchar(255)',
@@ -2574,24 +2637,24 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    *
    * @return array
    */
-  protected function getCaseSqlColumns() {
+  protected function getCaseSqlColumns(): array {
     return [
       'case_start_date' => '`case_start_date` varchar(32)',
       'case_end_date' => '`case_end_date` varchar(32)',
       'case_subject' => '`case_subject` varchar(128)',
       'case_source_contact_id' => '`case_source_contact_id` varchar(255)',
       'case_activity_status' => '`case_activity_status` varchar(255)',
-      'case_activity_duration' => '`case_activity_duration` varchar(16)',
-      'case_activity_medium_id' => '`case_activity_medium_id` varchar(16)',
+      'case_activity_duration' => '`case_activity_duration` varchar(64)',
+      'case_activity_medium_id' => '`case_activity_medium_id` varchar(64)',
       'case_activity_details' => '`case_activity_details` longtext',
-      'case_activity_is_auto' => '`case_activity_is_auto` varchar(16)',
-      'contact_id' => '`contact_id` varchar(16)',
-      'case_id' => '`case_id` varchar(16)',
+      'case_activity_is_auto' => '`case_activity_is_auto` varchar(64)',
+      'contact_id' => '`contact_id` varchar(64)',
+      'case_id' => '`case_id` varchar(64)',
       'case_activity_subject' => '`case_activity_subject` varchar(255)',
       'case_status' => '`case_status` text',
       'case_type' => '`case_type` text',
       'case_role' => '`case_role` text',
-      'case_deleted' => '`case_deleted` varchar(16)',
+      'case_deleted' => '`case_deleted` varchar(64)',
       'case_activity_date_time' => '`case_activity_date_time` varchar(32)',
       'case_activity_type' => '`case_activity_type` varchar(255)',
     ];
@@ -2602,24 +2665,24 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    *
    * @return array
    */
-  protected function getActivitySqlColumns() {
+  protected function getActivitySqlColumns(): array {
     return [
-      'activity_id' => '`activity_id` varchar(16)',
+      'activity_id' => '`activity_id` varchar(64)',
       'activity_type' => '`activity_type` varchar(255)',
-      'activity_type_id' => '`activity_type_id` varchar(16)',
+      'activity_type_id' => '`activity_type_id` varchar(64)',
       'activity_subject' => '`activity_subject` varchar(255)',
       'activity_date_time' => '`activity_date_time` varchar(32)',
-      'activity_duration' => '`activity_duration` varchar(16)',
+      'activity_duration' => '`activity_duration` varchar(64)',
       'activity_location' => '`activity_location` varchar(255)',
       'activity_details' => '`activity_details` longtext',
       'activity_status' => '`activity_status` varchar(255)',
       'activity_priority' => '`activity_priority` varchar(255)',
       'source_contact' => '`source_contact` varchar(255)',
       'source_record_id' => '`source_record_id` varchar(255)',
-      'activity_is_test' => '`activity_is_test` varchar(16)',
-      'activity_campaign_id' => '`activity_campaign_id` varchar(16)',
+      'activity_is_test' => '`activity_is_test` varchar(64)',
+      'activity_campaign_id' => '`activity_campaign_id` varchar(64)',
       'result' => '`result` text',
-      'activity_engagement_level' => '`activity_engagement_level` varchar(16)',
+      'activity_engagement_level' => '`activity_engagement_level` varchar(64)',
       'parent_id' => '`parent_id` varchar(255)',
     ];
   }
@@ -2629,29 +2692,29 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    *
    * @return array
    */
-  protected function getParticipantSqlColumns() {
+  protected function getParticipantSqlColumns(): array {
     return [
-      'event_id' => '`event_id` varchar(16)',
+      'event_id' => '`event_id` varchar(64)',
       'event_title' => '`event_title` varchar(255)',
       'event_start_date' => '`event_start_date` varchar(32)',
       'event_end_date' => '`event_end_date` varchar(32)',
       'event_type' => '`event_type` varchar(255)',
-      'participant_id' => '`participant_id` varchar(16)',
+      'participant_id' => '`participant_id` varchar(64)',
       'participant_status' => '`participant_status` varchar(255)',
-      'participant_status_id' => '`participant_status_id` varchar(16)',
+      'participant_status_id' => '`participant_status_id` varchar(64)',
       'participant_role' => '`participant_role` varchar(255)',
       'participant_role_id' => '`participant_role_id` varchar(128)',
       'participant_note' => '`participant_note` longtext',
       'participant_register_date' => '`participant_register_date` varchar(32)',
       'participant_source' => '`participant_source` varchar(128)',
       'participant_fee_level' => '`participant_fee_level` longtext',
-      'participant_is_test' => '`participant_is_test` varchar(16)',
-      'participant_is_pay_later' => '`participant_is_pay_later` varchar(16)',
+      'participant_is_test' => '`participant_is_test` varchar(64)',
+      'participant_is_pay_later' => '`participant_is_pay_later` varchar(64)',
       'participant_fee_amount' => '`participant_fee_amount` varchar(32)',
-      'participant_discount_name' => '`participant_discount_name` varchar(16)',
+      'participant_discount_name' => '`participant_discount_name` varchar(64)',
       'participant_fee_currency' => '`participant_fee_currency` varchar(3)',
-      'participant_registered_by_id' => '`participant_registered_by_id` varchar(16)',
-      'participant_campaign_id' => '`participant_campaign_id` varchar(16)',
+      'participant_registered_by_id' => '`participant_registered_by_id` varchar(64)',
+      'participant_campaign_id' => '`participant_campaign_id` varchar(64)',
     ];
   }
 
@@ -2660,17 +2723,17 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    *
    * @return array
    */
-  public function getContributionSqlColumns() {
+  public function getContributionSqlColumns(): array {
     return [
-      'civicrm_primary_id' => '`civicrm_primary_id` varchar(16)',
+      'civicrm_primary_id' => '`civicrm_primary_id` varchar(64)',
       'contact_type' => '`contact_type` varchar(64)',
       'contact_sub_type' => '`contact_sub_type` varchar(255)',
-      'do_not_email' => '`do_not_email` varchar(16)',
-      'do_not_phone' => '`do_not_phone` varchar(16)',
-      'do_not_mail' => '`do_not_mail` varchar(16)',
-      'do_not_sms' => '`do_not_sms` varchar(16)',
-      'do_not_trade' => '`do_not_trade` varchar(16)',
-      'is_opt_out' => '`is_opt_out` varchar(16)',
+      'do_not_email' => '`do_not_email` varchar(64)',
+      'do_not_phone' => '`do_not_phone` varchar(64)',
+      'do_not_mail' => '`do_not_mail` varchar(64)',
+      'do_not_sms' => '`do_not_sms` varchar(64)',
+      'do_not_trade' => '`do_not_trade` varchar(64)',
+      'is_opt_out' => '`is_opt_out` varchar(64)',
       'legal_identifier' => '`legal_identifier` varchar(32)',
       'external_identifier' => '`external_identifier` varchar(64)',
       'sort_name' => '`sort_name` varchar(128)',
@@ -2690,20 +2753,20 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
       'suffix_id' => '`suffix_id` varchar(255)',
       'formal_title' => '`formal_title` varchar(64)',
       'communication_style_id' => '`communication_style_id` varchar(255)',
-      'email_greeting_id' => '`email_greeting_id` varchar(16)',
-      'postal_greeting_id' => '`postal_greeting_id` varchar(16)',
-      'addressee_id' => '`addressee_id` varchar(16)',
+      'email_greeting_id' => '`email_greeting_id` varchar(64)',
+      'postal_greeting_id' => '`postal_greeting_id` varchar(64)',
+      'addressee_id' => '`addressee_id` varchar(64)',
       'job_title' => '`job_title` varchar(255)',
       'gender_id' => '`gender_id` varchar(255)',
       'birth_date' => '`birth_date` varchar(32)',
-      'is_deceased' => '`is_deceased` varchar(16)',
+      'is_deceased' => '`is_deceased` varchar(64)',
       'deceased_date' => '`deceased_date` varchar(32)',
       'household_name' => '`household_name` varchar(128)',
       'organization_name' => '`organization_name` varchar(128)',
       'sic_code' => '`sic_code` varchar(8)',
       'user_unique_id' => '`user_unique_id` varchar(255)',
-      'current_employer_id' => '`current_employer_id` varchar(16)',
-      'contact_is_deleted' => '`contact_is_deleted` varchar(16)',
+      'current_employer_id' => '`current_employer_id` varchar(64)',
+      'contact_is_deleted' => '`contact_is_deleted` varchar(64)',
       'created_date' => '`created_date` varchar(32)',
       'modified_date' => '`modified_date` varchar(32)',
       'addressee' => '`addressee` varchar(255)',
@@ -2712,7 +2775,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
       'current_employer' => '`current_employer` varchar(255)',
       'location_type' => '`location_type` varchar(255)',
       'street_address' => '`street_address` varchar(96)',
-      'street_number' => '`street_number` varchar(16)',
+      'street_number' => '`street_number` varchar(64)',
       'street_number_suffix' => '`street_number_suffix` varchar(8)',
       'street_name' => '`street_name` varchar(64)',
       'street_unit' => '`street_unit` varchar(16)',
@@ -2732,8 +2795,8 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
       'phone' => '`phone` varchar(32)',
       'phone_ext' => '`phone_ext` varchar(16)',
       'email' => '`email` varchar(254)',
-      'on_hold' => '`on_hold` varchar(16)',
-      'is_bulkmail' => '`is_bulkmail` varchar(16)',
+      'on_hold' => '`on_hold` varchar(64)',
+      'is_bulkmail' => '`is_bulkmail` varchar(64)',
       'signature_text' => '`signature_text` longtext',
       'signature_html' => '`signature_html` longtext',
       'im_provider' => '`im_provider` varchar(255)',
@@ -2741,7 +2804,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
       'openid' => '`openid` varchar(255)',
       'world_region' => '`world_region` varchar(128)',
       'url' => '`url` varchar(128)',
-      'phone_type_id' => '`phone_type_id` varchar(16)',
+      'phone_type_id' => '`phone_type_id` varchar(64)',
       'financial_type' => '`financial_type` varchar(255)',
       'contribution_source' => '`contribution_source` varchar(255)',
       'receive_date' => '`receive_date` varchar(32)',
@@ -2750,7 +2813,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
       'total_amount' => '`total_amount` varchar(32)',
       'accounting_code' => '`accounting_code` varchar(64)',
       'payment_instrument' => '`payment_instrument` varchar(255)',
-      'payment_instrument_id' => '`payment_instrument_id` varchar(16)',
+      'payment_instrument_id' => '`payment_instrument_id` varchar(64)',
       'contribution_check_number' => '`contribution_check_number` varchar(255)',
       'non_deductible_amount' => '`non_deductible_amount` varchar(32)',
       'fee_amount' => '`fee_amount` varchar(32)',
@@ -2761,20 +2824,20 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
       'currency' => '`currency` varchar(3)',
       'cancel_reason' => '`cancel_reason` longtext',
       'receipt_date' => '`receipt_date` varchar(32)',
-      'is_test' => '`is_test` varchar(16)',
-      'is_pay_later' => '`is_pay_later` varchar(16)',
+      'is_test' => '`is_test` varchar(64)',
+      'is_pay_later' => '`is_pay_later` varchar(64)',
       'contribution_status' => '`contribution_status` varchar(255)',
-      'contribution_recur_id' => '`contribution_recur_id` varchar(16)',
+      'contribution_recur_id' => '`contribution_recur_id` varchar(64)',
       'amount_level' => '`amount_level` longtext',
       'contribution_note' => '`contribution_note` longtext',
       'contribution_batch' => '`contribution_batch` text',
       'contribution_campaign_title' => '`contribution_campaign_title` varchar(255)',
-      'contribution_campaign_id' => '`contribution_campaign_id` varchar(16)',
+      'contribution_campaign_id' => '`contribution_campaign_id` varchar(64)',
       'contribution_soft_credit_name' => '`contribution_soft_credit_name` varchar(255)',
       'contribution_soft_credit_amount' => '`contribution_soft_credit_amount` varchar(32)',
       'contribution_soft_credit_type' => '`contribution_soft_credit_type` varchar(255)',
-      'contribution_soft_credit_contact_id' => '`contribution_soft_credit_contact_id` varchar(16)',
-      'contribution_soft_credit_contribution_id' => '`contribution_soft_credit_contribution_id` varchar(16)',
+      'contribution_soft_credit_contact_id' => '`contribution_soft_credit_contact_id` varchar(64)',
+      'contribution_soft_credit_contribution_id' => '`contribution_soft_credit_contribution_id` varchar(64)',
     ];
   }
 
@@ -2783,9 +2846,9 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    *
    * @return array
    */
-  public function getPledgeSqlColumns() {
+  public function getPledgeSqlColumns(): array {
     return [
-      'pledge_id' => '`pledge_id` varchar(16)',
+      'pledge_id' => '`pledge_id` varchar(64)',
       'pledge_amount' => '`pledge_amount` varchar(32)',
       'pledge_total_paid' => '`pledge_total_paid` text',
       'pledge_create_date' => '`pledge_create_date` varchar(32)',
@@ -2793,21 +2856,21 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
       'pledge_next_pay_date' => '`pledge_next_pay_date` text',
       'pledge_next_pay_amount' => '`pledge_next_pay_amount` text',
       'pledge_status' => '`pledge_status` varchar(255)',
-      'pledge_is_test' => '`pledge_is_test` varchar(16)',
-      'pledge_contribution_page_id' => '`pledge_contribution_page_id` varchar(16)',
+      'pledge_is_test' => '`pledge_is_test` varchar(64)',
+      'pledge_contribution_page_id' => '`pledge_contribution_page_id` varchar(64)',
       'pledge_financial_type' => '`pledge_financial_type` text',
-      'pledge_frequency_interval' => '`pledge_frequency_interval` varchar(16)',
+      'pledge_frequency_interval' => '`pledge_frequency_interval` varchar(64)',
       'pledge_frequency_unit' => '`pledge_frequency_unit` varchar(255)',
       'pledge_currency' => '`pledge_currency` text',
-      'pledge_campaign_id' => '`pledge_campaign_id` varchar(16)',
+      'pledge_campaign_id' => '`pledge_campaign_id` varchar(64)',
       'pledge_balance_amount' => '`pledge_balance_amount` text',
-      'pledge_payment_id' => '`pledge_payment_id` varchar(16)',
+      'pledge_payment_id' => '`pledge_payment_id` varchar(64)',
       'pledge_payment_scheduled_amount' => '`pledge_payment_scheduled_amount` varchar(32)',
       'pledge_payment_scheduled_date' => '`pledge_payment_scheduled_date` varchar(32)',
       'pledge_payment_paid_amount' => '`pledge_payment_paid_amount` text',
       'pledge_payment_paid_date' => '`pledge_payment_paid_date` text',
       'pledge_payment_reminder_date' => '`pledge_payment_reminder_date` varchar(32)',
-      'pledge_payment_reminder_count' => '`pledge_payment_reminder_count` varchar(16)',
+      'pledge_payment_reminder_count' => '`pledge_payment_reminder_count` varchar(64)',
       'pledge_payment_status' => '`pledge_payment_status` varchar(255)',
     ];
   }
@@ -2817,22 +2880,22 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    *
    * @return array
    */
-  public function getMembershipSqlColumns() {
+  public function getMembershipSqlColumns(): array {
     return [
       'membership_type' => '`membership_type` varchar(128)',
-      'member_is_test' => '`member_is_test` varchar(16)',
-      'member_is_pay_later' => '`member_is_pay_later` varchar(16)',
+      'member_is_test' => '`member_is_test` varchar(64)',
+      'member_is_pay_later' => '`member_is_pay_later` varchar(64)',
       'membership_join_date' => '`membership_join_date` varchar(32)',
       'membership_start_date' => '`membership_start_date` varchar(32)',
       'membership_end_date' => '`membership_end_date` varchar(32)',
       'membership_source' => '`membership_source` varchar(128)',
       'membership_status' => '`membership_status` varchar(255)',
-      'membership_id' => '`membership_id` varchar(16)',
-      'owner_membership_id' => '`owner_membership_id` varchar(16)',
-      'max_related' => '`max_related` varchar(16)',
-      'membership_recur_id' => '`membership_recur_id` varchar(16)',
-      'member_campaign_id' => '`member_campaign_id` varchar(16)',
-      'member_is_override' => '`member_is_override` varchar(16)',
+      'membership_id' => '`membership_id` varchar(64)',
+      'owner_membership_id' => '`owner_membership_id` varchar(64)',
+      'max_related' => '`max_related` varchar(64)',
+      'membership_recur_id' => '`membership_recur_id` varchar(64)',
+      'member_campaign_id' => '`member_campaign_id` varchar(64)',
+      'member_is_override' => '`member_is_override` varchar(64)',
     ];
   }
 
@@ -2843,7 +2906,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    * - name differs from label
    * - non-anglo char in the label (not valid in the name).
    */
-  protected function diversifyLocationTypes() {
+  protected function diversifyLocationTypes(): void {
     $this->locationTypes['Main'] = $this->callAPISuccess('Location_type', 'get', [
       'name' => 'Main',
       'return' => 'id',
@@ -2870,7 +2933,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    * @throws \CRM_Core_Exception
    * @throws \League\Csv\Exception
    */
-  protected function doExportTest($params) {
+  protected function doExportTest($params): void {
     $fields = $params['fields'] ?? [];
     $fieldDefaults = ['contact_type' => 'Individual', 'phone_type_id' => NULL, 'location_type_id' => NULL];
     foreach ($fields as $key => $field) {
@@ -2911,11 +2974,11 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    * @param array $row
    * @param array $alternatives
    */
-  protected function assertExpectedOutput(array $expected, array $row, array $alternatives = []) {
+  protected function assertExpectedOutput(array $expected, array $row, array $alternatives = []): void {
     $variableFields = ['Created Date', 'Modified Date', 'Contact Hash'];
     foreach ($expected as $key => $value) {
       if (in_array($key, $variableFields)) {
-        $this->assertTrue(!empty($row[$key]));
+        $this->assertNotTrue(empty($row[$key]));
       }
       elseif (array_key_exists($key, $alternatives)) {
         $this->assertContains($row[$key], $alternatives[$key]);
@@ -2930,8 +2993,9 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    * Test get preview function on export processor.
    *
    * @throws \CRM_Core_Exception
+   * @throws \CiviCRM_API3_Exception
    */
-  public function testExportGetPreview() {
+  public function testExportGetPreview(): void {
     $this->setUpContactExportData();
     $fields = [
       ['contact_type' => 'Individual', 'name' => 'first_name'],
@@ -2969,8 +3033,9 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    * Set up contacts which will be merged with the same address option.
    *
    * @throws \CRM_Core_Exception
+   * @throws \CiviCRM_API3_Exception
    */
-  protected function setUpContactSameAddressExportData() {
+  protected function setUpContactSameAddressExportData(): void {
     $this->setUpContactExportData();
     $this->contactIDs[] = $contact3 = $this->individualCreate(['first_name' => 'Sarah', 'last_name' => 'Smith', 'prefix_id' => 'Dr.']);
     // Create address for contact A.
@@ -2990,7 +3055,7 @@ class CRM_Export_BAO_ExportTest extends CiviUnitTestCase {
    * Test for single select Autocomplete custom field.
    *
    */
-  public function testSingleAndMultiSelectAutoComplete() {
+  public function testSingleAndMultiSelectAutoComplete(): void {
     $customGroupId = $this->customGroupCreate([
       'extends' => 'Individual',
     ])['id'];

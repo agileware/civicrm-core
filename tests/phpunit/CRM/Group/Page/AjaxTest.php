@@ -25,7 +25,7 @@ class CRM_Group_Page_AjaxTest extends CiviUnitTestCase {
 
   protected $_params = [];
 
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     $this->_params = [
       'page' => 1,
@@ -51,7 +51,7 @@ class CRM_Group_Page_AjaxTest extends CiviUnitTestCase {
     $this->groupCreate(['title' => 'not-me-active', 'is_active' => 1, 'name' => 'not-me-active']);
   }
 
-  public function tearDown() {
+  public function tearDown(): void {
     CRM_Utils_Hook::singleton()->reset();
     $this->quickCleanup(['civicrm_group']);
     $config = CRM_Core_Config::singleton();

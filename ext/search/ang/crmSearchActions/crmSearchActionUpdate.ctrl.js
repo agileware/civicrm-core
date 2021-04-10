@@ -2,17 +2,21 @@
   "use strict";
 
   angular.module('crmSearchActions').controller('crmSearchActionUpdate', function ($scope, $timeout, crmApi4, dialogService) {
-    var ts = $scope.ts = CRM.ts(),
+    var ts = $scope.ts = CRM.ts('org.civicrm.search'),
       model = $scope.model,
-      ctrl = $scope.$ctrl = this;
+      ctrl = this;
 
     this.entityTitle = model.ids.length === 1 ? model.entityInfo.title : model.entityInfo.title_plural;
     this.values = [];
     this.add = null;
     this.fields = null;
 
-    crmApi4(model.entity, 'getFields', {action: 'update', loadOptions: ['id', 'name', 'label', 'description', 'color', 'icon']})
-      .then(function(fields) {
+    crmApi4(model.entity, 'getFields', {
+      action: 'update',
+      select: ['name', 'label', 'description', 'data_type', 'serialize', 'options'],
+      loadOptions: ['id', 'name', 'label', 'description', 'color', 'icon'],
+      where: [["readonly", "=", false]],
+    }).then(function(fields) {
         ctrl.fields = fields;
       });
 
@@ -29,7 +33,16 @@
       // Debounce the onchange event using timeout
       $timeout(function() {
         if (ctrl.add) {
-          ctrl.values.push([ctrl.add, '']);
+          var field = ctrl.getField(ctrl.add),
+            value = '';
+          if (field.serialize) {
+            value = [];
+          } else if (field.data_type === 'Boolean') {
+            value = true;
+          } else if (field.options && field.options.length) {
+            value = field.options[0].id;
+          }
+          ctrl.values.push([ctrl.add, value]);
         }
         ctrl.add = null;
       });
@@ -49,9 +62,7 @@
         if (fieldInUse(item.name)) {
           formatted.disabled = true;
         }
-        if (item.name !== 'id') {
-          result.push(formatted);
-        }
+        result.push(formatted);
       }, []);
       return {results: results};
     };
@@ -61,12 +72,20 @@
     };
 
     this.save = function() {
-      crmApi4(model.entity, 'Update', {
-        where: [['id', 'IN', model.ids]],
+      $('.ui-dialog-titlebar button').hide();
+      ctrl.run = {
         values: _.zipObject(ctrl.values)
-      }).then(function() {
-        dialogService.close('crmSearchAction');
-      });
+      };
+    };
+
+    this.onSuccess = function() {
+      CRM.alert(ts('Successfully updated %1 %2.', {1: model.ids.length, 2: ctrl.entityTitle}), ts('Saved'), 'success');
+      dialogService.close('crmSearchAction');
+    };
+
+    this.onError = function() {
+      CRM.alert(ts('An error occurred while attempting to update %1 %2.', {1: model.ids.length, 2: ctrl.entityTitle}), ts('Error'), 'error');
+      dialogService.close('crmSearchAction');
     };
 
   });

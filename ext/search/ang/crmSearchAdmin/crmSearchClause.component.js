@@ -13,7 +13,7 @@
     },
     templateUrl: '~/crmSearchAdmin/crmSearchClause.html',
     controller: function ($scope, $element, $timeout, searchMeta) {
-      var ts = $scope.ts = CRM.ts(),
+      var ts = $scope.ts = CRM.ts('org.civicrm.search'),
         ctrl = this,
         meta = {};
       this.conjunctions = {AND: ts('And'), OR: ts('Or'), NOT: ts('Not')};
@@ -83,12 +83,29 @@
         }
       };
 
-      // Add/remove value if operator allows for one
+      // Returns false for 'IS NULL', 'IS EMPTY', etc. true otherwise.
+      this.operatorTakesInput = function(operator) {
+        return operator.indexOf('IS ') !== 0;
+      };
+
       this.changeClauseOperator = function(clause) {
-        if (_.contains(clause[1], 'NULL')) {
+        // Add/remove value depending on whether operator allows for one
+        if (!ctrl.operatorTakesInput(clause[1])) {
           clause.length = 2;
-        } else if (clause.length === 2) {
-          clause.push('');
+        } else {
+          if (clause.length === 2) {
+            clause.push('');
+          }
+          // Change multi/single value to/from an array
+          var shouldBeArray = (clause[1] === 'IN' || clause[1] === 'NOT IN' || clause[1] === 'BETWEEN' || clause[1] === 'NOT BETWEEN');
+          if (!_.isArray(clause[2]) && shouldBeArray) {
+            clause[2] = [];
+          } else if (_.isArray(clause[2]) && !shouldBeArray) {
+            clause[2] = '';
+          }
+          if (clause[1] === 'BETWEEN' || clause[1] === 'NOT BETWEEN') {
+            clause[2].length = 2;
+          }
         }
       };
 

@@ -24,7 +24,7 @@ class api_v3_GrantTest extends CiviUnitTestCase {
 
   public $DBResetRequired = FALSE;
 
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     $this->ids['contact'][0] = $this->individualCreate();
     $this->params = [
@@ -44,7 +44,7 @@ class api_v3_GrantTest extends CiviUnitTestCase {
    *
    * @throws \Exception
    */
-  public function tearDown() {
+  public function tearDown(): void {
     foreach ($this->ids as $entity => $entities) {
       foreach ($entities as $id) {
         $this->callAPISuccess($entity, 'delete', ['id' => $id]);

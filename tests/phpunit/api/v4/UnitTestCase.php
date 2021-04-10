@@ -41,20 +41,11 @@ class UnitTestCase extends \PHPUnit\Framework\TestCase implements HeadlessInterf
    */
   public function __construct($name = NULL, array $data = [], $dataName = '') {
     parent::__construct($name, $data, $dataName);
-    error_reporting(E_ALL & ~E_NOTICE);
+    error_reporting(E_ALL);
   }
 
   public function setUpHeadless() {
     return \Civi\Test::headless()->apply();
-  }
-
-  /**
-   * Tears down the fixture, for example, closes a network connection.
-   *
-   * This method is called after a test is executed.
-   */
-  public function tearDown() {
-    parent::tearDown();
   }
 
   /**

@@ -80,10 +80,6 @@ class CRM_Event_BAO_Participant extends CRM_Event_DAO_Participant {
       $params['participant_fee_amount'] = CRM_Utils_Rule::cleanMoney($params['participant_fee_amount']);
     }
 
-    if (!empty($params['fee_amount'])) {
-      $params['fee_amount'] = CRM_Utils_Rule::cleanMoney($params['fee_amount']);
-    }
-
     // ensure that role ids are encoded as a string
     if (isset($params['role_id']) && is_array($params['role_id'])) {
       if (in_array(key($params['role_id']), CRM_Core_DAO::acceptedSQLOperators(), TRUE)) {
@@ -736,7 +732,6 @@ INNER JOIN  civicrm_price_field field       ON ( value.price_field_id = field.id
         ],
       ];
 
-      $participantFields['participant_status_id']['title'] .= ' (ID)';
       $participantFields['participant_role_id']['title'] .= ' (ID)';
 
       $discountFields = CRM_Core_DAO_Discount::export();

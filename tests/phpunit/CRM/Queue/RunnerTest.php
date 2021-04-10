@@ -15,7 +15,7 @@
  */
 class CRM_Queue_RunnerTest extends CiviUnitTestCase {
 
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     $this->queueService = CRM_Queue_Service::singleton(TRUE);
     $this->queue = $this->queueService->create([
@@ -25,7 +25,7 @@ class CRM_Queue_RunnerTest extends CiviUnitTestCase {
     self::$_recordedValues = [];
   }
 
-  public function tearDown() {
+  public function tearDown(): void {
     unset($this->queue);
     unset($this->queueService);
 

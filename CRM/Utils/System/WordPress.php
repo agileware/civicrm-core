@@ -271,6 +271,7 @@ class CRM_Utils_System_WordPress extends CRM_Utils_System_Base {
       add_action('wp_head', [__CLASS__, '_showHTMLHead']);
       // back-end views
       add_action('admin_head', [__CLASS__, '_showHTMLHead']);
+      $registered = TRUE;
     }
     CRM_Core_Region::instance('wp_head')->add([
       'markup' => $head,
@@ -502,6 +503,7 @@ class CRM_Utils_System_WordPress extends CRM_Utils_System_Base {
    * @throws \CRM_Core_Exception
    */
   public function permissionDenied() {
+    status_header(403);
     throw new CRM_Core_Exception(ts('You do not have permission to access this page.'));
   }
 
@@ -765,7 +767,6 @@ class CRM_Utils_System_WordPress extends CRM_Utils_System_Base {
   public function createUser(&$params, $mail) {
     $user_data = [
       'ID' => '',
-      'user_pass' => $params['cms_pass'],
       'user_login' => $params['cms_name'],
       'user_email' => $params[$mail],
       'nickname' => $params['cms_name'],
@@ -783,15 +784,22 @@ class CRM_Utils_System_WordPress extends CRM_Utils_System_Base {
       }
     }
 
+    $this->hooks_core_remove();
     $uid = wp_insert_user($user_data);
 
     $creds = [];
     $creds['user_login'] = $params['cms_name'];
-    $creds['user_password'] = $params['cms_pass'];
     $creds['remember'] = TRUE;
-    $user = wp_signon($creds, FALSE);
 
-    wp_new_user_notification($uid, $user_data['user_pass']);
+    // Call wp_signon if we aren't already logged in
+    // For example, we might be creating a new user from the Contact record.
+    if (!current_user_can('create_users')) {
+      wp_signon($creds, FALSE);
+    }
+
+    do_action('register_new_user', $uid);
+    $this->hooks_core_add();
+
     return $uid;
   }
 
@@ -870,7 +878,7 @@ class CRM_Utils_System_WordPress extends CRM_Utils_System_Base {
    * @inheritDoc
    */
   public function isPasswordUserGenerated() {
-    return TRUE;
+    return FALSE;
   }
 
   /**
@@ -924,20 +932,42 @@ class CRM_Utils_System_WordPress extends CRM_Utils_System_Base {
    * @inheritDoc
    */
   public function getLoginURL($destination = '') {
-    $config = CRM_Core_Config::singleton();
-    $loginURL = wp_login_url();
-    return $loginURL;
+    return wp_login_url($destination);
   }
 
   /**
-   * FIXME: Do something.
-   *
    * @param \CRM_Core_Form $form
    *
    * @return NULL|string
    */
   public function getLoginDestination(&$form) {
-    return NULL;
+    $args = NULL;
+
+    $id = $form->get('id');
+    if ($id) {
+      $args .= "&id=$id";
+    }
+    else {
+      $gid = $form->get('gid');
+      if ($gid) {
+        $args .= "&gid=$gid";
+      }
+      else {
+        // Setup Personal Campaign Page link uses pageId
+        $pageId = $form->get('pageId');
+        if ($pageId) {
+          $component = $form->get('component');
+          $args .= "&pageId=$pageId&component=$component&action=add";
+        }
+      }
+    }
+
+    $destination = NULL;
+    if ($args) {
+      // append destination so user is returned to form they came from after login
+      $destination = CRM_Utils_System::url(CRM_Utils_System::currentPath(), 'reset=1' . $args);
+    }
+    return $destination;
   }
 
   /**
@@ -988,6 +1018,13 @@ class CRM_Utils_System_WordPress extends CRM_Utils_System_Base {
     if ($e->asset == 'crm-menubar.css') {
       $e->params['breakpoint'] = 783;
     }
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public function checkPermissionAddUser() {
+    return current_user_can('create_users');
   }
 
   /**
@@ -1250,6 +1287,40 @@ class CRM_Utils_System_WordPress extends CRM_Utils_System_Base {
    */
   public function getCMSPermissionsUrlParams() {
     return ['ufAccessURL' => CRM_Utils_System::url('civicrm/admin/access/wp-permissions', 'reset=1')];
+  }
+
+  /**
+   * Remove CiviCRM's callbacks.
+   *
+   * These may cause recursive updates when creating or editing a WordPress
+   * user. This doesn't seem to have been necessary in the past, but seems
+   * to be causing trouble when newer versions of BuddyPress and CiviCRM are
+   * active.
+   *
+   * Based on the civicrm-wp-profile-sync plugin by Christian Wach.
+   *
+   * @see self::hooks_core_add()
+   */
+  public function hooks_core_remove() {
+    $civicrm = civi_wp();
+
+    // Remove current CiviCRM plugin filters.
+    remove_action('user_register', [$civicrm->users, 'update_user']);
+    remove_action('profile_update', [$civicrm->users, 'update_user']);
+  }
+
+  /**
+   * Add back CiviCRM's callbacks.
+   * This method undoes the removal of the callbacks above.
+   *
+   * @see self::hooks_core_remove()
+   */
+  public function hooks_core_add() {
+    $civicrm = civi_wp();
+
+    // Re-add current CiviCRM plugin filters.
+    add_action('user_register', [$civicrm->users, 'update_user']);
+    add_action('profile_update', [$civicrm->users, 'update_user']);
   }
 
 }

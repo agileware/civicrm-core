@@ -39,12 +39,12 @@ class CRM_Queue_Queue_SqlTest extends CiviUnitTestCase {
    * Per-provider tests
    *
    */
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     $this->queueService = CRM_Queue_Service::singleton(TRUE);
   }
 
-  public function tearDown() {
+  public function tearDown(): void {
     CRM_Utils_Time::resetTime();
 
     $tablesToTruncate = ['civicrm_queue_item'];

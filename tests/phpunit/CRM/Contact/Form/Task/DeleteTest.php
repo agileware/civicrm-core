@@ -20,7 +20,7 @@ class CRM_Contact_Form_Task_DeleteTest extends CiviUnitTestCase {
    */
   protected $deleted_contact_id;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->deleted_contact_id = $this->individualCreate([
       'first_name' => 'Delete',
@@ -30,7 +30,7 @@ class CRM_Contact_Form_Task_DeleteTest extends CiviUnitTestCase {
     ]);
   }
 
-  protected function tearDown() {
+  protected function tearDown(): void {
     $this->quickCleanup([
       'civicrm_contact',
     ]);

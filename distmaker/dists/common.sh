@@ -125,9 +125,11 @@ function dm_core_exts() {
   echo ext/ewaysingle
   echo ext/financialacls
   echo ext/afform
+  echo ext/authx
   echo ext/greenwich
   echo ext/contributioncancelactions
   echo ext/oauth-client
+  echo ext/recaptcha
 }
 
 ## Copy all packages
@@ -232,8 +234,8 @@ function dm_install_wordpress() {
     "$repo/./"  "$to/./"
   ## Need --exclude=civicrm for self-building on WP site
 
-  dm_preg_edit '/^Version: [0-9\.]+/m' "Version: $DM_VERSION" "$to/civicrm.php"
-  dm_preg_edit "/^define\( \'CIVICRM_PLUGIN_VERSION\',\W'[0-9\.]+/m" "define( 'CIVICRM_PLUGIN_VERSION', '$DM_VERSION" "$to/civicrm.php"
+  dm_preg_edit '/^([ \*]*)Version: [0-9\.]+/m' "\1Version: $DM_VERSION" "$to/civicrm.php"
+  dm_preg_edit "/^define\( *\'CIVICRM_PLUGIN_VERSION\', *'[0-9\.]+/m" "define('CIVICRM_PLUGIN_VERSION', '$DM_VERSION" "$to/civicrm.php"
 }
 
 ## Generate the composer "vendor" folder

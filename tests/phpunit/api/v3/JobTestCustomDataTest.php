@@ -68,7 +68,7 @@ class api_v3_JobTestCustomDataTest extends CiviUnitTestCase {
    */
   public $customGroupID = NULL;
 
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     $customGroup = $this->customGroupCreate();
     $this->customGroupID = $customGroup['id'];
@@ -111,7 +111,7 @@ class api_v3_JobTestCustomDataTest extends CiviUnitTestCase {
    *
    * @throws \CRM_Core_Exception
    */
-  public function tearDown() {
+  public function tearDown(): void {
     $this->quickCleanup(['civicrm_contact'], TRUE);
     parent::tearDown();
   }

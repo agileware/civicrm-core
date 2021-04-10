@@ -204,8 +204,7 @@ class CRM_Core_SelectValues {
       'Address' => ts('Addresses'),
       'Campaign' => ts('Campaigns'),
     ];
-    $contactTypes = self::contactType();
-    $contactTypes = !empty($contactTypes) ? ['Contact' => 'Contacts'] + $contactTypes : [];
+    $contactTypes = ['Contact' => ts('Contacts')] + self::contactType();
     $extendObjs = CRM_Core_OptionGroup::values('cg_extend_objects');
     $customGroupExtends = array_merge($contactTypes, $customGroupExtends, $extendObjs);
     return $customGroupExtends;
@@ -620,6 +619,9 @@ class CRM_Core_SelectValues {
         'legal_identifier',
         'contact_sub_type',
         'user_unique_id',
+        'addressee_id',
+        'email_greeting_id',
+        'postal_greeting_id',
       ];
 
       $customFields = CRM_Core_BAO_CustomField::getFields(['Individual', 'Address']);

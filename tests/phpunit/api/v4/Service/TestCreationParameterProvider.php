@@ -45,9 +45,8 @@ class TestCreationParameterProvider {
     $createSpec = $this->gatherer->getSpec($entity, 'create', FALSE);
     $requiredFields = array_merge($createSpec->getRequiredFields(), $createSpec->getConditionalRequiredFields());
 
-    if ($entity === 'Contact') {
-      $requiredFields[] = $createSpec->getFieldByName('first_name');
-      $requiredFields[] = $createSpec->getFieldByName('last_name');
+    if ($entity === 'Case') {
+      $requiredFields[] = $createSpec->getFieldByName('creator_id');
     }
 
     $requiredParams = [];
@@ -107,7 +106,7 @@ class TestCreationParameterProvider {
    */
   private function getOption(FieldSpec $field) {
     $options = array_column($field->getOptions(), 'label', 'id');
-    return array_rand($options);
+    return key($options);
   }
 
   /**

@@ -317,14 +317,12 @@ class CiviUnitTestCase extends PHPUnit\Framework\TestCase {
   /**
    *  Common setup functions for all unit tests.
    */
-  protected function setUp() {
+  protected function setUp(): void {
     $session = CRM_Core_Session::singleton();
     $session->set('userID', NULL);
 
     $this->_apiversion = 3;
 
-    // REVERT
-    $this->errorScope = CRM_Core_TemporaryErrorScope::useException();
     //  Use a temporary file for STDIN
     $GLOBALS['stdin'] = tmpfile();
     if ($GLOBALS['stdin'] === FALSE) {
@@ -374,12 +372,13 @@ class CiviUnitTestCase extends PHPUnit\Framework\TestCase {
 
     $this->renameLabels();
     $this->_sethtmlGlobals();
+    $this->ensureMySQLMode(['IGNORE_SPACE', 'ERROR_FOR_DIVISION_BY_ZERO', 'STRICT_TRANS_TABLES']);
   }
 
   /**
    * Read everything from the datasets directory and insert into the db.
    */
-  public function loadAllFixtures() {
+  public function loadAllFixtures(): void {
     $fixturesDir = __DIR__ . '/../../fixtures';
 
     CRM_Core_DAO::executeQuery("SET FOREIGN_KEY_CHECKS = 0;");
@@ -463,7 +462,7 @@ class CiviUnitTestCase extends PHPUnit\Framework\TestCase {
   /**
    *  Common teardown functions for all unit tests.
    */
-  protected function tearDown() {
+  protected function tearDown(): void {
     $this->_apiversion = 3;
     $this->resetLabels();
 
@@ -2518,6 +2517,7 @@ VALUES
       'skipCleanMoney' => TRUE,
       'amount_level' => 'expensive',
       'campaign_id' => $this->ids['campaign'][0],
+      'source' => 'Online Contribution: Page name',
     ], $contributionParams);
     $contributionRecur = $this->callAPISuccess('contribution_recur', 'create', array_merge([
       'contact_id' => $this->_contactID,
@@ -3091,21 +3091,24 @@ VALUES
   }
 
   /**
-   * Add Sales Tax relation for financial type with financial account.
+   * Add Sales Tax Account for the financial type.
    *
    * @param int $financialTypeId
    *
-   * @return obj
+   * @param array $accountParams
+   *
+   * @return CRM_Financial_DAO_EntityFinancialAccount
+   * @throws \CRM_Core_Exception
    */
-  protected function relationForFinancialTypeWithFinancialAccount($financialTypeId) {
-    $params = [
+  protected function addTaxAccountToFinancialType(int $financialTypeId, $accountParams = []) {
+    $params = array_merge([
       'name' => 'Sales tax account ' . substr(sha1(rand()), 0, 4),
       'financial_account_type_id' => key(CRM_Core_PseudoConstant::accountOptionValues('financial_account_type', NULL, " AND v.name LIKE 'Liability' ")),
       'is_deductible' => 1,
       'is_tax' => 1,
       'tax_rate' => 10,
       'is_active' => 1,
-    ];
+    ], $accountParams);
     $account = CRM_Financial_BAO_FinancialAccount::add($params);
     $entityParams = [
       'entity_table' => 'civicrm_financial_type',
@@ -3114,7 +3117,7 @@ VALUES
     ];
 
     // set tax rate (as 10) for provided financial type ID to static variable, later used to fetch tax rates of all financial types
-    \Civi::$statics['CRM_Core_PseudoConstant']['taxRates'][$financialTypeId] = 10;
+    \Civi::$statics['CRM_Core_PseudoConstant']['taxRates'][$financialTypeId] = $params['tax_rate'];
 
     //CRM-20313: As per unique index added in civicrm_entity_financial_account table,
     //  first check if there's any record on basis of unique key (entity_table, account_relationship, entity_id)
@@ -3657,23 +3660,23 @@ VALUES
    *
    * @return CRM_Case_BAO_Case
    */
-  public function createCase($clientId, $loggedInUser = NULL, $extra = NULL) {
+  public function createCase($clientId, $loggedInUser = NULL, $extra = []) {
     if (empty($loggedInUser)) {
       // backwards compatibility - but it's more typical that the creator is a different person than the client
       $loggedInUser = $clientId;
     }
-    $caseParams = [
+    $caseParams = array_merge([
       'activity_subject' => 'Case Subject',
       'client_id'        => $clientId,
       'case_type_id'     => 1,
       'status_id'        => 1,
       'case_type'        => 'housing_support',
       'subject'          => 'Case Subject',
-      'start_date'       => ($extra['start_date'] ?? date("Y-m-d")),
-      'start_date_time'  => ($extra['start_date_time'] ?? date("YmdHis")),
+      'start_date'       => date("Y-m-d"),
+      'start_date_time'  => date("YmdHis"),
       'medium_id'        => 2,
       'activity_details' => '',
-    ];
+    ], $extra);
     $form = new CRM_Case_Form_Case();
     return $form->testSubmit($caseParams, 'OpenCase', $loggedInUser, 'standalone');
   }
@@ -3786,6 +3789,18 @@ WHERE a1.is_primary = 0
   AND a2.id IS NULL
   AND a1.contact_id IS NOT NULL) as primary_descrepancies
     '));
+  }
+
+  /**
+   * Ensure the specified mysql mode/s are activated.
+   *
+   * @param array $modes
+   */
+  protected function ensureMySQLMode(array $modes): void {
+    $currentModes = array_fill_keys(CRM_Utils_SQL::getSqlModes(), 1);
+    $currentModes = array_merge($currentModes, array_fill_keys($modes, 1));
+    CRM_Core_DAO::executeQuery("SET GLOBAL sql_mode = '" . implode(',', array_keys($currentModes)) . "'");
+    CRM_Core_DAO::executeQuery("SET sql_mode = '" . implode(',', array_keys($currentModes)) . "'");
   }
 
 }

@@ -65,6 +65,13 @@ class api_v3_SyntaxConformanceTest extends CiviUnitTestCase {
   ];
 
   /**
+   * Entities actions not yet implemented.
+   *
+   * @var array
+   */
+  private $toBeImplemented = [];
+
+  /**
    * Set up function.
    *
    * There are two types of missing APIs:
@@ -74,7 +81,7 @@ class api_v3_SyntaxConformanceTest extends CiviUnitTestCase {
    * and that will never exist (eg an obsoleted Entity
    * they need to be returned by the function toBeSkipped_{$action} (because it has to be a static method and therefore couldn't access a this->toBeSkipped)
    */
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     $this->enableCiviCampaign();
     $this->toBeImplemented['get'] = [
@@ -125,7 +132,7 @@ class api_v3_SyntaxConformanceTest extends CiviUnitTestCase {
     $this->deletableTestObjects = [];
   }
 
-  public function tearDown() {
+  public function tearDown(): void {
     foreach ($this->deletableTestObjects as $entityName => $entities) {
       foreach ($entities as $entityID) {
         CRM_Core_DAO::deleteTestObjects($entityName, ['id' => $entityID]);
@@ -746,6 +753,7 @@ class api_v3_SyntaxConformanceTest extends CiviUnitTestCase {
           'website_type_id',
           // Not a real field
           'option.autoweight',
+          'field_name',
         ],
         'break_return' => [
           // These fields get auto-adjusted by the BAO prior to saving
@@ -1315,8 +1323,8 @@ class api_v3_SyntaxConformanceTest extends CiviUnitTestCase {
    * Currency - only seems to support US
    * @param $entityName
    */
-  public function testCreateSingleValueAlter($entityName) {
-    if (in_array($entityName, $this->toBeImplemented['create'])) {
+  public function testCreateSingleValueAlter($entityName): void {
+    if (in_array($entityName, $this->toBeImplemented['create'], TRUE)) {
       // $this->markTestIncomplete("civicrm_api3_{$Entity}_create to be implemented");
       return;
     }
@@ -1332,6 +1340,8 @@ class api_v3_SyntaxConformanceTest extends CiviUnitTestCase {
     $fields = $fields['values'];
     $return = array_keys($fieldsGet['values']);
     $valuesNotToReturn = $this->getKnownUnworkablesUpdateSingle($entityName, 'break_return');
+    $valuesNotToReturn[] = 'modified_date';
+    $valuesNotToReturn[] = 'create_date';
     // these can't be requested as return values
     $entityValuesThatDoNotWork = array_merge(
       $this->getKnownUnworkablesUpdateSingle($entityName, 'cant_update'),
@@ -1358,7 +1368,7 @@ class api_v3_SyntaxConformanceTest extends CiviUnitTestCase {
     $this->deletableTestObjects[$baoString][] = $entity['id'];
     $this->deletableTestObjects[$baoString][] = $entity2['id'];
     // Skip these fields that we never really expect to update well.
-    $genericFieldsToSkip = ['currency', 'id', strtolower($entityName) . '_id', 'is_primary'];
+    $genericFieldsToSkip = ['currency', 'modified_date', 'create_date', 'id', strtolower($entityName) . '_id', 'is_primary'];
     foreach ($fields as $field => $specs) {
       $resetFKTo = NULL;
       $fieldName = $field;
@@ -1516,6 +1526,7 @@ class api_v3_SyntaxConformanceTest extends CiviUnitTestCase {
       }
       unset($entity['xdebug']);
       unset($checkEntity['xdebug']);
+      unset($update['xdebug']);
       $this->assertAPIArrayComparison($entity, $checkEntity, [], "checking if $fieldName was correctly updated\n" . print_r([
         'update-params' => $updateParams,
         'update-result' => $update,

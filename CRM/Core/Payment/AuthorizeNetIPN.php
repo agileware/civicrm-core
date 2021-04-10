@@ -37,6 +37,7 @@ class CRM_Core_Payment_AuthorizeNetIPN extends CRM_Core_Payment_BaseIPN {
    * @return bool|void
    *
    * @throws \CiviCRM_API3_Exception
+   * @throws \API_Exception
    */
   public function main() {
     try {
@@ -61,7 +62,7 @@ class CRM_Core_Payment_AuthorizeNetIPN extends CRM_Core_Payment_BaseIPN {
       // Check if the contribution exists
       // make sure contribution exists and is valid
       $contribution = new CRM_Contribute_BAO_Contribution();
-      $contribution->id = $ids['contribution'];
+      $contribution->id = $contributionID = $ids['contribution'];
       if (!$contribution->find(TRUE)) {
         throw new CRM_Core_Exception('Failure: Could not find contribution record for ' . (int) $contribution->id, NULL, ['context' => "Could not find contribution record: {$contribution->id} in IPN request: " . print_r($input, TRUE)]);
       }
@@ -74,9 +75,6 @@ class CRM_Core_Payment_AuthorizeNetIPN extends CRM_Core_Payment_BaseIPN {
         throw new CRM_Core_Exception("Could not find contribution recur record: {$ids['ContributionRecur']} in IPN request: " . print_r($input, TRUE));
       }
 
-      $ids['paymentProcessor'] = $paymentProcessorID;
-      $contribution->loadRelatedObjects($input, $ids);
-
       // check if first contribution is completed, else complete first contribution
       $first = TRUE;
       if ($contribution->contribution_status_id == 1) {
@@ -84,24 +82,15 @@ class CRM_Core_Payment_AuthorizeNetIPN extends CRM_Core_Payment_BaseIPN {
         //load new contribution object if required.
         // create a contribution and then get it processed
         $contribution = new CRM_Contribute_BAO_Contribution();
-        $contribution->contribution_page_id = $ids['contributionPage'];
-        $contribution->contribution_recur_id = $ids['contributionRecur'];
-        $contribution->receive_date = $input['receive_date'];
       }
       $input['payment_processor_id'] = $paymentProcessorID;
-      $isFirstOrLastRecurringPayment = $this->recur($input, [
-        'related_contact' => $ids['related_contact'] ?? NULL,
-        'participant' => NULL,
-        'contributionRecur' => $contributionRecur->id,
-      ], $contributionRecur, $contribution, $first);
+      $isFirstOrLastRecurringPayment = $this->recur($input, $contributionRecur, $contribution, $first);
 
       if ($isFirstOrLastRecurringPayment) {
         //send recurring Notification email for user
-        CRM_Contribute_BAO_ContributionPage::recurringNotify(TRUE,
-          $contributionRecur->contact_id,
-          $ids['contributionPage'],
+        CRM_Contribute_BAO_ContributionPage::recurringNotify($contributionID, TRUE,
           $contributionRecur,
-          (bool) $this->getMembershipID($contribution->id, $contributionRecur->id)
+          (bool) $this->getMembershipID($contributionID, $contributionRecur->id)
         );
       }
 
@@ -115,7 +104,6 @@ class CRM_Core_Payment_AuthorizeNetIPN extends CRM_Core_Payment_BaseIPN {
 
   /**
    * @param array $input
-   * @param array $ids
    * @param \CRM_Contribute_BAO_ContributionRecur $recur
    * @param \CRM_Contribute_BAO_Contribution $contribution
    * @param bool $first
@@ -124,7 +112,7 @@ class CRM_Core_Payment_AuthorizeNetIPN extends CRM_Core_Payment_BaseIPN {
    * @throws \CRM_Core_Exception
    * @throws \CiviCRM_API3_Exception
    */
-  public function recur($input, $ids, $recur, $contribution, $first) {
+  public function recur($input, $recur, $contribution, $first) {
 
     // do a subscription check
     if ($recur->processor_id != $input['subscription_id']) {
@@ -183,7 +171,10 @@ class CRM_Core_Payment_AuthorizeNetIPN extends CRM_Core_Payment_BaseIPN {
       return FALSE;
     }
 
-    CRM_Contribute_BAO_Contribution::completeOrder($input, $ids, $contribution);
+    CRM_Contribute_BAO_Contribution::completeOrder($input, [
+      'participant' => NULL,
+      'contributionRecur' => $recur->id,
+    ], $contribution->id ?? NULL);
     return $isFirstOrLastRecurringPayment;
   }
 

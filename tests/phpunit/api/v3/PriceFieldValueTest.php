@@ -30,7 +30,7 @@ class api_v3_PriceFieldValueTest extends CiviUnitTestCase {
   /**
    * Setup function.
    */
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     // Put stuff here that should happen before all tests in this unit.
     $priceSetParams = [
@@ -96,7 +96,7 @@ class api_v3_PriceFieldValueTest extends CiviUnitTestCase {
    *
    * @throws \Exception
    */
-  public function tearDown() {
+  public function tearDown(): void {
     $tablesToTruncate = [
       'civicrm_contact',
       'civicrm_contribution',

@@ -334,14 +334,14 @@ class CRM_Custom_Form_Field extends CRM_Core_Form {
       // is active ?
       $this->add('checkbox', "option_status[$i]", ts('Active?'));
 
-      $defaultOption[$i] = $this->createElement('radio', NULL, NULL, NULL, $i);
+      $defaultOption[$i] = NULL;
 
       //for checkbox handling of default option
       $this->add('checkbox', "default_checkbox_option[$i]", NULL);
     }
 
     //default option selection
-    $this->addGroup($defaultOption, 'default_option');
+    $this->addRadio('default_option', NULL, $defaultOption);
 
     $_showHide->addToTemplate();
 
@@ -740,7 +740,7 @@ SELECT count(*)
       }
     }
     elseif (in_array($htmlType, self::$htmlTypesWithOptions) &&
-      !in_array($dataType, ['Boolean', 'Country', 'StateProvince'])
+      !in_array($dataType, ['Boolean', 'Country', 'StateProvince', 'ContactReference'])
     ) {
       if (!$fields['option_group_id']) {
         $errors['option_group_id'] = ts('You must select a Multiple Choice Option set if you chose Reuse an existing set.');
@@ -836,7 +836,7 @@ AND    option_group_id = %2";
 
     //fix for 'is_search_range' field.
     if (in_array($params['data_type'], ['Int', 'Float', 'Money', 'Date'])) {
-      if (empty($params['is_searchable'])) {
+      if (empty($params['is_searchable']) || in_array($params['html_type'], ['Radio', 'Select'])) {
         $params['is_search_range'] = 0;
       }
     }
@@ -956,7 +956,7 @@ AND    option_group_id = %2";
    *   The serialize type - CRM_Core_DAO::SERIALIZE_XXX or the string 'null'
    */
   public function determineSerializeType($params) {
-    if ($params['data_type'] !== 'ContactReference' && ($params['html_type'] === 'Select' || $params['html_type'] === 'Autocomplete-Select')) {
+    if ($params['html_type'] === 'Select' || $params['html_type'] === 'Autocomplete-Select') {
       return !empty($params['serialize']) ? CRM_Core_DAO::SERIALIZE_SEPARATOR_BOOKEND : 'null';
     }
     else {

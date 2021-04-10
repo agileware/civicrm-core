@@ -21,7 +21,7 @@ class CRM_Contribute_Form_Contribution_ThankYouTest extends CiviUnitTestCase {
   /**
    * Clean up DB.
    */
-  public function tearDown() {
+  public function tearDown(): void {
     $this->quickCleanUpFinancialEntities();
   }
 
@@ -77,6 +77,10 @@ class CRM_Contribute_Form_Contribution_ThankYouTest extends CiviUnitTestCase {
     if ($isTestContribution) {
       $form->_mode = 'test';
     }
+    $form->_values = [
+      'custom_pre_id' => NULL,
+      'custom_post_id' => NULL,
+    ];
 
     return $form;
   }

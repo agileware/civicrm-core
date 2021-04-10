@@ -797,11 +797,11 @@ class CRM_Export_BAO_ExportProcessor {
     list($select, $from, $where, $having) = $query->query();
     $this->setQueryFields($query->_fields);
     $whereClauses = ['trash_clause' => "contact_a.is_deleted != 1"];
-    if ($this->getRequestedFields() && ($this->getComponentTable())) {
-      $from .= " INNER JOIN " . $this->getComponentTable() . " ctTable ON ctTable.contact_id = contact_a.id ";
-    }
-    elseif ($this->getComponentClause()) {
+    if ($this->getComponentClause()) {
       $whereClauses[] = $this->getComponentClause();
+    }
+    elseif ($this->getRequestedFields() && $this->getComponentTable() &&  $this->getComponentTable() !== 'civicrm_contact') {
+      $from .= " INNER JOIN " . $this->getComponentTable() . " ctTable ON ctTable.contact_id = contact_a.id ";
     }
 
     // CRM-13982 - check if is deleted
@@ -1118,6 +1118,11 @@ class CRM_Export_BAO_ExportProcessor {
         if ($html_type === 'File' && $fieldValue) {
           $result = civicrm_api3('attachment', 'get', ['return' => ['url'], 'id' => $fieldValue]);
           return $result['values'][$result['id']]['url'];
+        }
+
+        // Do not export HTML markup for links
+        if ($html_type === 'Link' && $fieldValue) {
+          return $fieldValue;
         }
 
         return CRM_Core_BAO_CustomField::displayValue($fieldValue, $cfID);
@@ -1453,7 +1458,9 @@ class CRM_Export_BAO_ExportProcessor {
           if (in_array(CRM_Utils_Array::value('data_type', $fieldSpec), ['Country', 'StateProvince', 'ContactReference'])) {
             return "`$fieldName` varchar(255)";
           }
-          return "`$fieldName` varchar(16)";
+          // some of those will be exported as a (localisable) string
+          // @see https://lab.civicrm.org/dev/core/-/issues/2164
+          return "`$fieldName` varchar(64)";
 
         case CRM_Utils_Type::T_STRING:
           if (isset($fieldSpec['maxlength'])) {
@@ -1985,7 +1992,7 @@ SET    addressee = %1, postal_greeting = %2, email_greeting = %3
 WHERE  id = %4
 ";
       $params = [
-        1 => [$values['addressee'], 'String'],
+        1 => [CRM_Utils_String::ellipsify($values['addressee'], 255), 'String'],
         2 => [$values['postalGreeting'], 'String'],
         3 => [$values['emailGreeting'], 'String'],
         4 => [$masterID, 'Integer'],

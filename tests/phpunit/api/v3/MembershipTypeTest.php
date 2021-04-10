@@ -20,7 +20,7 @@ class api_v3_MembershipTypeTest extends CiviUnitTestCase {
   /**
    * Set up for tests.
    */
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     $this->useTransaction(TRUE);
     $this->_contactID = $this->organizationCreate();
@@ -323,7 +323,7 @@ class api_v3_MembershipTypeTest extends CiviUnitTestCase {
     ];
     foreach ($memType as $rowCount => $type) {
       $membetype = CRM_Member_BAO_MembershipType::getMembershipTypeDetails($type);
-      $fieldParams['option_id'] = [1 => $priceFieldValue['id']];
+      $fieldParams['option_id'] = [1 => $priceFieldValue];
       $fieldParams['option_label'][$rowCount] = $membetype['name'] ?? NULL;
       $fieldParams['option_amount'][$rowCount] = $membetype['minimum_fee'] ?? 0;
       $fieldParams['option_weight'][$rowCount] = $membetype['weight'] ?? NULL;

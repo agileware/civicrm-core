@@ -23,7 +23,8 @@ namespace Civi\Api4;
  * RelationshipCache - readonly table to facilitate joining and finding contacts by relationship.
  *
  * @see \Civi\Api4\Relationship
- *
+ * @bridge near_contact_id far_contact_id
+ * @ui_join_filters near_relation
  * @package Civi\Api4
  */
 class RelationshipCache extends Generic\AbstractEntity {
@@ -34,7 +35,7 @@ class RelationshipCache extends Generic\AbstractEntity {
    * @return Generic\DAOGetAction
    */
   public static function get($checkPermissions = TRUE) {
-    return (new Generic\DAOGetAction(static::class, __FUNCTION__))
+    return (new Generic\DAOGetAction(__CLASS__, __FUNCTION__))
       ->setCheckPermissions($checkPermissions);
   }
 
@@ -43,7 +44,7 @@ class RelationshipCache extends Generic\AbstractEntity {
    * @return Generic\DAOGetFieldsAction
    */
   public static function getFields($checkPermissions = TRUE) {
-    return (new Generic\DAOGetFieldsAction(static::class, __FUNCTION__))
+    return (new Generic\DAOGetFieldsAction(__CLASS__, __FUNCTION__))
       ->setCheckPermissions($checkPermissions);
   }
 

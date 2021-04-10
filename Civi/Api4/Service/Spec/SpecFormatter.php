@@ -63,10 +63,12 @@ class SpecFormatter {
       $field->setColumnName($data['column_name']);
       $field->setCustomFieldId($data['id'] ?? NULL);
       $field->setCustomGroupName($data['custom_group.name']);
-      $field->setTitle($data['label'] ?? NULL);
+      $field->setTitle($data['label']);
+      $field->setLabel($data['custom_group.title'] . ': ' . $data['label']);
       $field->setHelpPre($data['help_pre'] ?? NULL);
       $field->setHelpPost($data['help_post'] ?? NULL);
       $field->setOptions(self::customFieldHasOptions($data));
+      $field->setreadonly($data['is_view']);
     }
     else {
       $name = $data['name'] ?? NULL;
@@ -75,6 +77,7 @@ class SpecFormatter {
       $field->setTitle($data['title'] ?? NULL);
       $field->setLabel($data['html']['label'] ?? NULL);
       $field->setOptions(!empty($data['pseudoconstant']));
+      $field->setreadonly(!empty($data['readonly']));
     }
     $field->setSerialize($data['serialize'] ?? NULL);
     $field->setDefaultValue($data['default'] ?? NULL);
@@ -168,6 +171,14 @@ class SpecFormatter {
         if (!empty($data[$prop])) {
           $inputAttrs[str_replace('note_', '', $prop)] = (int) $data[$prop];
         }
+      }
+    }
+    // Ensure all keys use lower_case not camelCase
+    foreach ($inputAttrs as $key => $val) {
+      if ($key !== strtolower($key)) {
+        unset($inputAttrs[$key]);
+        $key = strtolower(preg_replace('/(?=[A-Z])/', '_$0', $key));
+        $inputAttrs[$key] = $val;
       }
     }
     $fieldSpec

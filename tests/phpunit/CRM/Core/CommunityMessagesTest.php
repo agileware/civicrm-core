@@ -123,13 +123,13 @@ class CRM_Core_CommunityMessagesTest extends CiviUnitTestCase {
     return self::$webResponses;
   }
 
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     $this->cache = new CRM_Utils_Cache_Arraycache([]);
     self::initWebResponses();
   }
 
-  public function tearDown() {
+  public function tearDown(): void {
     parent::tearDown();
     CRM_Utils_Time::resetTime();
   }

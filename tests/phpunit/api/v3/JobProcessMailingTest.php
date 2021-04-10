@@ -40,7 +40,7 @@ class api_v3_JobProcessMailingTest extends CiviUnitTestCase {
    */
   private $_mut;
 
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     // DGW
     CRM_Mailing_BAO_MailingJob::$mailsProcessed = 0;
@@ -80,7 +80,7 @@ class api_v3_JobProcessMailingTest extends CiviUnitTestCase {
 
   /**
    */
-  public function tearDown() {
+  public function tearDown(): void {
     $this->_mut->stop();
     CRM_Utils_Hook::singleton()->reset();
     $this->cleanupMailingTest();

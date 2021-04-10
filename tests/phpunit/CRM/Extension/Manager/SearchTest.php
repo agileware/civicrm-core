@@ -6,7 +6,7 @@
  */
 class CRM_Extension_Manager_SearchTest extends CiviUnitTestCase {
 
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     //if (class_exists('test_extension_manager_searchtest')) {
     //  test_extension_manager_searchtest::$counts = array();
@@ -17,7 +17,7 @@ class CRM_Extension_Manager_SearchTest extends CiviUnitTestCase {
     ]);
   }
 
-  public function tearDown() {
+  public function tearDown(): void {
     parent::tearDown();
     $this->system = NULL;
   }

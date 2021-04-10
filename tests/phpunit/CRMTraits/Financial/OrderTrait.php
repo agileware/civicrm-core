@@ -9,6 +9,8 @@
  +--------------------------------------------------------------------+
  */
 
+use Civi\Test\Api3TestTrait;
+
 /**
  * Trait OrderTrait
  *
@@ -16,14 +18,14 @@
  */
 trait CRMTraits_Financial_OrderTrait {
 
-  use \Civi\Test\Api3TestTrait;
+  use Api3TestTrait;
 
   /**
    * Create a pending membership from a recurring order.
    *
    * @throws \CRM_Core_Exception
    */
-  public function createRepeatMembershipOrder() {
+  public function createRepeatMembershipOrder(): void {
     $this->createExtraneousContribution();
     $this->ids['contact'][0] = $this->individualCreate();
     $this->ids['membership_type'][0] = $this->membershipTypeCreate();
@@ -45,6 +47,7 @@ trait CRMTraits_Financial_OrderTrait {
     $orderID = $this->callAPISuccess('Order', 'create', [
       'total_amount' => '200',
       'financial_type_id' => 'Donation',
+      'source' => 'Online Contribution: form payment',
       'contact_id' => $this->_contactID,
       'contribution_page_id' => $this->_contributionPageID,
       'payment_processor_id' => $this->_paymentProcessorID,
@@ -74,7 +77,7 @@ trait CRMTraits_Financial_OrderTrait {
    *
    * @throws \CRM_Core_Exception
    */
-  protected function createContributionAndMembershipOrder() {
+  protected function createContributionAndMembershipOrder(): void {
     $this->ids['membership_type'][0] = $this->membershipTypeCreate();
     $orderID = $this->callAPISuccess('Order', 'create', [
       'financial_type_id' => 'Donation',
@@ -110,6 +113,10 @@ trait CRMTraits_Financial_OrderTrait {
             'contact_id' => $this->_contactID,
             'membership_type_id' => 'General',
             'source' => 'Payment',
+            // This is necessary because Membership_BAO otherwise ignores the
+            // pending status. I do have a fix but it's held up behind other pending-review PRs
+            // so this should be temporary until we get the membership PRs flowing.
+            'skipStatusCal' => TRUE,
           ],
           'line_item' => $this->getMembershipLineItem(),
         ],

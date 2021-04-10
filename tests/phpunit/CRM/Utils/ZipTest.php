@@ -15,12 +15,12 @@
  */
 class CRM_Utils_ZipTest extends CiviUnitTestCase {
 
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     $this->file = FALSE;
   }
 
-  public function tearDown() {
+  public function tearDown(): void {
     parent::tearDown();
     if ($this->file) {
       unlink($this->file);

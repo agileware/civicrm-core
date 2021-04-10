@@ -70,6 +70,8 @@ class Manager {
     $this->cache->clear();
     $this->modules = NULL;
     $this->changeSets = NULL;
+    // Force-refresh assetBuilder files
+    \Civi::container()->get('asset_builder')->clear(FALSE);
     return $this;
   }
 
@@ -105,6 +107,7 @@ class Manager {
       $angularModules['crmAttachment'] = include "$civicrm_root/ang/crmAttachment.ang.php";
       $angularModules['crmAutosave'] = include "$civicrm_root/ang/crmAutosave.ang.php";
       $angularModules['crmCxn'] = include "$civicrm_root/ang/crmCxn.ang.php";
+      $angularModules['crmMonaco'] = include "$civicrm_root/ang/crmMonaco.ang.php";
       $angularModules['crmResource'] = include "$civicrm_root/ang/crmResource.ang.php";
       $angularModules['crmRouteBinder'] = include "$civicrm_root/ang/crmRouteBinder.ang.php";
       $angularModules['crmUi'] = include "$civicrm_root/ang/crmUi.ang.php";
@@ -179,6 +182,7 @@ class Manager {
    * @return array
    *   List of Angular modules, include all dependencies.
    *   Ex: array('crmMailing', 'crmUi', 'crmUtil', 'ngRoute').
+   * @throws \CRM_Core_Exception
    */
   public function resolveDependencies($names) {
     $allModules = $this->getModules();
@@ -188,10 +192,7 @@ class Manager {
       foreach ($missingModules as $module) {
         $visited[$module] = 1;
         if (!isset($allModules[$module])) {
-          \Civi::log()->warning('Unrecognized Angular module {name}. Please ensure that all Angular modules are declared.', [
-            'name' => $module,
-            'civi.tag' => 'deprecated',
-          ]);
+          throw new \CRM_Core_Exception("Unrecognized Angular module {$module}. Please ensure that all Angular modules are declared.");
         }
         elseif (isset($allModules[$module]['requires'])) {
           $result = array_unique(array_merge($result, $allModules[$module]['requires']));

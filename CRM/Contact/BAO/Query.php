@@ -396,6 +396,7 @@ class CRM_Contact_BAO_Query {
     'im',
     'address_name',
     'master_id',
+    'location_type',
   ];
 
   /**
@@ -1112,8 +1113,10 @@ class CRM_Contact_BAO_Query {
         }
 
         $field = $this->_fields[$elementName] ?? NULL;
-        if (isset($this->_pseudoConstantsSelect[$field['name']])) {
-          $this->_pseudoConstantsSelect[$name . '-' . $field['name']] = $this->_pseudoConstantsSelect[$field['name']];
+        if (!empty($field)) {
+          if (isset($this->_pseudoConstantsSelect[$field['name']])) {
+            $this->_pseudoConstantsSelect[$name . '-' . $field['name']] = $this->_pseudoConstantsSelect[$field['name']];
+          }
         }
 
         // hack for profile, add location id
@@ -1274,6 +1277,14 @@ class CRM_Contact_BAO_Query {
                   $this->_pseudoConstantsSelect["{$name}-{$elementFullName}"]['table'] = $tName;
                   $this->_pseudoConstantsSelect["{$name}-{$elementFullName}"]['join']
                     = "\nLEFT JOIN $tableName `$tName` ON `$tName`.id = $aName.state_province_id";
+                  if ($addWhere) {
+                    $this->_whereTables["{$name}-address"] = $addressJoin;
+                  }
+                  break;
+
+                case 'civicrm_location_type':
+                  $this->_tables[$tName] = "\nLEFT JOIN $tableName `$tName` ON `$tName`.id = $aName.location_type_id";
+
                   if ($addWhere) {
                     $this->_whereTables["{$name}-address"] = $addressJoin;
                   }
@@ -3282,7 +3293,8 @@ WHERE  $smartGroupClause
     $tagTree = CRM_Core_BAO_Tag::getChildTags();
     foreach ((array) $value as $tagID) {
       if (!empty($tagTree[$tagID])) {
-        $value = array_unique(array_merge($value, $tagTree[$tagID]));
+        // make sure value is an array here (see CORE-2502)
+        $value = array_unique(array_merge((array) $value, $tagTree[$tagID]));
       }
     }
 
@@ -5054,15 +5066,10 @@ civicrm_relationship.start_date > {$today}
 
       if (CRM_Core_Permission::check('access deleted contacts')) {
         if (!$onlyDeleted) {
-          $this->_permissionWhereClause = str_replace('( 1 )', '(contact_a.is_deleted = 0)', $this->_permissionWhereClause);
+          $this->_permissionWhereClause .= ' AND (contact_a.is_deleted = 0)';
         }
         else {
-          if ($this->_permissionWhereClause === '( 1 )') {
-            $this->_permissionWhereClause = str_replace('( 1 )', '(contact_a.is_deleted)', $this->_permissionWhereClause);
-          }
-          else {
-            $this->_permissionWhereClause .= " AND (contact_a.is_deleted) ";
-          }
+          $this->_permissionWhereClause .= " AND (contact_a.is_deleted) ";
         }
       }
 
@@ -5633,7 +5640,7 @@ civicrm_relationship.start_date > {$today}
         return $clause;
 
       case 'RLIKE':
-        return " {$clause} BINARY '{$value}' ";
+        return " CAST({$field} AS BINARY) RLIKE BINARY '{$value}' ";
 
       case 'IN':
       case 'NOT IN':
@@ -5819,11 +5826,23 @@ AND   displayRelType.is_active = 1
       $this->_qill[0][] = $iqill;
     }
     if (strpos($from, $qcache['from']) === FALSE) {
-      // lets replace all the INNER JOIN's in the $from so we dont exclude other data
-      // this happens when we have an event_type in the quert (CRM-7969)
-      $from = str_replace("INNER JOIN", "LEFT JOIN", $from);
-      $from .= $qcache['from'];
+      if (strpos($from, "INNER JOIN") !== FALSE) {
+        // lets replace all the INNER JOIN's in the $from so we dont exclude other data
+        // this happens when we have an event_type in the quert (CRM-7969)
+        $from = str_replace("INNER JOIN", "LEFT JOIN", $from);
+        // Make sure the relationship join right after the FROM and other joins afterwards.
+        // This gives us the possibility to change the join on civicrm case.
+        $from = preg_replace("/LEFT JOIN/", $qcache['from'] . " LEFT JOIN", $from, 1);
+      }
+      else {
+        $from .= $qcache['from'];
+      }
       $where = $qcache['where'];
+      if (!empty($this->_tables['civicrm_case'])) {
+        // Change the join on CiviCRM case so that it joins on the right contac from the relationship.
+        $from = str_replace("ON civicrm_case_contact.contact_id = contact_a.id", "ON civicrm_case_contact.contact_id = transform_temp.contact_id", $from);
+        $where .= " AND displayRelType.case_id = civicrm_case_contact.case_id ";
+      }
       if (!empty($this->_permissionFromClause) && !stripos($from, 'aclContactCache')) {
         $from .= " $this->_permissionFromClause";
       }

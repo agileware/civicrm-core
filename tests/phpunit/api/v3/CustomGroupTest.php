@@ -23,7 +23,7 @@ class api_v3_CustomGroupTest extends CiviUnitTestCase {
 
   public $DBResetRequired = TRUE;
 
-  public function setUp() {
+  public function setUp(): void {
     $this->_entity = 'CustomGroup';
     $this->_params = [
       'title' => 'Test_Group_1',
@@ -39,7 +39,7 @@ class api_v3_CustomGroupTest extends CiviUnitTestCase {
     parent::setUp();
   }
 
-  public function tearDown() {
+  public function tearDown(): void {
     $tablesToTruncate = ['civicrm_custom_group', 'civicrm_custom_field'];
     // true tells quickCleanup to drop any tables that might have been created in the test
     $this->quickCleanup($tablesToTruncate, TRUE);

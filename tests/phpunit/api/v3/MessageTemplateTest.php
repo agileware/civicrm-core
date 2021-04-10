@@ -20,7 +20,7 @@ class api_v3_MessageTemplateTest extends CiviUnitTestCase {
   protected $entity = 'MessageTemplate';
   protected $params;
 
-  public function setUp() {
+  public function setUp(): void {
     $this->_apiversion = 3;
     parent::setUp();
     $this->useTransaction(TRUE);
@@ -36,7 +36,7 @@ class api_v3_MessageTemplateTest extends CiviUnitTestCase {
     ];
   }
 
-  public function tearDown() {
+  public function tearDown(): void {
     parent::tearDown();
     unset(CRM_Core_Config::singleton()->userPermissionClass->permissions);
   }

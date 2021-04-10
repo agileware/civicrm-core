@@ -64,6 +64,7 @@ class CRM_Core_Invoke {
       // may exit
       self::hackMenuRebuild($args);
       self::init($args);
+      Civi::dispatcher()->dispatch('civi.invoke.auth', \Civi\Core\Event\GenericHookEvent::create(['args' => $args]));
       $item = self::getItem($args);
       return self::runItem($item);
     }
@@ -393,6 +394,7 @@ class CRM_Core_Invoke {
       CRM_Utils_Request::retrieve('triggerRebuild', 'Boolean', CRM_Core_DAO::$_nullObject, FALSE, 0, 'GET')
     ) {
       CRM_Core_DAO::triggerRebuild();
+      $config->userSystem->invalidateRouteCache();
     }
     CRM_Core_DAO_AllCoreTables::reinitializeCache(TRUE);
     CRM_Core_ManagedEntities::singleton(TRUE)->reconcile();

@@ -6,12 +6,12 @@
  */
 class CRM_Extension_InfoTest extends CiviUnitTestCase {
 
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     $this->file = NULL;
   }
 
-  public function tearDown() {
+  public function tearDown(): void {
     if ($this->file) {
       unlink($this->file);
     }
@@ -55,7 +55,10 @@ class CRM_Extension_InfoTest extends CiviUnitTestCase {
 
   public function testGood_string_extras() {
     $data = "<extension key='test.bar' type='module'><file>testbar</file>
-      <classloader><psr4 prefix=\"Civi\\\" path=\"Civi\"/></classloader>
+      <classloader>
+        <psr4 prefix=\"Civi\\\" path=\"Civi\"/>
+        <psr0 prefix=\"CRM_\" path=\"\"/>
+      </classloader>
       <requires><ext>org.civicrm.a</ext><ext>org.civicrm.b</ext></requires>
     </extension>
     ";
@@ -65,7 +68,43 @@ class CRM_Extension_InfoTest extends CiviUnitTestCase {
     $this->assertEquals('testbar', $info->file);
     $this->assertEquals('Civi\\', $info->classloader[0]['prefix']);
     $this->assertEquals('Civi', $info->classloader[0]['path']);
+    $this->assertEquals('psr4', $info->classloader[0]['type']);
+    $this->assertEquals('CRM_', $info->classloader[1]['prefix']);
+    $this->assertEquals('', $info->classloader[1]['path']);
+    $this->assertEquals('psr0', $info->classloader[1]['type']);
     $this->assertEquals(['org.civicrm.a', 'org.civicrm.b'], $info->requires);
+  }
+
+  public function getExampleAuthors() {
+    $authorAliceXml = '<author><name>Alice</name><email>alice@example.org</email><role>Maintainer</role></author>';
+    $authorAliceArr = ['name' => 'Alice', 'email' => 'alice@example.org', 'role' => 'Maintainer'];
+    $authorBobXml = ' <author><name>Bob</name><homepage>https://example.com/bob</homepage><role>Developer</role></author>';
+    $authorBobArr = ['name' => 'Bob', 'homepage' => 'https://example.com/bob', 'role' => 'Developer'];
+
+    $maintAliceXml = '<maintainer><author>Alice</author><email>alice@example.org</email></maintainer>';
+    $maintAliceArr = ['author' => 'Alice', 'email' => 'alice@example.org'];
+
+    $hdr = "<extension key='test.author' type='module'><file>testauthor</file>";
+    $ftr = "</extension>";
+
+    // Maintainers can be inputted via either <maintainer> or <authors> (with role).
+    // Maintainers are outputted via both `$info->maintainer` and `$info->authors` (with role)
+
+    $cases = [];
+    $cases[] = ["{$hdr}{$maintAliceXml}{$ftr}", [$authorAliceArr], $maintAliceArr];
+    $cases[] = ["{$hdr}<authors>{$authorAliceXml}</authors>{$ftr}", [$authorAliceArr], $maintAliceArr];
+    $cases[] = ["{$hdr}<authors>{$authorAliceXml}{$authorBobXml}</authors>{$ftr}", [$authorAliceArr, $authorBobArr], $maintAliceArr];
+    $cases[] = ["{$hdr}<authors>{$authorBobXml}</authors>{$ftr}", [$authorBobArr], NULL];
+    return $cases;
+  }
+
+  /**
+   * @dataProvider getExampleAuthors
+   */
+  public function testAuthors($xmlString, $expectAuthors, $expectMaintainer) {
+    $info = CRM_Extension_Info::loadFromString($xmlString);
+    $this->assertEquals($expectAuthors, $info->authors);
+    $this->assertEquals($expectMaintainer, $info->maintainer);
   }
 
   public function testBad_string() {

@@ -32,6 +32,15 @@ class {$table.className} extends CRM_Core_DAO {ldelim}
       */
       public static $_icon = '{$table.icon}';
    {/if}
+
+   {if $table.labelField}
+     /**
+      * Field to show when displaying a record.
+      *
+      * @var string
+      */
+      public static $_labelField = '{$table.labelField}';
+   {/if}
       /**
        * Should CiviCRM log any modifications to this table in the civicrm_log table.
        *
@@ -192,6 +201,9 @@ class {$table.className} extends CRM_Core_DAO {ldelim}
 {/if}
 {if $field.pseudoconstant}
   'pseudoconstant' => {$field.pseudoconstant|@print_array},
+{/if}
+{if $field.readonly || $field.name === $table.primaryKey.name}
+  'readonly' => TRUE,
 {/if}
   'add' => {if $field.add}'{$field.add}'{else}NULL{/if},
 ),

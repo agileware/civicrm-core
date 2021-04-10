@@ -45,7 +45,7 @@ class api_v3_AttachmentTest extends CiviUnitTestCase {
     return self::$filePrefix;
   }
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->useTransaction(TRUE);
 
@@ -53,7 +53,7 @@ class api_v3_AttachmentTest extends CiviUnitTestCase {
     file_put_contents($this->tmpFile('mytest.txt'), 'This comes from a file');
   }
 
-  protected function tearDown() {
+  protected function tearDown(): void {
     parent::tearDown();
     $this->cleanupFiles();
     \Civi::reset();

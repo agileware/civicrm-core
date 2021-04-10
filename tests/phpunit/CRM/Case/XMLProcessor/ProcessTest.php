@@ -7,7 +7,7 @@ require_once 'CiviTest/CiviCaseTestCase.php';
  */
 class CRM_Case_XMLProcessor_ProcessTest extends CiviCaseTestCase {
 
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
 
     $this->defaultAssigneeOptionsValues = [];
@@ -21,7 +21,7 @@ class CRM_Case_XMLProcessor_ProcessTest extends CiviCaseTestCase {
     $this->process = new CRM_Case_XMLProcessor_Process();
   }
 
-  public function tearDown() {
+  public function tearDown(): void {
     $this->deleteMoreRelationshipTypes();
 
     parent::tearDown();

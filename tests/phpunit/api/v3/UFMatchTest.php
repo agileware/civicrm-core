@@ -26,7 +26,7 @@ class api_v3_UFMatchTest extends CiviUnitTestCase {
   protected $_contactId;
   protected $_params = [];
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->quickCleanup(
       [
@@ -48,7 +48,7 @@ class api_v3_UFMatchTest extends CiviUnitTestCase {
     ];
   }
 
-  public function tearDown() {
+  public function tearDown(): void {
     //  Truncate the tables
     $this->quickCleanup(
       [

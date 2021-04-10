@@ -17,7 +17,7 @@ class CRM_Contact_Form_Task_PrintMailingLabelTest extends CiviUnitTestCase {
 
   protected $_contactIds;
 
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->_contactIds = [
       $this->individualCreate(['first_name' => 'Antonia', 'last_name' => 'D`souza']),
@@ -28,7 +28,7 @@ class CRM_Contact_Form_Task_PrintMailingLabelTest extends CiviUnitTestCase {
   /**
    * Clean up after test.
    */
-  protected function tearDown() {
+  protected function tearDown(): void {
     unset($this->_contactIds);
     parent::tearDown();
   }

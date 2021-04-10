@@ -46,7 +46,7 @@ class api_v3_FinancialTypeACLTest extends CiviUnitTestCase {
   /**
    * Setup function.
    */
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
 
     $this->_apiversion = 3;
@@ -91,7 +91,7 @@ class api_v3_FinancialTypeACLTest extends CiviUnitTestCase {
    *
    * @throws \Exception
    */
-  public function tearDown() {
+  public function tearDown(): void {
     $this->quickCleanUpFinancialEntities();
     $this->quickCleanup(['civicrm_uf_match']);
     $this->disableFinancialACLs();
@@ -316,12 +316,13 @@ class api_v3_FinancialTypeACLTest extends CiviUnitTestCase {
     $this->assertEquals($contribution['count'], 1);
   }
 
-  public function testMembersipTypeACLFinancialTypeACL() {
+  public function testMembershipTypeACLFinancialTypeACL() {
     $contactID = $this->individualCreate();
     $this->contactMembershipCreate(['contact_id' => $contactID]);
     $this->enableFinancialACLs();
     $this->setPermissions([
       'access CiviCRM',
+      'access CiviMember',
       'access CiviContribute',
       'view all contacts',
       'add contributions of type Donation',

@@ -7,13 +7,6 @@
 class CRM_Contact_BAO_ContactTest extends CiviUnitTestCase {
 
   /**
-   * Set up function.
-   */
-  public function setUp() {
-    parent::setUp();
-  }
-
-  /**
    * Test case for add( ).
    *
    * test with empty params.
@@ -1787,6 +1780,25 @@ class CRM_Contact_BAO_ContactTest extends CiviUnitTestCase {
         'асдадасда шшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшшш...',
       ],
     ];
+  }
+
+  /**
+   * Show age of contact on Deceased date
+   */
+  public function testAgeOfDeceasedContact() {
+    $birthDate = '1961-06-06';
+    $deceasedDate = '1991-07-07';
+    $age = CRM_Utils_Date::calculateAge($birthDate, $deceasedDate);
+    $this->assertEquals('30', $age['years']);
+  }
+
+  /**
+   * Show age of Contact with current date
+   */
+  public function testAgeOfNormalContact() {
+    $birthDate = '1961-06-06';
+    $age = CRM_Utils_Date::calculateAge($birthDate);
+    $this->assertGreaterThanOrEqual('59', $age['years']);
   }
 
 }

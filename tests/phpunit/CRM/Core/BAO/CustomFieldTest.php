@@ -16,7 +16,7 @@ class CRM_Core_BAO_CustomFieldTest extends CiviUnitTestCase {
    *
    * @throws \Exception
    */
-  public function tearDown() {
+  public function tearDown(): void {
     $this->quickCleanup([], TRUE);
     parent::tearDown();
   }
@@ -48,6 +48,34 @@ class CRM_Core_BAO_CustomFieldTest extends CiviUnitTestCase {
       "Column name ends in ID");
 
     $this->customGroupDelete($customGroup['id']);
+  }
+
+  /**
+   * Test changing a data type from multiple-choice to Text.
+   */
+  public function testChangeDataType() {
+    $customGroup = $this->createCustomField();
+    $fields = [
+      'label' => 'Radio to Text',
+      'is_active' => 1,
+      'data_type' => 'String',
+      'html_type' => 'Radio',
+      'custom_group_id' => $customGroup['id'],
+      'option_type' => 1,
+      'option_label' => ["One", "Two"],
+      'option_value' => [1, 2],
+      'option_weight' => [1, 2],
+      'option_status' => [1, 1],
+    ];
+    $customField = CRM_Core_BAO_CustomField::create($fields);
+    $this->assertNotNull($customField->option_group_id);
+    $fieldsNew = [
+      'id' => $customField->id,
+      'html_type' => 'Text',
+      'custom_group_id' => $customGroup['id'],
+    ];
+    $customFieldModified = CRM_Core_BAO_CustomField::create($fieldsNew);
+    $this->assertFalse($customFieldModified->option_group_id ?? FALSE);
   }
 
   /**
@@ -345,7 +373,6 @@ class CRM_Core_BAO_CustomFieldTest extends CiviUnitTestCase {
     CRM_Core_BAO_CustomField::moveField($fields['countryB']['id'], $groupB['id']);
 
     // Group[A] no longer has fields[countryB]
-    $errorScope = CRM_Core_TemporaryErrorScope::useException();
     try {
       $this->assertDBQuery(1, "SELECT {$fields['countryB']['column_name']} FROM " . $groupA['table_name']);
       $this->fail('Expected exception when querying column on wrong table');
@@ -618,7 +645,7 @@ class CRM_Core_BAO_CustomFieldTest extends CiviUnitTestCase {
         'extends_entity_column_id' => NULL,
         'is_view' => '0',
         'is_multiple' => '0',
-        'option_group_id' => $this->callAPISuccessGetValue('CustomField', ['id' => $this->getCustomFieldID('select_string'), 'return' => 'option_group_id']),
+        'option_group_id' => $this->getOptionGroupID('select_string'),
         'date_format' => NULL,
         'time_format' => NULL,
         'is_required' => 0,
@@ -875,6 +902,44 @@ class CRM_Core_BAO_CustomFieldTest extends CiviUnitTestCase {
         'serialize' => 0,
         'pseudoconstant' => [
           'callback' => 'CRM_Core_SelectValues::boolean',
+        ],
+      ],
+      $this->getCustomFieldName('checkbox') => [
+        'name' => $this->getCustomFieldName('checkbox'),
+        'custom_field_id' => $this->getCustomFieldID('checkbox'),
+        'id' => $this->getCustomFieldID('checkbox'),
+        'groupTitle' => 'Custom Group',
+        'default_value' => NULL,
+        'option_group_id' => $this->getOptionGroupID('checkbox'),
+        'custom_group_id' => $customGroupID,
+        'extends' => 'Contact',
+        'extends_entity_column_value' => NULL,
+        'extends_entity_column_id' => NULL,
+        'is_view' => '0',
+        'is_multiple' => '0',
+        'date_format' => NULL,
+        'time_format' => NULL,
+        'is_required' => 0,
+        'table_name' => 'civicrm_value_custom_group_' . $customGroupID,
+        'column_name' => $this->getCustomFieldColumnName('checkbox'),
+        'where' => 'civicrm_value_custom_group_' . $customGroupID . '.' . $this->getCustomFieldColumnName('checkbox'),
+        'extends_table' => 'civicrm_contact',
+        'search_table' => 'contact_a',
+        'import' => 1,
+        'label' => 'Pick Shade',
+        'headerPattern' => '//',
+        'title' => 'Pick Shade',
+        'data_type' => 'String',
+        'type' => 2,
+        'html_type' => 'CheckBox',
+        'text_length' => NULL,
+        'options_per_line' => NULL,
+        'is_search_range' => '0',
+        'serialize' => '1',
+        'pseudoconstant' => [
+          'optionGroupName' => $this->getOptionGroupName('checkbox'),
+          'optionEditPath' => 'civicrm/admin/options/' . $this->getOptionGroupName('checkbox'),
+
         ],
       ],
     ];

@@ -27,7 +27,7 @@ class api_v3_ProfileTest extends CiviUnitTestCase {
   /**
    * Set up for test.
    */
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     $config = CRM_Core_Config::singleton();
     $countryLimit = $config->countryLimit;
@@ -43,7 +43,7 @@ class api_v3_ProfileTest extends CiviUnitTestCase {
    *
    * @throws \Exception
    */
-  public function tearDown() {
+  public function tearDown(): void {
 
     $this->quickCleanup([
       'civicrm_contact',

@@ -38,9 +38,11 @@ class CRM_Mailing_MailingSystemTest extends CRM_Mailing_BaseMailingSystemTest {
 
   private $counts;
 
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
-    Civi::settings()->add(['experimentalFlexMailerEngine' => FALSE]);
+    // If we happen to execute with flexmailer active, use BAO mode.
+    // There is a parallel FlexMailerSystemTest which runs in flexmailer mode.
+    Civi::settings()->add(['flexmailer_traditional' => 'bao']);
 
     $hooks = \CRM_Utils_Hook::singleton();
     $hooks->setHook('civicrm_alterMailParams',
@@ -55,7 +57,7 @@ class CRM_Mailing_MailingSystemTest extends CRM_Mailing_BaseMailingSystemTest {
     $this->assertEquals('civimail', $context);
   }
 
-  public function tearDown() {
+  public function tearDown(): void {
     global $dbLocale;
     if ($dbLocale) {
       CRM_Core_I18n_Schema::makeSinglelingual('en_US');

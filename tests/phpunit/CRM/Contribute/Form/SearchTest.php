@@ -23,14 +23,14 @@ class CRM_Contribute_Form_SearchTest extends CiviUnitTestCase {
   protected $_individual;
   protected $_tablesToTruncate = ['civicrm_contribution', 'civicrm_line_item'];
 
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     $this->_individual = $this->individualCreate();
     $this->ids['Contact']['contactID1'] = $this->individualCreate([], 1);
     $this->ids['Contact']['contactID2'] = $this->individualCreate([], 2);
   }
 
-  public function tearDown() {
+  public function tearDown(): void {
     $this->quickCleanUpFinancialEntities();
     parent::tearDown();
   }

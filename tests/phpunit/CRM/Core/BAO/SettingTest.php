@@ -21,7 +21,7 @@ class CRM_Core_BAO_SettingTest extends CiviUnitTestCase {
    */
   private $origSetting;
 
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     global $civicrm_setting;
     $this->origSetting = $civicrm_setting;
@@ -33,7 +33,7 @@ class CRM_Core_BAO_SettingTest extends CiviUnitTestCase {
    *
    * @throws \CRM_Core_Exception
    */
-  public function tearDown() {
+  public function tearDown(): void {
     global $civicrm_setting;
     $civicrm_setting = $this->origSetting;
     $this->quickCleanup(['civicrm_contribution']);

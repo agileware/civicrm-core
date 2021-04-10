@@ -15,14 +15,14 @@
  */
 class CRM_Core_ErrorTest extends CiviUnitTestCase {
 
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     $config = CRM_Core_Config::singleton();
     $this->oldConfigAndLogDir = $config->configAndLogDir;
     $config->configAndLogDir = $this->createTempDir('test-log-');
   }
 
-  public function tearDown() {
+  public function tearDown(): void {
     $config = CRM_Core_Config::singleton();
     $config->configAndLogDir = $this->oldConfigAndLogDir;
     parent::tearDown();

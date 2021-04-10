@@ -16,13 +16,12 @@
 class api_v3_MembershipStatusTest extends CiviUnitTestCase {
 
   protected $_contactID;
-  protected $_contributionTypeID;
   protected $_membershipTypeID;
   protected $_membershipStatusID;
 
   protected $_apiversion = 3;
 
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     $this->_contactID = $this->individualCreate();
     $this->_membershipTypeID = $this->membershipTypeCreate(['member_of_contact_id' => $this->_contactID]);
@@ -37,7 +36,7 @@ class api_v3_MembershipStatusTest extends CiviUnitTestCase {
    *
    * @throws \CRM_Core_Exception
    */
-  public function tearDown() {
+  public function tearDown(): void {
     $this->membershipStatusDelete($this->_membershipStatusID);
     $this->membershipTypeDelete(['id' => $this->_membershipTypeID]);
     $this->contactDelete($this->_contactID);

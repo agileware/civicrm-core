@@ -28,7 +28,7 @@ class api_v3_PledgePaymentTest extends CiviUnitTestCase {
    *
    * @throws \CRM_Core_Exception
    */
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     $this->_individualId = $this->individualCreate();
     $this->_pledgeID = $this->pledgeCreate(['contact_id' => $this->_individualId]);
@@ -39,7 +39,7 @@ class api_v3_PledgePaymentTest extends CiviUnitTestCase {
    * Clean up after function.
    * @throws \CRM_Core_Exception
    */
-  public function tearDown() {
+  public function tearDown(): void {
     $tablesToTruncate = [
       'civicrm_contribution',
       'civicrm_contact',

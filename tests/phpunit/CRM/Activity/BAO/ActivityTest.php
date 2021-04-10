@@ -17,7 +17,7 @@ class CRM_Activity_BAO_ActivityTest extends CiviUnitTestCase {
    *
    * @throws \CiviCRM_API3_Exception
    */
-  public function setUp() {
+  public function setUp():void {
     parent::setUp();
     $this->prepareForACLs();
     CRM_Core_Config::singleton()->userPermissionClass->permissions = ['view all contacts', 'access CiviCRM'];
@@ -30,7 +30,7 @@ class CRM_Activity_BAO_ActivityTest extends CiviUnitTestCase {
    * @throws \CRM_Core_Exception
    * @throws \CiviCRM_API3_Exception
    */
-  public function tearDown() {
+  public function tearDown(): void {
     $tablesToTruncate = [
       'civicrm_activity',
       'civicrm_activity_contact',
@@ -1221,7 +1221,7 @@ class CRM_Activity_BAO_ActivityTest extends CiviUnitTestCase {
     $text = __FUNCTION__ . ' text';
     $userID = $loggedInUser;
 
-    list($sent, $activity_id) = $email_result = CRM_Activity_BAO_Activity::sendEmail(
+    list($sent, $activity_ids) = $email_result = CRM_Activity_BAO_Activity::sendEmail(
       $contactDetails,
       $subject,
       $text,
@@ -1231,7 +1231,7 @@ class CRM_Activity_BAO_ActivityTest extends CiviUnitTestCase {
       $from = __FUNCTION__ . '@example.com'
     );
 
-    $activity = $this->civicrm_api('activity', 'getsingle', ['id' => $activity_id, 'version' => $this->_apiversion]);
+    $activity = $this->civicrm_api('activity', 'getsingle', ['id' => $activity_ids[0], 'version' => $this->_apiversion]);
     $details = "-ALTERNATIVE ITEM 0-
 $html
 -ALTERNATIVE ITEM 1-
@@ -1278,7 +1278,7 @@ $text
     $text = __FUNCTION__ . ' text';
     $userID = $loggedInUser;
 
-    list($sent, $activity_id) = $email_result = CRM_Activity_BAO_Activity::sendEmail(
+    list($sent, $activity_ids) = $email_result = CRM_Activity_BAO_Activity::sendEmail(
       $contactDetails,
       $subject,
       $text,
@@ -1294,7 +1294,7 @@ $text
       NULL,
       $campaign_id
     );
-    $activity = $this->civicrm_api('activity', 'getsingle', ['id' => $activity_id, 'version' => $this->_apiversion]);
+    $activity = $this->civicrm_api('activity', 'getsingle', ['id' => $activity_ids[0], 'version' => $this->_apiversion]);
     $this->assertEquals($activity['campaign_id'], $campaign_id, 'Activity campaign_id does not match.');
   }
 
@@ -1543,7 +1543,7 @@ $text
     $text = __FUNCTION__ . ' text';
 
     $mut = new CiviMailUtils($this, TRUE);
-    list($sent, $activity_id) = $email_result = CRM_Activity_BAO_Activity::sendEmail(
+    list($sent, $activity_ids) = $email_result = CRM_Activity_BAO_Activity::sendEmail(
       $contact['values'],
       $subject,
       $text,
@@ -1560,10 +1560,141 @@ $text
       NULL,
       $caseId
     );
-    $activity = $this->callAPISuccess('Activity', 'getsingle', ['id' => $activity_id, 'return' => ['case_id']]);
+    $activity = $this->callAPISuccess('Activity', 'getsingle', ['id' => $activity_ids[0], 'return' => ['case_id']]);
     $this->assertEquals($caseId, $activity['case_id'][0], 'Activity case_id does not match.');
     $mut->checkMailLog(['subject my case']);
     $mut->stop();
+  }
+
+  /**
+   * Checks that tokens are uniquely replaced for contacts.
+   */
+  public function testSendEmailWillReplaceTokensUniquelyForEachContact() {
+    $contactId1 = $this->individualCreate(['last_name' => 'Red']);
+    $contactId2 = $this->individualCreate(['last_name' => 'Pink']);
+
+    // create a logged in USER since the code references it for sendEmail user.
+    $this->createLoggedInUser();
+    $session = CRM_Core_Session::singleton();
+    $loggedInUser = $session->get('userID');
+    $contact = $this->callAPISuccess('Contact', 'get', ['sequential' => 1, 'id' => ['IN' => [$contactId1, $contactId2]]]);
+
+    // Create a campaign.
+    $result = $this->callAPISuccess('Campaign', 'create', [
+      'version' => $this->_apiversion,
+      'title' => __FUNCTION__ . ' campaign',
+    ]);
+    $campaign_id = $result['id'];
+
+    // Add contact tokens in subject, html , text.
+    $subject = __FUNCTION__ . ' subject' . '{contact.display_name}';
+    $html = __FUNCTION__ . ' html' . '{contact.display_name}';
+    $text = __FUNCTION__ . ' text' . '{contact.display_name}';
+    $userID = $loggedInUser;
+
+    CRM_Activity_BAO_Activity::sendEmail(
+      $contact['values'],
+      $subject,
+      $text,
+      $html,
+      $contact['values'][0]['email'],
+      $userID,
+      $from = __FUNCTION__ . '@example.com',
+      $attachments = NULL,
+      $cc = NULL,
+      $bcc = NULL,
+      $contactIds = array_column($contact['values'], 'id'),
+      $additionalDetails = NULL,
+      NULL,
+      $campaign_id
+    );
+    $result = $this->callAPISuccess('activity', 'get', ['campaign_id' => $campaign_id]);
+    // An activity created for each of the two contacts
+    $this->assertEquals(2, $result['count']);
+    $id = 0;
+    foreach ($result['values'] as $activity) {
+      $htmlValue = str_replace('{contact.display_name}', $contact['values'][$id]['display_name'], $html);
+      $textValue = str_replace('{contact.display_name}', $contact['values'][$id]['display_name'], $text);
+      $subjectValue = str_replace('{contact.display_name}', $contact['values'][$id]['display_name'], $subject);
+      $details = "-ALTERNATIVE ITEM 0-
+$htmlValue
+-ALTERNATIVE ITEM 1-
+$textValue
+-ALTERNATIVE END-
+";
+      $this->assertEquals($activity['details'], $details, 'Activity details does not match.');
+      $this->assertEquals($activity['subject'], $subjectValue, 'Activity subject does not match.');
+      $id++;
+    }
+  }
+
+  /**
+   * Checks that attachments are not duplicated for activities.
+   */
+  public function testSendEmailDoesNotDuplicateAttachmentFileIdsForActivitiesCreated() {
+    $contactId1 = $this->individualCreate(['last_name' => 'Red']);
+    $contactId2 = $this->individualCreate(['last_name' => 'Pink']);
+
+    // create a logged in USER since the code references it for sendEmail user.
+    $this->createLoggedInUser();
+    $session = CRM_Core_Session::singleton();
+    $loggedInUser = $session->get('userID');
+    $contact = $this->callAPISuccess('Contact', 'get', ['sequential' => 1, 'id' => ['IN' => [$contactId1, $contactId2]]]);
+
+    // Create a campaign.
+    $result = $this->callAPISuccess('Campaign', 'create', [
+      'version' => $this->_apiversion,
+      'title' => __FUNCTION__ . ' campaign',
+    ]);
+    $campaign_id = $result['id'];
+
+    $subject = __FUNCTION__ . ' subject';
+    $html = __FUNCTION__ . ' html';
+    $text = __FUNCTION__ . ' text';
+    $userID = $loggedInUser;
+
+    $filepath = Civi::paths()->getPath('[civicrm.files]/custom');
+    $fileName = "test_email_create.txt";
+    $fileUri = "{$filepath}/{$fileName}";
+    // Create a file.
+    CRM_Utils_File::createFakeFile($filepath, 'Bananas do not bend themselves without a little help.', $fileName);
+    $attachments = [
+      'attachFile_1' =>
+        [
+          'uri' => $fileUri,
+          'type' => 'text/plain',
+          'location' => $fileUri,
+        ],
+    ];
+
+    CRM_Activity_BAO_Activity::sendEmail(
+      $contact['values'],
+      $subject,
+      $text,
+      $html,
+      $contact['values'][0]['email'],
+      $userID,
+      $from = __FUNCTION__ . '@example.com',
+      $attachments,
+      $cc = NULL,
+      $bcc = NULL,
+      $contactIds = array_column($contact['values'], 'id'),
+      $additionalDetails = NULL,
+      NULL,
+      $campaign_id
+    );
+    $result = $this->callAPISuccess('activity', 'get', ['campaign_id' => $campaign_id]);
+    // An activity created for each of the two contacts, i.e two activities.
+    $this->assertEquals(2, $result['count']);
+    $activityIds = array_column($result['values'], 'id');
+    $result = $this->callAPISuccess('Activity', 'get', [
+      'return' => ['file_id'],
+      'id' => ['IN' => $activityIds],
+      'sequential' => 1,
+    ]);
+
+    // Verify that the that both activities are linked to the same File Id.
+    $this->assertEquals($result['values'][0]['file_id'], $result['values'][1]['file_id']);
   }
 
   /**
@@ -2318,6 +2449,63 @@ $text
         ],
       ],
     ];
+  }
+
+  /**
+   * Test the returned activity ids when there are multiple "To" recipients.
+   * Similar to testSendEmailWillReplaceTokensUniquelyForEachContact but we're
+   * checking the activity ids returned from sendEmail.
+   */
+  public function testSendEmailWithMultipleToRecipients() {
+    $contactId1 = $this->individualCreate(['first_name' => 'Aaaa', 'last_name' => 'Bbbb']);
+    $contactId2 = $this->individualCreate(['first_name' => 'Cccc', 'last_name' => 'Dddd']);
+
+    // create a logged in USER since the code references it for sendEmail user.
+    $loggedInUser = $this->createLoggedInUser();
+    $contacts = $this->callAPISuccess('Contact', 'get', [
+      'sequential' => 1,
+      'id' => ['IN' => [$contactId1, $contactId2]],
+    ]);
+
+    list($sent, $activityIds) = CRM_Activity_BAO_Activity::sendEmail(
+      $contacts['values'],
+      'a subject',
+      'here is some text',
+      '<p>here is some html</p>',
+      $contacts['values'][0]['email'],
+      $loggedInUser,
+      $from = __FUNCTION__ . '@example.com',
+      $attachments = NULL,
+      $cc = NULL,
+      $bcc = NULL,
+      $contactIds = array_column($contacts['values'], 'id'),
+      $additionalDetails = NULL,
+      NULL,
+     $campaign_id = NULL
+    );
+
+    // Get all activities for these contacts
+    $result = $this->callAPISuccess('activity', 'get', [
+      'sequential' => 1,
+      'return' => ['target_contact_id'],
+      'target_contact_id' => ['IN' => [$contactId1, $contactId2]],
+    ]);
+
+    // There should be one activity created for each of the two contacts
+    $this->assertEquals(2, $result['count']);
+
+    // Activity ids returned from sendEmail should match the ones returned from api call.
+    $this->assertEquals($activityIds, array_column($result['values'], 'id'));
+
+    // Is it the right contacts?
+    $this->assertEquals(
+      [0 => [0 => $contactId1], 1 => [0 => $contactId2]],
+      array_column($result['values'], 'target_contact_id')
+    );
+    $this->assertEquals(
+      [0 => [$contactId1 => 'Bbbb, Aaaa'], 1 => [$contactId2 => 'Dddd, Cccc']],
+      array_column($result['values'], 'target_contact_sort_name')
+    );
   }
 
 }

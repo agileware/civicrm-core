@@ -21,7 +21,7 @@
  */
 class CRM_Core_BAO_LocationTest extends CiviUnitTestCase {
 
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
 
     $this->quickCleanup([
@@ -38,7 +38,7 @@ class CRM_Core_BAO_LocationTest extends CiviUnitTestCase {
    * Tears down the fixture, for example, closes a network connection.
    * This method is called after a test is executed.
    */
-  public function tearDown() {
+  public function tearDown(): void {
     $tablesToTruncate = [
       'civicrm_contact',
       'civicrm_openid',

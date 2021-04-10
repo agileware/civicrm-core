@@ -59,6 +59,15 @@ class Afform extends Generic\AbstractEntity {
 
   /**
    * @param bool $checkPermissions
+   * @return Action\Afform\Convert
+   */
+  public static function convert($checkPermissions = TRUE) {
+    return (new Action\Afform\Convert('Afform', __FUNCTION__))
+      ->setCheckPermissions($checkPermissions);
+  }
+
+  /**
+   * @param bool $checkPermissions
    * @return Action\Afform\Prefill
    */
   public static function prefill($checkPermissions = TRUE) {
@@ -117,7 +126,11 @@ class Afform extends Generic\AbstractEntity {
           'name' => 'name',
         ],
         [
+          'name' => 'type',
+        ],
+        [
           'name' => 'requires',
+          'data_type' => 'Array',
         ],
         [
           'name' => 'block',
@@ -141,6 +154,14 @@ class Afform extends Generic\AbstractEntity {
           'data_type' => 'Boolean',
         ],
         [
+          'name' => 'is_token',
+          'data_type' => 'Boolean',
+        ],
+        [
+          'name' => 'contact_summary',
+          'data_type' => 'String',
+        ],
+        [
           'name' => 'repeat',
           'data_type' => 'Mixed',
         ],
@@ -152,21 +173,28 @@ class Afform extends Generic\AbstractEntity {
         ],
         [
           'name' => 'layout',
+          'data_type' => 'Array',
         ],
       ];
-
+      // Calculated fields returned by get action
       if ($self->getAction() === 'get') {
         $fields[] = [
           'name' => 'module_name',
+          'readonly' => TRUE,
         ];
         $fields[] = [
           'name' => 'directive_name',
+          'readonly' => TRUE,
         ];
         $fields[] = [
           'name' => 'has_local',
+          'data_type' => 'Boolean',
+          'readonly' => TRUE,
         ];
         $fields[] = [
           'name' => 'has_base',
+          'data_type' => 'Boolean',
+          'readonly' => TRUE,
         ];
       }
 
@@ -181,6 +209,8 @@ class Afform extends Generic\AbstractEntity {
     return [
       "meta" => ["access CiviCRM"],
       "default" => ["administer CiviCRM"],
+      // These all check form-level permissions
+      'get' => [],
       'prefill' => [],
       'submit' => [],
     ];

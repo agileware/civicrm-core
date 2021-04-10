@@ -22,7 +22,7 @@ class CRM_Contact_Form_Task_EmailCommonTest extends CiviUnitTestCase {
    *
    * @throws \CRM_Core_Exception
    */
-  protected function setUp() {
+  protected function setUp(): void {
     parent::setUp();
     $this->_contactIds = [
       $this->individualCreate(['first_name' => 'Antonia', 'last_name' => 'D`souza']),
@@ -39,7 +39,7 @@ class CRM_Contact_Form_Task_EmailCommonTest extends CiviUnitTestCase {
    *
    * Make sure the  setting is returned to 'stock'.
    */
-  public function tearDown() {
+  public function tearDown(): void {
     Civi::settings()->set('allow_mail_from_logged_in_contact', 0);
     parent::tearDown();
   }

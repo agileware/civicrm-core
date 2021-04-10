@@ -26,11 +26,11 @@ class CRM_Core_I18n_SchemaTest extends CiviUnitTestCase {
     return $tables;
   }
 
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
   }
 
-  public function tearDown() {
+  public function tearDown(): void {
     CRM_Core_I18n_Schema::makeSinglelingual('en_US');
     parent::tearDown();
   }

@@ -50,6 +50,21 @@ class CustomFieldAlterTest extends BaseCustomValueTest {
         ->addValue('label', 'TestText')
         ->addValue('html_type', 'Text'), 0
       )
+      ->addChain('field3', CustomField::create()
+        ->addValue('custom_group_id', '$id')
+        ->addValue('serialize', TRUE)
+        ->addValue('label', 'TestCountry')
+        ->addValue('data_type', 'Country')
+        ->addValue('html_type', 'Select'), 0
+      )
+      ->addChain('field4', CustomField::create()
+        ->addValue('custom_group_id', '$id')
+        ->addValue('serialize', TRUE)
+        ->addValue('is_required', TRUE)
+        ->addValue('label', 'TestContact')
+        ->addValue('data_type', 'ContactReference')
+        ->addValue('html_type', 'Autocomplete-Select'), 0
+      )
       ->execute()
       ->first();
 
@@ -58,7 +73,7 @@ class CustomFieldAlterTest extends BaseCustomValueTest {
       ->addRecord(['subject' => 'A1', 'MyFieldsToAlter.TestText' => 'A1', 'MyFieldsToAlter.TestOptions' => '1'])
       ->addRecord(['subject' => 'A2', 'MyFieldsToAlter.TestText' => 'A2', 'MyFieldsToAlter.TestOptions' => '2'])
       ->addRecord(['subject' => 'A3', 'MyFieldsToAlter.TestText' => 'A3', 'MyFieldsToAlter.TestOptions' => ''])
-      ->addRecord(['subject' => 'A4', 'MyFieldsToAlter.TestText' => 'A4'])
+      ->addRecord(['subject' => 'A4', 'MyFieldsToAlter.TestText' => 'A4', 'MyFieldsToAlter.TestCountry' => [1228, 1039]])
       ->execute();
 
     $result = Activity::get(FALSE)
@@ -74,7 +89,7 @@ class CustomFieldAlterTest extends BaseCustomValueTest {
     $this->assertTrue(empty($result['A3']['MyFieldsToAlter.TestOptions']));
     $this->assertTrue(empty($result['A4']['MyFieldsToAlter.TestOptions']));
 
-    // Change field to multiselect
+    // Change options field to multiselect
     CustomField::update(FALSE)
       ->addWhere('id', '=', $customGroup['field1']['id'])
       ->addValue('serialize', TRUE)
@@ -109,6 +124,44 @@ class CustomFieldAlterTest extends BaseCustomValueTest {
     $this->assertEquals('Two', $result['A2']['MyFieldsToAlter.TestOptions:label']);
     $this->assertTrue(empty($result['A3']['MyFieldsToAlter.TestOptions']));
     $this->assertTrue(empty($result['A4']['MyFieldsToAlter.TestOptions']));
+
+    // Change country field from multiselect to single
+    CustomField::update(FALSE)
+      ->addWhere('id', '=', $customGroup['field3']['id'])
+      ->addValue('serialize', FALSE)
+      ->execute();
+
+    $result = Activity::get(FALSE)
+      ->addWhere('MyFieldsToAlter.TestCountry', 'IS NOT NULL')
+      ->addSelect('custom.*', 'subject')
+      ->execute()->indexBy('subject');
+    $this->assertCount(1, $result);
+    // The two values originally entered will now be one value
+    $this->assertEquals(1228, $result['A4']['MyFieldsToAlter.TestCountry']);
+
+    // Change country field from single to multiselect
+    CustomField::update(FALSE)
+      ->addWhere('id', '=', $customGroup['field3']['id'])
+      ->addValue('serialize', TRUE)
+      ->execute();
+
+    $result = Activity::get(FALSE)
+      ->addWhere('MyFieldsToAlter.TestCountry', 'IS NOT NULL')
+      ->addSelect('custom.*', 'subject')
+      ->execute()->indexBy('subject');
+    $this->assertCount(1, $result);
+    // The two values originally entered will now be one value
+    $this->assertEquals([1228], $result['A4']['MyFieldsToAlter.TestCountry']);
+
+    // Repeatedly change contact ref field to ensure FK index is correctly added/dropped with no SQL error
+    for ($i = 1; $i < 6; ++$i) {
+      CustomField::update(FALSE)
+        ->addWhere('id', '=', $customGroup['field4']['id'])
+        ->addValue('serialize', $i % 2 == 0)
+        ->addValue('is_required', $i % 2 == 0)
+        ->execute();
+    }
+
   }
 
 }

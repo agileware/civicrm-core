@@ -12,7 +12,7 @@ class CRM_Utils_HookTest extends CiviUnitTestCase {
 
   public $log;
 
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     $this->fakeModules = [
       'hooktesta',
@@ -27,7 +27,7 @@ class CRM_Utils_HookTest extends CiviUnitTestCase {
     self::$activeTest = $this;
   }
 
-  public function tearDown() {
+  public function tearDown(): void {
     self::$activeTest = $this;
     parent::tearDown();
   }

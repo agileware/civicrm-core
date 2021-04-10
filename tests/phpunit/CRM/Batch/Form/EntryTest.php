@@ -75,7 +75,7 @@ class CRM_Batch_Form_EntryTest extends CiviUnitTestCase {
    */
   protected $_contactID4 = NULL;
 
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
 
     $params = [
@@ -148,7 +148,7 @@ class CRM_Batch_Form_EntryTest extends CiviUnitTestCase {
    * Tears down the fixture, for example, closes a network connection.
    * This method is called after a test is executed.
    */
-  public function tearDown() {
+  public function tearDown(): void {
     $this->quickCleanUpFinancialEntities();
     $this->relationshipTypeDelete($this->_relationshipTypeId);
     if ($this->callAPISuccessGetCount('membership', ['id' => $this->_membershipTypeID])) {

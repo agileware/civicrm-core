@@ -39,6 +39,10 @@
   name        : Pengyi Zhang
   organization: Agileware
 
+- github      : ahed-compucorp
+  name        : Ahed
+  organization: CompuCorp
+
 - github      : ajdavis
   name        : A. Jesse Jiryu Davis
   organization: MongoDB
@@ -141,6 +145,9 @@
 - name        : Sean Prónay
   organization: Apple Street Market
   jira        : ASMC
+
+- github      : AsylumSeekersCentre
+  name        : Asylum Seekers Centre
 
 - github      : artfulrobot
   name        : Rich Lott
@@ -380,6 +387,13 @@
 
 - github      : don-alejandro-z
 
+- github      : dptarrant
+  name        : Dave T
+
+- github      : dwoods-encircle
+  organization: enCircle Solutions Ltd.
+  name        : Darren Woods
+
 - github      : Erioldoesdesign
   organization: Third Sector Design
   name        : Eriol Fox;
@@ -456,6 +470,8 @@
   name        : Eli Lisseck
   organization: AGH Strategies
   jira        : elilisseck
+
+- github      : elinw
 
 - github      : Elennio
   name        : Elennio Dec
@@ -675,6 +691,8 @@
   name        : Ivan
   organization: CompuCorp
 
+- github      : J0WI
+
 - github      : jaapjansma
   name        : Jaap Jansma
   organization: CiviCoop
@@ -741,6 +759,9 @@
 - github      : jgillmanjr
   name        : Jason Gillman Jr.
   organization: Liquid Web, Inc.
+
+- github      : jgrygierek
+  name        : Jarek
 
 - github      : jitendrapurohit
   name        : Jitendra Purohit
@@ -955,6 +976,10 @@
   name        : Lisa Taliano
   organization: National Urban League
 
+- github      : lucky091588
+
+- github      : lunar-debian
+
 - github      : lyyana
   name        : Yuliyana Liyana
   organization: Oxfam Germany
@@ -1013,6 +1038,8 @@
   name        : Max Tsero
   organization: Atomic Development
 
+- github      : maynardsmith
+
 - github      : mc0e
   name        : Andrew McNaughton
   jira        : mc0e
@@ -1040,8 +1067,8 @@
 
 - github      : mglaman
   name        : Matt Glaman
-  organization: Centarro
-     
+  organization: Bluehorn Digital
+
 - github      : mgribaudo
   name        : Marcello Gribaudo
   jira        : mgribaudo
@@ -1162,6 +1189,9 @@
   name        : Niels Heinemann
   organization: Kompetenzzentrum Technik-Diversity-Chancengleichheit
   jira        : nielo
+
+- github      : nishant-bhorodia
+  name        : Nishant Bhorodia
 
 - github      : highfalutin
   name        : Noah Miller
@@ -1486,6 +1516,8 @@
 - name`       : Stevel
   jira        : stevel
 
+- github      : StijnVanhandsaeme
+
 - github      : stoob
   name        : Stuart Gaston
   organization: Korlon
@@ -1493,7 +1525,7 @@
 
 - github      : sunilpawar
   name        : Sunil Pawar
-  organization: CiviDesk
+  organization: Skvare
   jira        : sunil
 
 - github      : swastikpareek
@@ -1512,6 +1544,8 @@
 
 - github      : tanyabouman
   name        : Tanya Bouman
+
+- github      : tapashdatta
 
 - github      : TBSliver
   name        : Tom Bloor
@@ -1709,3 +1743,11 @@
 - github      : UshaMakoa
   name        : Usha F. Matisson
   organization: Makoa
+
+- github      : ahed-compucorp
+  name        : Ahed Eid
+  organization: CompuCorp
+
+- github      : wintermoor
+  name        : Torben Bertram
+  organization: ECOPLAN

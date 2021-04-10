@@ -1437,28 +1437,27 @@ class CRM_Core_BAO_UFGroup extends CRM_Core_DAO_UFGroup {
   public static function add(&$params, $ids = []) {
     if (empty($params['id']) && !empty($ids['ufgroup'])) {
       $params['id'] = $ids['ufgroup'];
-      Civi::log()->warning('ids parameter is deprecated', ['civi.tag' => 'deprecated']);
-    }
-    $fields = [
-      'is_active',
-      'add_captcha',
-      'is_map',
-      'is_update_dupe',
-      'is_edit_link',
-      'is_uf_link',
-      'is_cms_user',
-    ];
-    foreach ($fields as $field) {
-      $params[$field] = CRM_Utils_Array::value($field, $params, FALSE);
+      CRM_Core_Error::deprecatedWarning('ids parameter is deprecated');
     }
 
-    $params['limit_listings_group_id'] = $params['group'] ?? NULL;
-    $params['add_to_group_id'] = $params['add_contact_to_group'] ?? NULL;
+    // Convert parameter names but don't overwrite existing data on updates
+    // unless explicitly specified. And allow setting to null, so use
+    // array_key_exists. i.e. we need to treat missing and empty separately.
+    if (array_key_exists('group', $params)) {
+      $params['limit_listings_group_id'] = $params['group'];
+    }
+    if (array_key_exists('add_contact_to_group', $params)) {
+      $params['add_to_group_id'] = $params['add_contact_to_group'];
+    }
 
     //CRM-15427
     if (!empty($params['group_type']) && is_array($params['group_type'])) {
       $params['group_type'] = implode(',', $params['group_type']);
     }
+
+    $hook = empty($params['id']) ? 'create' : 'edit';
+    CRM_Utils_Hook::pre($hook, 'UFGroup', ($params['id'] ?? NULL), $params);
+
     $ufGroup = new CRM_Core_DAO_UFGroup();
     $ufGroup->copyValues($params);
 
@@ -1474,6 +1473,8 @@ class CRM_Core_BAO_UFGroup extends CRM_Core_DAO_UFGroup {
       $ufGroup->name = $ufGroup->name . "_{$ufGroup->id}";
       $ufGroup->save();
     }
+
+    CRM_Utils_Hook::post($hook, 'UFGroup', $ufGroup->id, $ufGroup);
 
     return $ufGroup;
   }

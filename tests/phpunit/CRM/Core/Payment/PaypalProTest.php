@@ -20,14 +20,14 @@ class CRM_Core_Payment_PaypalProTest extends CiviUnitTestCase {
   /**
    * @throws \CiviCRM_API3_Exception
    */
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     $this->createPaypalProProcessor();
 
     $this->processor = Civi\Payment\System::singleton()->getById($this->ids['PaymentProcessor']['paypal_pro']);
   }
 
-  public function tearDown() {
+  public function tearDown(): void {
     $this->quickCleanUpFinancialEntities();
     parent::tearDown();
   }

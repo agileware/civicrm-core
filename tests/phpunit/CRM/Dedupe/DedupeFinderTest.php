@@ -26,7 +26,7 @@ class CRM_Dedupe_DedupeFinderTest extends CiviUnitTestCase {
    *
    * @throws \CRM_Core_Exception
    */
-  public function tearDown() {
+  public function tearDown(): void {
 
     foreach ($this->contactIDs as $contactId) {
       $this->contactDelete($contactId);
@@ -321,7 +321,6 @@ class CRM_Dedupe_DedupeFinderTest extends CiviUnitTestCase {
       'email' => 'hood@example.com',
       'street_address' => 'Ambachtstraat 23',
     ];
-    CRM_Core_TemporaryErrorScope::useException();
     $ids = CRM_Contact_BAO_Contact::getDuplicateContacts($fields, 'Individual', 'General', [], TRUE, NULL, ['event_id' => 1]);
 
     // Check with default Individual-General rule

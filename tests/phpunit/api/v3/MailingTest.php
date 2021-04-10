@@ -44,7 +44,7 @@ class api_v3_MailingTest extends CiviUnitTestCase {
    */
   protected $footer;
 
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     $this->useTransaction();
     // DGW
@@ -70,7 +70,7 @@ class api_v3_MailingTest extends CiviUnitTestCase {
     ]);
   }
 
-  public function tearDown() {
+  public function tearDown(): void {
     // DGW
     CRM_Mailing_BAO_MailingJob::$mailsProcessed = 0;
     parent::tearDown();
@@ -79,8 +79,9 @@ class api_v3_MailingTest extends CiviUnitTestCase {
   /**
    * Test civicrm_mailing_create.
    */
-  public function testMailerCreateSuccess() {
-    $result = $this->callAPIAndDocument('mailing', 'create', $this->_params + ['scheduled_date' => 'now'], __FUNCTION__, __FILE__);
+  public function testMailerCreateSuccess(): void {
+    $this->callAPISuccess('Campaign', 'create', ['name' => 'big campaign', 'title' => 'abc']);
+    $result = $this->callAPIAndDocument('mailing', 'create', $this->_params + ['scheduled_date' => 'now', 'campaign_id' => 'big campaign'], __FUNCTION__, __FILE__);
     $jobs = $this->callAPISuccess('mailing_job', 'get', ['mailing_id' => $result['id']]);
     $this->assertEquals(1, $jobs['count']);
     // return isn't working on this in getAndCheck so lets not check it for now
@@ -505,7 +506,7 @@ class api_v3_MailingTest extends CiviUnitTestCase {
       'contact_id' => $contactIDs['carol'],
     ]);
     // END SAMPLE DATA
-
+    unset(Civi::$statics['CRM_Core_Permission_Base']);
     $mail = $this->callAPISuccess('mailing', 'create', $this->_params);
     $deliveredInfo = $this->callAPISuccess($this->_entity, 'send_test', [
       'mailing_id' => $mail['id'],
@@ -710,6 +711,7 @@ class api_v3_MailingTest extends CiviUnitTestCase {
       'group_type' => 'Include',
     ];
     $mailingGroup = $this->callAPISuccess('MailingGroup', 'create', $mgParams);
+    unset(Civi::$statics['CRM_Core_Permission_Base']);
 
     //Include previous mail in the mailing group.
     $mail2 = $this->callAPISuccess('mailing', 'create', $this->_params);
@@ -728,7 +730,6 @@ class api_v3_MailingTest extends CiviUnitTestCase {
     $jobId = CRM_Core_DAO::getFieldValue('CRM_Mailing_DAO_MailingJob', $mail2['id'], 'id', 'mailing_id');
     $hash = CRM_Core_DAO::getFieldValue('CRM_Mailing_Event_DAO_Queue', $jobId, 'hash', 'job_id');
     $queueId = CRM_Core_DAO::getFieldValue('CRM_Mailing_Event_DAO_Queue', $jobId, 'id', 'job_id');
-
     $group = CRM_Mailing_Event_BAO_Unsubscribe::unsub_from_mailing($jobId, $queueId, $hash, TRUE);
     //Assert only one group returns in the unsubscribe list.
     $this->assertCount(1, $group);

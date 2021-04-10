@@ -28,7 +28,7 @@ class api_v3_ACLPermissionTest extends CiviUnitTestCase {
   public $DBResetRequired = FALSE;
   protected $_entity;
 
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     CRM_Core_DAO::createTestObject('CRM_Pledge_BAO_Pledge', [], 1, 0);
     $this->callAPISuccess('Phone', 'create', ['id' => $this->individualCreate(['email' => '']), 'phone' => '911', 'location_type_id' => 'Home']);
@@ -39,7 +39,7 @@ class api_v3_ACLPermissionTest extends CiviUnitTestCase {
    * (non-PHPdoc)
    * @see CiviUnitTestCase::tearDown()
    */
-  public function tearDown() {
+  public function tearDown(): void {
     $this->cleanUpAfterACLs();
     $tablesToTruncate = [
       'civicrm_contact',
@@ -456,7 +456,7 @@ class api_v3_ACLPermissionTest extends CiviUnitTestCase {
    * @dataProvider versionThreeAndFour
    * @throws \CRM_Core_Exception
    */
-  public function testContactGetPledgeNotChainable($version) {
+  public function testContactGetPledgeNotChainable(int $version): void {
     $this->_apiversion = $version;
     $this->hookClass->setHook('civicrm_aclWhereClause', [
       $this,

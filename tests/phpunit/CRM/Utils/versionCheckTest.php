@@ -1,14 +1,12 @@
 <?php
 
+use Civi\Test\Invasive;
+
 /**
  * Class CRM_Utils_versionCheckTest
  * @group headless
  */
 class CRM_Utils_versionCheckTest extends CiviUnitTestCase {
-
-  public function setUp() {
-    parent::setUp();
-  }
 
   /**
    * @var array
@@ -89,7 +87,7 @@ class CRM_Utils_versionCheckTest extends CiviUnitTestCase {
     ],
   ];
 
-  public function tearDown() {
+  public function tearDown(): void {
     parent::tearDown();
     $vc = new CRM_Utils_VersionCheck();
     if (file_exists($vc->cacheFile)) {
@@ -163,16 +161,9 @@ class CRM_Utils_versionCheckTest extends CiviUnitTestCase {
     $address_result = civicrm_api3('address', 'create', $address_params);
 
     // Build stats and test them.
-    $vc = new ReflectionClass('CRM_Utils_VersionCheck');
-    $vc_instance = $vc->newInstance();
-
-    $statsBuilder = $vc->getMethod('getSiteStats');
-    $statsBuilder->setAccessible(TRUE);
-    $statsBuilder->invoke($vc_instance, NULL);
-
-    $statsProperty = $vc->getProperty('stats');
-    $statsProperty->setAccessible(TRUE);
-    $stats = $statsProperty->getValue($vc_instance);
+    $vc = new CRM_Utils_VersionCheck();
+    Invasive::call([$vc, 'getSiteStats']);
+    $stats = Invasive::get([$vc, 'stats']);
 
     // Stats array should have correct elements.
     $this->assertArrayHasKey('version', $stats);

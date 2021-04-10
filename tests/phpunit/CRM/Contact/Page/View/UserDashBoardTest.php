@@ -36,7 +36,7 @@ class CRM_Contact_Page_View_UserDashBoardTest extends CiviUnitTestCase {
   /**
    * Prepare for test
    */
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     $this->contactID = $this->createLoggedInUser();
     $this->listenForPageContent();
@@ -45,7 +45,7 @@ class CRM_Contact_Page_View_UserDashBoardTest extends CiviUnitTestCase {
   /**
    * Clean up after each test.
    */
-  public function tearDown() {
+  public function tearDown(): void {
     $this->quickCleanUpFinancialEntities();
     $this->quickCleanup(['civicrm_uf_match']);
     CRM_Utils_Hook::singleton()->reset();

@@ -26,7 +26,7 @@ class api_v3_PledgeTest extends CiviUnitTestCase {
   /**
    * @throws \CRM_Core_Exception
    */
-  public function setUp() {
+  public function setUp(): void {
     $this->_apiversion = 3;
     parent::setUp();
     $this->quickCleanup(['civicrm_pledge', 'civicrm_pledge_payment']);
@@ -52,7 +52,7 @@ class api_v3_PledgeTest extends CiviUnitTestCase {
     ];
   }
 
-  public function tearDown() {
+  public function tearDown(): void {
     $this->contactDelete($this->_individualId);
   }
 

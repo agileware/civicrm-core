@@ -2066,7 +2066,7 @@ ORDER BY civicrm_email.is_primary DESC";
     else {
       //we should get contact type only if contact
       if ($ufGroupId) {
-        $data['contact_type'] = CRM_Core_BAO_UFField::getProfileType($ufGroupId);
+        $data['contact_type'] = CRM_Core_BAO_UFField::getProfileType($ufGroupId, TRUE, FALSE, TRUE);
 
         //special case to handle profile with only contact fields
         if ($data['contact_type'] == 'Contact') {
@@ -2599,7 +2599,11 @@ LEFT JOIN civicrm_email    ON ( civicrm_contact.id = civicrm_email.contact_id )
       if ($contact->birth_date) {
         $birthDate = CRM_Utils_Date::customFormat($contact->birth_date, '%Y%m%d');
         if ($birthDate < date('Ymd')) {
-          $age = CRM_Utils_Date::calculateAge($birthDate);
+          $deceasedDate = NULL;
+          if (!empty($contact->is_deceased) && !empty($contact->deceased_date)) {
+            $deceasedDate = $contact->deceased_date;
+          }
+          $age = CRM_Utils_Date::calculateAge($birthDate, $deceasedDate);
           $values['age']['y'] = $age['years'] ?? NULL;
           $values['age']['m'] = $age['months'] ?? NULL;
         }
@@ -2657,7 +2661,7 @@ LEFT JOIN civicrm_email    ON ( civicrm_contact.id = civicrm_email.contact_id )
         return CRM_Contribute_BAO_Contribution::contributionCount($contactId);
 
       case 'membership':
-        return CRM_Member_BAO_Membership::getContactMembershipCount($contactId, TRUE);
+        return CRM_Member_BAO_Membership::getContactMembershipCount((int) $contactId, TRUE);
 
       case 'participant':
         return CRM_Event_BAO_Participant::getContactParticipantCount($contactId);
@@ -3181,6 +3185,11 @@ LEFT JOIN civicrm_email    ON ( civicrm_contact.id = civicrm_email.contact_id )
         }
 
         // finally get menu item for -more- action widget.
+        while (!empty($contextMenu['moreActions'][$values['weight']])) {
+          // Quick & dirty way of handling 2 items with the same weight
+          // without clobbering one.
+          $values['weight']++;
+        }
         $contextMenu['moreActions'][$values['weight']] = [
           'title' => $values['title'],
           'ref' => $values['ref'],
@@ -3198,6 +3207,11 @@ LEFT JOIN civicrm_email    ON ( civicrm_contact.id = civicrm_email.contact_id )
           }
 
           // finally get menu item for -more- action widget.
+          while (!empty($contextMenu['otherActions'][$value['weight']])) {
+            // Quick & dirty way of handling 2 items with the same weight
+            // without clobbering one.
+            $value['weight']++;
+          }
           $contextMenu['otherActions'][$value['weight']] = [
             'title' => $value['title'],
             'ref' => $value['ref'],
@@ -3667,7 +3681,6 @@ LEFT JOIN civicrm_address ON ( civicrm_address.contact_id = civicrm_contact.id )
       ['key' => 'organization_name', 'value' => ts('Employer name'), 'type' => 'text', 'condition' => ['contact_type' => 'Individual']],
       ['key' => 'gender_id', 'value' => ts('Gender'), 'condition' => ['contact_type' => 'Individual']],
       ['key' => 'is_deceased', 'value' => ts('Deceased'), 'condition' => ['contact_type' => 'Individual']],
-      ['key' => 'contact_id', 'value' => ts('Contact ID'), 'type' => 'text'],
       ['key' => 'external_identifier', 'value' => ts('External ID'), 'type' => 'text'],
       ['key' => 'source', 'value' => ts('Contact Source'), 'type' => 'text'],
     ];

@@ -6,13 +6,13 @@
  */
 class CRM_Pledge_Form_SearchTest extends CiviUnitTestCase {
 
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     $this->individualID = $this->individualCreate();
     $this->pledgeCreate(['contact_id' => $this->individualID]);
   }
 
-  public function tearDown() {
+  public function tearDown(): void {
     parent::tearDown();
     $tablesToTruncate = [
       'civicrm_activity',

@@ -1,12 +1,14 @@
 <?php
 
+use Civi\Test\Invasive;
+
 /**
  *  Include dataProvider for tests
  * @group headless
  */
 class CRM_Activity_Form_ActivityTest extends CiviUnitTestCase {
 
-  public function setUp() {
+  public function setUp():void {
     parent::setUp();
     $this->assignee1 = $this->individualCreate([
       'first_name' => 'testassignee1',
@@ -39,10 +41,7 @@ class CRM_Activity_Form_ActivityTest extends CiviUnitTestCase {
       'activity_type_id' => $activityTypeId,
     ];
 
-    $activityRef = new ReflectionClass('CRM_Activity_Form_Activity');
-    $method = $activityRef->getMethod('processActivity');
-    $method->setAccessible(TRUE);
-    $method->invokeArgs($form, [&$params]);
+    Invasive::call([$form, 'processActivity'], [&$params]);
 
     $msg = $mut->getMostRecentEmail();
     $this->assertNotEmpty($msg);
@@ -51,7 +50,8 @@ class CRM_Activity_Form_ActivityTest extends CiviUnitTestCase {
     //Block Meeting notification.
     Civi::settings()->set('do_not_notify_assignees_for', [$activityTypeId]);
     $params['assignee_contact_id'] = [$this->assignee2];
-    $method->invokeArgs($form, [&$params]);
+    Invasive::call([$form, 'processActivity'], [&$params]);
+
     $msg = $mut->getMostRecentEmail();
     $this->assertEmpty($msg);
   }

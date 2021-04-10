@@ -246,21 +246,11 @@ class CRM_Contact_BAO_GroupContactCacheTest extends CiviUnitTestCase {
   private $_testObjects;
 
   /**
-   * Sets up the fixture, for example, opens a network connection.
-   *
-   * This method is called before a test is executed.
-   */
-  protected function setUp() {
-    $this->_testObjects = [];
-    parent::setUp();
-  }
-
-  /**
    * Tears down the fixture, for example, closes a network connection.
    *
    * This method is called after a test is executed.
    */
-  protected function tearDown() {
+  protected function tearDown(): void {
     parent::tearDown();
     $this->deleteTestObjects();
   }
@@ -390,8 +380,7 @@ class CRM_Contact_BAO_GroupContactCacheTest extends CiviUnitTestCase {
     );
 
     $afterGroup = $this->callAPISuccessGetSingle('Group', ['id' => $group->id]);
-    $this->assertTrue(empty($afterGroup['cache_date']), 'refresh date should not be set as the cache is not built');
-    $this->assertTrue(empty($afterGroup['refresh_date']), 'refresh date should not be set as the cache is not built');
+    $this->assertTrue(empty($afterGroup['cache_date']), 'cache date should not be set as the cache is not built');
   }
 
   /**

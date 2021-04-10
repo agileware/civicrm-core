@@ -15,7 +15,7 @@
  */
 class api_v3_CaseTypeTest extends CiviCaseTestCase {
 
-  public function setUp() {
+  public function setUp(): void {
     $this->quickCleanup(['civicrm_case_type']);
     parent::setUp();
 
@@ -53,7 +53,7 @@ class api_v3_CaseTypeTest extends CiviCaseTestCase {
    *
    * This method is called after a test is executed.
    */
-  public function tearDown() {
+  public function tearDown(): void {
     parent::tearDown();
     $this->quickCleanup(['civicrm_case_type', 'civicrm_uf_match']);
   }

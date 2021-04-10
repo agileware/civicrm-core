@@ -140,6 +140,8 @@ class CRM_Core_Payment_BaseIPN {
   /**
    * Load objects related to contribution.
    *
+   * @deprecated
+   *
    * @input array information from Payment processor
    *
    * @param array $input
@@ -152,6 +154,7 @@ class CRM_Core_Payment_BaseIPN {
    * @throws \CRM_Core_Exception
    */
   public function loadObjects($input, &$ids, &$objects, $required, $paymentProcessorID) {
+    CRM_Core_Error::deprecatedFunctionWarning('use api methods in ipn');
     $contribution = &$objects['contribution'];
     $ids['paymentProcessor'] = $paymentProcessorID;
     $success = $contribution->loadRelatedObjects($input, $ids);
@@ -422,7 +425,7 @@ class CRM_Core_Payment_BaseIPN {
       'related_contact' => $ids['related_contact'] ?? NULL,
       'participant' => !empty($objects['participant']) ? $objects['participant']->id : NULL,
       'contributionRecur' => !empty($objects['contributionRecur']) ? $objects['contributionRecur']->id : NULL,
-    ], $objects['contribution']);
+    ], $objects['contribution']->id ?? NULL);
   }
 
   /**

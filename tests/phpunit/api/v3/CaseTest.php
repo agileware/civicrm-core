@@ -58,7 +58,7 @@ class api_v3_CaseTest extends CiviCaseTestCase {
    * Connect to the database, truncate the tables that will be used
    * and redirect stdin to a temporary file.
    */
-  public function setUp() {
+  public function setUp(): void {
     $this->_entity = 'case';
 
     parent::setUp();
@@ -80,7 +80,7 @@ class api_v3_CaseTest extends CiviCaseTestCase {
     $this->settingsStack = new \Civi\Core\SettingsStack();
   }
 
-  public function tearDown() {
+  public function tearDown(): void {
     $this->settingsStack->popAll();
     parent::tearDown();
   }
@@ -141,7 +141,7 @@ class api_v3_CaseTest extends CiviCaseTestCase {
    */
   public function testCaseCreate() {
     $params = $this->_params;
-    // Test using label instead of value.
+    // Test using name instead of value.
     unset($params['case_type_id']);
     $params['case_type'] = $this->caseType;
     $result = $this->callAPIAndDocument('case', 'create', $params, __FUNCTION__, __FILE__);
@@ -159,7 +159,7 @@ class api_v3_CaseTest extends CiviCaseTestCase {
    */
   public function testCaseCreateWithResolvedStatus() {
     $params = $this->_params;
-    // Test using label instead of value.
+    // Test using name instead of value.
     unset($params['case_type_id']);
     $params['case_type'] = $this->caseType;
     $params['status_id'] = 'Closed';
@@ -178,7 +178,7 @@ class api_v3_CaseTest extends CiviCaseTestCase {
       'sequential' => 1,
       'case_id' => $id,
     ]);
-    foreach ($relationships['values'] as $key => $values) {
+    foreach ($relationships['values'] as $values) {
       $this->assertEquals($values['end_date'], date('Y-m-d'));
     }
 

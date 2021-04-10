@@ -41,7 +41,7 @@ class api_v3_RelationshipTest extends CiviUnitTestCase {
   /**
    * Set up function.
    */
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     $this->_cId_a = $this->individualCreate();
     $this->_cId_a_2 = $this->individualCreate([
@@ -79,7 +79,7 @@ class api_v3_RelationshipTest extends CiviUnitTestCase {
    *
    * @throws \Exception
    */
-  public function tearDown() {
+  public function tearDown(): void {
     $this->contactDelete($this->_cId_a);
     $this->contactDelete($this->_cId_a_2);
     $this->contactDelete($this->_cId_b);
@@ -1041,7 +1041,7 @@ class api_v3_RelationshipTest extends CiviUnitTestCase {
     $this->assertEquals(1, $result['count']);
     $result = $this->callAPISuccess($this->entity, 'get', [
       'contact_id' => $this->_cId_a,
-      'relationship_type_id' => $this->_relTypeID + 1,
+      'relationship_type_id' => 1,
     ]);
     $this->assertEquals(0, $result['count']);
     $this->callAPISuccess($this->entity, 'delete', ['id' => $created['id']]);
@@ -1070,7 +1070,7 @@ class api_v3_RelationshipTest extends CiviUnitTestCase {
     $this->assertEquals(1, $result['count']);
     $result = $this->callAPISuccess($this->entity, 'get', [
       'contact_id_a' => $this->_cId_a,
-      'relationship_type_id' => $this->_relTypeID + 1,
+      'relationship_type_id' => 1,
     ]);
     $this->assertEquals(0, $result['count']);
   }

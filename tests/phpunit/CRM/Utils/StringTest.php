@@ -6,8 +6,17 @@
  */
 class CRM_Utils_StringTest extends CiviUnitTestCase {
 
-  public function setUp() {
-    parent::setUp();
+  public function testBase64Url() {
+    $examples = [
+      'a' => 'YQ',
+      'ab' => 'YWI',
+      'abc' => 'YWJj',
+      '3f>' => 'M2Y-',
+    ];
+    foreach ($examples as $raw => $b64) {
+      $this->assertEquals($b64, CRM_Utils_String::base64UrlEncode($raw));
+      $this->assertEquals($raw, CRM_Utils_String::base64UrlDecode($b64));
+    }
   }
 
   public function testStripPathChars() {

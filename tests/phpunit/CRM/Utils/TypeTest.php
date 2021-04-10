@@ -8,10 +8,6 @@
  */
 class CRM_Utils_TypeTest extends CiviUnitTestCase {
 
-  public function setUp() {
-    parent::setUp();
-  }
-
   /**
    * @dataProvider validateDataProvider
    * @param $inputData
@@ -131,6 +127,11 @@ class CRM_Utils_TypeTest extends CiviUnitTestCase {
       ['field(contribution_status_id,4,5,6) asc, contact_id asc', 'MysqlOrderBy', 'field(`contribution_status_id`,4,5,6) asc, `contact_id` asc'],
       ['table.civicrm_column_name desc,other_column,another_column desc', 'MysqlOrderBy', '`table`.`civicrm_column_name` desc, `other_column`, `another_column` desc'],
       ['table.`Home-street_address` asc, `table-alias`.`Home-street_address` desc,`table-alias`.column', 'MysqlOrderBy', '`table`.`Home-street_address` asc, `table-alias`.`Home-street_address` desc, `table-alias`.`column`'],
+      [TRUE, 'Boolean', TRUE],
+      [FALSE, 'Boolean', FALSE],
+      ['TRUE', 'Boolean', 'TRUE'],
+      ['false', 'Boolean', 'false'],
+      ['banana', 'Boolean', NULL],
     ];
   }
 

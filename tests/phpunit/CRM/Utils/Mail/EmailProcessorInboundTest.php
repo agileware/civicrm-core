@@ -13,7 +13,7 @@ class CRM_Utils_Mail_EmailProcessorInboundTest extends CiviUnitTestCase {
    */
   protected $mailSettingsId;
 
-  public function setUp() {
+  public function setUp(): void {
     parent::setUp();
     CRM_Utils_File::cleanDir(__DIR__ . '/data/mail');
     mkdir(__DIR__ . '/data/mail');
@@ -30,7 +30,7 @@ class CRM_Utils_Mail_EmailProcessorInboundTest extends CiviUnitTestCase {
     ])['id'];
   }
 
-  public function tearDown() {
+  public function tearDown(): void {
     CRM_Utils_File::cleanDir(__DIR__ . '/data/mail');
     $this->callAPISuccess('MailSettings', 'delete', [
       'id' => $this->mailSettingsId,

@@ -31,31 +31,22 @@ class CRM_Contact_Import_Parser_ContactTest extends CiviUnitTestCase {
   protected $entity = 'Contact';
 
   /**
-   * Setup function.
-   */
-  public function setUp() {
-    parent::setUp();
-  }
-
-  /**
    * Tear down after test.
    *
    * @throws \CRM_Core_Exception
    */
-  public function tearDown() {
+  public function tearDown(): void {
     $this->quickCleanup(['civicrm_address', 'civicrm_phone', 'civicrm_email'], TRUE);
     parent::tearDown();
   }
 
   /**
    * Test that import parser will add contact with employee of relationship.
-   *
-   * @throws \Exception
    */
-  public function testImportParserWtihEmployeeOfRelationship() {
+  public function testImportParserWithEmployeeOfRelationship(): void {
     $this->organizationCreate([
-      "organization_name" => "Agileware",
-      "legal_name"        => "Agileware",
+      'organization_name' => 'Agileware',
+      'legal_name'        => 'Agileware',
     ]);
     $contactImportValues = [
       "first_name"  => "Alok",
@@ -97,16 +88,18 @@ class CRM_Contact_Import_Parser_ContactTest extends CiviUnitTestCase {
   }
 
   /**
-   * Test that import parser will not fail when same external_identifier found of deleted contact.
+   * Test that import parser will not fail when same external_identifier found
+   * of deleted contact.
    *
    * @throws \CRM_Core_Exception
+   * @throws \CiviCRM_API3_Exception
    */
-  public function testImportParserWtihDeletedContactExternalIdentifier() {
+  public function testImportParserWithDeletedContactExternalIdentifier(): void {
     $contactId = $this->individualCreate([
       'external_identifier' => 'ext-1',
     ]);
     $this->callAPISuccess('Contact', 'delete', ['id' => $contactId]);
-    list($originalValues, $result) = $this->setUpBaseContact([
+    [$originalValues, $result] = $this->setUpBaseContact([
       'external_identifier' => 'ext-1',
     ]);
     $originalValues['nick_name'] = 'Old Bill';
@@ -121,10 +114,10 @@ class CRM_Contact_Import_Parser_ContactTest extends CiviUnitTestCase {
    *
    * In this case the contact has no external identifier.
    *
-   * @throws \Exception
+   * @throws \CRM_Core_Exception
    */
-  public function testImportParserWithUpdateWithoutExternalIdentifier() {
-    list($originalValues, $result) = $this->setUpBaseContact();
+  public function testImportParserWithUpdateWithoutExternalIdentifier(): void {
+    [$originalValues, $result] = $this->setUpBaseContact();
     $originalValues['nick_name'] = 'Old Bill';
     $this->runImport($originalValues, CRM_Import_Parser::DUPLICATE_UPDATE, CRM_Import_Parser::VALID);
     $originalValues['id'] = $result['id'];
@@ -140,7 +133,7 @@ class CRM_Contact_Import_Parser_ContactTest extends CiviUnitTestCase {
    * @throws \Exception
    */
   public function testImportParserWithUpdateWithExternalIdentifier() {
-    list($originalValues, $result) = $this->setUpBaseContact(['external_identifier' => 'windows']);
+    [$originalValues, $result] = $this->setUpBaseContact(['external_identifier' => 'windows']);
 
     $this->assertEquals($result['id'], CRM_Core_DAO::getFieldValue('CRM_Contact_DAO_Contact', 'windows', 'id', 'external_identifier', TRUE));
     $this->assertEquals('windows', $result['external_identifier']);
@@ -163,7 +156,7 @@ class CRM_Contact_Import_Parser_ContactTest extends CiviUnitTestCase {
    * @throws \Exception
    */
   public function testImportParserWithUpdateWithExternalIdentifierButNoPrimaryMatch() {
-    list($originalValues, $result) = $this->setUpBaseContact([
+    [$originalValues, $result] = $this->setUpBaseContact([
       'external_identifier' => 'windows',
       'email' => NULL,
     ]);
@@ -188,7 +181,7 @@ class CRM_Contact_Import_Parser_ContactTest extends CiviUnitTestCase {
    * @throws \Exception
    */
   public function testImportParserWithUpdateWithContactID() {
-    list($originalValues, $result) = $this->setUpBaseContact([
+    [$originalValues, $result] = $this->setUpBaseContact([
       'external_identifier' => '',
       'email' => NULL,
     ]);
@@ -208,7 +201,7 @@ class CRM_Contact_Import_Parser_ContactTest extends CiviUnitTestCase {
    * @throws \Exception
    */
   public function testImportParserWithUpdateWithNoExternalIdentifier() {
-    list($originalValues, $result) = $this->setUpBaseContact();
+    [$originalValues, $result] = $this->setUpBaseContact();
     $originalValues['nick_name'] = 'Old Bill';
     $originalValues['external_identifier'] = 'windows';
     $this->runImport($originalValues, CRM_Import_Parser::DUPLICATE_UPDATE, CRM_Import_Parser::VALID);
@@ -223,7 +216,7 @@ class CRM_Contact_Import_Parser_ContactTest extends CiviUnitTestCase {
    * @throws \Exception
    */
   public function testImportParserWithUpdateWithChangedExternalIdentifier() {
-    list($contactValues, $result) = $this->setUpBaseContact(['external_identifier' => 'windows']);
+    [$contactValues, $result] = $this->setUpBaseContact(['external_identifier' => 'windows']);
     $contact_id = $result['id'];
     $contactValues['nick_name'] = 'Old Bill';
     $contactValues['external_identifier'] = 'android';
@@ -239,7 +232,7 @@ class CRM_Contact_Import_Parser_ContactTest extends CiviUnitTestCase {
    * @throws \Exception
    */
   public function testImportBillingAddress() {
-    list($contactValues) = $this->setUpBaseContact();
+    [$contactValues] = $this->setUpBaseContact();
     $contactValues['nick_name'] = 'Old Bill';
     $contactValues['external_identifier'] = 'android';
     $contactValues['street_address'] = 'Big Mansion';
@@ -349,7 +342,7 @@ class CRM_Contact_Import_Parser_ContactTest extends CiviUnitTestCase {
    * @throws \Exception
    */
   public function testImportPrimaryAddress() {
-    list($contactValues) = $this->setUpBaseContact();
+    [$contactValues] = $this->setUpBaseContact();
     $contactValues['nick_name'] = 'Old Bill';
     $contactValues['external_identifier'] = 'android';
     $contactValues['street_address'] = 'Big Mansion';
@@ -424,7 +417,7 @@ class CRM_Contact_Import_Parser_ContactTest extends CiviUnitTestCase {
    */
   public function testAddressWithCustomData() {
     $ids = $this->entityCustomGroupWithSingleFieldCreate('Address', 'AddressTest.php');
-    list($contactValues) = $this->setUpBaseContact();
+    [$contactValues] = $this->setUpBaseContact();
     $contactValues['nick_name'] = 'Old Bill';
     $contactValues['external_identifier'] = 'android';
     $contactValues['street_address'] = 'Big Mansion';
@@ -532,7 +525,7 @@ class CRM_Contact_Import_Parser_ContactTest extends CiviUnitTestCase {
    * @throws \Exception
    */
   public function testImportDeceased() {
-    list($contactValues) = $this->setUpBaseContact();
+    [$contactValues] = $this->setUpBaseContact();
     CRM_Core_Session::singleton()->set("dateTypes", 1);
     $contactValues['birth_date'] = '1910-12-17';
     $contactValues['deceased_date'] = '2010-12-17';
@@ -550,7 +543,7 @@ class CRM_Contact_Import_Parser_ContactTest extends CiviUnitTestCase {
    * @throws \Exception
    */
   public function testImportTwoAddressFirstPrimary() {
-    list($contactValues) = $this->setUpBaseContact();
+    [$contactValues] = $this->setUpBaseContact();
     $contactValues['nick_name'] = 'Old Bill';
     $contactValues['external_identifier'] = 'android';
     $contactValues['street_address'] = 'Big Mansion';
@@ -615,7 +608,7 @@ class CRM_Contact_Import_Parser_ContactTest extends CiviUnitTestCase {
    * @throws \Exception
    */
   public function testImportTwoAddressSecondPrimary() {
-    list($contactValues) = $this->setUpBaseContact();
+    [$contactValues] = $this->setUpBaseContact();
     $contactValues['nick_name'] = 'Old Bill';
     $contactValues['external_identifier'] = 'android';
     $contactValues['street_address'] = 'Big Mansion';
@@ -654,7 +647,7 @@ class CRM_Contact_Import_Parser_ContactTest extends CiviUnitTestCase {
    * @throws \Exception
    */
   public function testImportPrimaryAddressUpdate() {
-    list($contactValues) = $this->setUpBaseContact(['external_identifier' => 'android']);
+    [$contactValues] = $this->setUpBaseContact(['external_identifier' => 'android']);
     $contactValues['email'] = 'melinda.gates@microsoft.com';
     $contactValues['phone'] = '98765';
     $contactValues['external_identifier'] = 'android';
@@ -802,14 +795,16 @@ class CRM_Contact_Import_Parser_ContactTest extends CiviUnitTestCase {
 
   /**
    * CRM-19888 default country should be used if ambigous.
+   *
+   * @throws \CRM_Core_Exception
    */
-  public function testImportAmbiguousStateCountry() {
+  public function testImportAmbiguousStateCountry(): void {
     $this->callAPISuccess('Setting', 'create', ['defaultContactCountry' => 1228]);
     $countries = CRM_Core_PseudoConstant::country(FALSE, FALSE);
     $this->callAPISuccess('Setting', 'create', ['countryLimit' => [array_search('United States', $countries), array_search('Guyana', $countries), array_search('Netherlands', $countries)]]);
     $this->callAPISuccess('Setting', 'create', ['provinceLimit' => [array_search('United States', $countries), array_search('Guyana', $countries), array_search('Netherlands', $countries)]]);
     $mapper = [0 => NULL, 1 => NULL, 2 => 'Primary', 3 => NULL];
-    list($contactValues) = $this->setUpBaseContact();
+    [$contactValues] = $this->setUpBaseContact();
     $fields = array_keys($contactValues);
     $addressValues = [
       'street_address' => 'PO Box 2716',
@@ -851,8 +846,11 @@ class CRM_Contact_Import_Parser_ContactTest extends CiviUnitTestCase {
    *   that method does not cope with duplicates.
    * @param int|null $ruleGroupId
    *   To test against a specific dedupe rule group, pass its ID as this argument.
+   *
+   * @throws \CRM_Core_Exception
+   * @throws \CiviCRM_API3_Exception
    */
-  protected function runImport($originalValues, $onDuplicateAction, $expectedResult, $mapperLocType = [], $fields = NULL, int $ruleGroupId = NULL) {
+  protected function runImport(array $originalValues, $onDuplicateAction, $expectedResult, $mapperLocType = [], $fields = NULL, int $ruleGroupId = NULL): void {
     if (!$fields) {
       $fields = array_keys($originalValues);
     }

@@ -6,10 +6,6 @@
  */
 class CRM_Utils_RuleTest extends CiviUnitTestCase {
 
-  public function setUp() {
-    parent::setUp();
-  }
-
   /**
    * @dataProvider integerDataProvider
    * @param $inputData
@@ -76,6 +72,28 @@ class CRM_Utils_RuleTest extends CiviUnitTestCase {
       [-10, TRUE],
       ['-10', TRUE],
       ['-10foo', FALSE],
+    ];
+  }
+
+  /**
+   * @dataProvider booleanDataProvider
+   * @param $inputData
+   * @param $expectedResult
+   */
+  public function testBoolean($inputData, $expectedResult) {
+    $this->assertEquals($expectedResult, CRM_Utils_Rule::boolean($inputData));
+  }
+
+  /**
+   * @return array
+   */
+  public function booleanDataProvider() {
+    return [
+      [TRUE, TRUE],
+      ['TRUE', TRUE],
+      [FALSE, TRUE],
+      ['false', TRUE],
+      ['banana', FALSE],
     ];
   }
 
