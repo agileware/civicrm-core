@@ -36,6 +36,7 @@ class CRM_Contact_Page_DashBoard extends CRM_Core_Page {
       $this->assign('hookContentPlacement', $contentPlacement);
     }
 
+    /* CIVIBLD-243 - Disable the CiviCRM Community Messages
     $communityMessages = CRM_Core_CommunityMessages::create();
     if ($communityMessages->isEnabled()) {
       $message = $communityMessages->pick();
@@ -43,6 +44,7 @@ class CRM_Contact_Page_DashBoard extends CRM_Core_Page {
         $this->assign('communityMessages', $communityMessages->evalMarkup($message['markup']));
       }
     }
+   */
 
     $loader = Civi::service('angularjs.loader');
     $loader->addModules('crmDashboard');
