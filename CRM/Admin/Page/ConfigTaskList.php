@@ -39,8 +39,6 @@ class CRM_Admin_Page_ConfigTaskList extends CRM_Core_Page {
     $destination = urlencode($destination);
     $this->assign('destination', $destination);
 
-    $this->assign('registerSite', htmlspecialchars('https://civicrm.org/register-your-site?src=iam&sid=' . CRM_Utils_System::getSiteID()));
-
     //Provide ability to optionally display some component checklist items when components are on
     $result = civicrm_api3('Setting', 'get', [
       'sequential' => 1,

@@ -30,10 +30,6 @@
         <td class="tasklist nowrap"><a href="{crmURL p="civicrm/admin/setting/component" q="action=update&reset=1&civicrmDestination=`$destination`"}" title="{$linkTitle|escape}">{ts}Enable components{/ts}</a></td>
         <td>{ts}Enable the required CiviCRM components.(CiviContribute, CiviEvent etc.){/ts}</td>
     </tr>
-    <tr class="even">
-        <td class="tasklist nowrap"><a href="{$registerSite}" title="{ts}Register your site at CiviCRM.org. Opens in a new window.{/ts}" target="_blank">{ts}Register your site{/ts}</a></td>
-        <td>{ts}Register your site, join the community, and help CiviCRM remain a leading CRM for organizations worldwide.{/ts}</td>
-    </tr>
 
     <tr class="columnheader">
         <td colspan="2">{ts}Viewing and Editing Contacts{/ts}</td>
