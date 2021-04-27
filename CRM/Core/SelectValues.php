@@ -1203,4 +1203,19 @@ class CRM_Core_SelectValues {
     ];
   }
 
+  /**
+   * @return array
+   */
+  public static function timezone() {
+    static $tzlist = NULL;
+
+    if(is_null($tzlist)) {
+      $tzlist = [];
+      foreach (timezone_identifiers_list() as $tz) {
+        $tzlist[$tz] = $tz;
+      }
+    }
+
+    return $tzlist;
+  }
 }
