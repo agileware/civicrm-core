@@ -89,6 +89,12 @@ class CRM_Upgrade_Incremental_php_FiveFortyOne extends CRM_Upgrade_Incremental_B
     $this->addTask('Replace contribution page id token in action schedule',
       'updateActionScheduleToken', 'contribution.contribution_page_id', 'contribution.contribution_page_id:label', $rev
     );
+
+    $this->addTask('core-issue#2122 - Add timezone column to Events', 'addColumn',
+      'civicrm_event', 'event_tz', "text NULL DEFAULT NULL COMMENT 'Event\'s native time zone'"
+    );
+    $this->addTask('core-issue#2122 - Set the timezone to the default for existing Events', 'setEventTZDefault');
+
   }
 
   /**
@@ -118,6 +124,17 @@ class CRM_Upgrade_Incremental_php_FiveFortyOne extends CRM_Upgrade_Incremental_B
       'is_active' => 1,
     ]);
     CRM_Core_DAO::executeQuery($insert->usingReplace()->toSQL());
+    return TRUE;
+  }
+
+  /**
+   * Set the timezone to the default for existing Events.
+   */
+  public static function setEventTZDefault(CRM_Queue_TaskContext $ctx) {
+    // Set default for CiviCRM Events to user system timezone (most reasonable default);
+    $defaultTZ = CRM_Core_Config::singleton()->userSystem->getTimeZoneString();
+    CRM_Core_DAO::executeQuery('UPDATE `civicrm_event` SET `event_tz` = %1 WHERE `event_tz` IS NULL;', [1 => [$defaultTZ, 'String']]);
+
     return TRUE;
   }
 
