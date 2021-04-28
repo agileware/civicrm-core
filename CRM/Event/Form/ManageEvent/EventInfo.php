@@ -100,6 +100,8 @@ class CRM_Event_Form_ManageEvent_EventInfo extends CRM_Event_Form_ManageEvent {
 
     $defaults['waitlist_text'] = CRM_Utils_Array::value('waitlist_text', $defaults, ts('This event is currently full. However you can register now and get added to a waiting list. You will be notified if spaces become available.'));
     $defaults['template_id'] = $this->_templateId;
+
+    $defaults['event_tz'] = CRM_Utils_Array::value('event_tz', $defaults, date_default_timezone_get());
     return $defaults;
   }
 
@@ -158,6 +160,8 @@ class CRM_Event_Form_ManageEvent_EventInfo extends CRM_Event_Form_ManageEvent {
     $this->addElement('checkbox', 'is_public', ts('Public Event'));
     $this->addElement('checkbox', 'is_share', ts('Add footer region with Twitter, Facebook and LinkedIn share buttons and scripts?'));
     $this->addElement('checkbox', 'is_map', ts('Include Map to Event Location'));
+
+    $this->addSelect('event_tz', ['placeholder' => ts('- Select time zone -')], TRUE);
 
     $this->add('datepicker', 'start_date', ts('Start'), [], !$this->_isTemplate, ['time' => TRUE]);
     $this->add('datepicker', 'end_date', ts('End'), [], FALSE, ['time' => TRUE]);
