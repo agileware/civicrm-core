@@ -15,6 +15,7 @@
  * @copyright CiviCRM LLC https://civicrm.org/licensing
  */
 class CRM_Event_BAO_Event extends CRM_Event_DAO_Event {
+  const tz_fields = ['start_date', 'end_date', 'registration_start_date', 'registration_end_date'];
 
   /**
    * Class constructor.
@@ -34,7 +35,7 @@ class CRM_Event_BAO_Event extends CRM_Event_DAO_Event {
    * @return CRM_Event_DAO_Event
    */
   public static function retrieve(&$params, &$defaults) {
-    $event = new CRM_Event_DAO_Event();
+    $event = new CRM_Event_BAO_Event();
     $event->copyValues($params);
     if ($event->find(TRUE)) {
       CRM_Core_DAO::storeValues($event, $defaults);
@@ -76,6 +77,21 @@ class CRM_Event_BAO_Event extends CRM_Event_DAO_Event {
     }
     else {
       CRM_Utils_Hook::pre('create', 'Event', NULL, $params);
+    }
+
+    // Pre-process time zoned fields into the PHP time zone, which should be the same as the database, to save as timestamp.
+    $timezone_event = new DateTimeZone(
+      ($params['event_tz'] ?: (
+        !empty($params['id']) ? CRM_Core_DAO::getFieldValue('CRM_Event_DAO_Event', $params['id'], 'event_tz') : NULL)
+      ) ?? date_default_timezone_get());
+    $timezone_default = new DateTimeZone(date_default_timezone_get());
+
+    foreach(self::tz_fields as $field) {
+      if(!empty($params[$field])) {
+        $translated_date = DateTime::createFromFormat('Y-m-d H:i:s', $params[$field], $timezone_event);
+        $translated_date->setTimeZone($timezone_default);
+        $params[$field] = $translated_date->format('Y-m-d H:i:s');
+      }
     }
 
     $event = new CRM_Event_DAO_Event();
@@ -2433,4 +2449,23 @@ LEFT  JOIN  civicrm_price_field_value value ON ( value.id = lineItem.price_field
     return $return;
   }
 
+  public function fetch() {
+    $result = parent::fetch();
+
+    if($result) {
+      // Process time zoned fields into their own time zone
+      $timezone_event = new DateTimeZone($this->event_tz ?? date_default_timezone_get());
+      $timezone_default = new DateTimeZone(date_default_timezone_get());
+
+      foreach (self::tz_fields as $field) {
+        if (!empty($this->{$field})) {
+          $translated_date = DateTime::createFromFormat('Y-m-d H:i:s', $this->{$field}, $timezone_default);
+          $translated_date->setTimeZone($timezone_event);
+          $this->{$field} = $translated_date->format('Y-m-d H:i:s');
+        }
+      }
+    }
+
+    return $result;
+  }
 }

@@ -1213,7 +1213,7 @@ class CRM_Core_SelectValues {
       $tzlist = [];
       foreach (timezone_identifiers_list() as $tz) {
         // Actual timezone keys for PHP are mapped to translated parts.
-        $tzlist[$tz] = implode('/', array_map(explode('/', str_replace('_', ' ', $tz)), 'ts'));
+        $tzlist[$tz] = implode('/', array_map('ts', explode('/', str_replace('_', ' ', $tz))));
       }
     }
 
