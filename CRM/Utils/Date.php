@@ -2212,4 +2212,36 @@ class CRM_Utils_Date {
     return $dateObject->format($format);
   }
 
+  /**
+   * Convert a date string between time zones
+   *
+   * @param string $date - date string using $format
+   * @param string $tz_to - new time zone for date
+   * @param string $tz_from - current time zone for date
+   * @param string $format - format string specification
+   * @return string;
+   */
+  public static function convertTimeZone(string $date, string $tz_to = NULL, string $tz_from = NULL, $format = 'Y-m-d H:i:s') {
+    $tz_from = new DateTimeZone($tz_from ?? CRM_Core_Config::singleton()->userSystem->getTimeZoneString());
+    $tz_to = new DateTimeZone($tz_to ?? CRM_Core_Config::singleton()->userSystem->getTimeZoneString());
+
+    \Civi::log()->debug('$tz_from', (array) $tz_from);
+    \Civi::log()->debug('$tz_to', (array) $tz_to);
+
+    if ($tz_from == $tz_to) {
+      return $date;
+    }
+
+    $date_object = DateTime::createFromFormat($format, $date, $tz_from);
+
+    if (!$date_object) {
+      return $date;
+    }
+
+    \Civi::log()->debug('$date_object: '. json_encode($date_object, JSON_PRETTY_PRINT));
+
+    $date_object->setTimezone($tz_to);
+
+    return $date_object->format($format);
+  }
 }

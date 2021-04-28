@@ -79,20 +79,6 @@ class CRM_Event_BAO_Event extends CRM_Event_DAO_Event {
       CRM_Utils_Hook::pre('create', 'Event', NULL, $params);
     }
 
-    // Pre-process time zoned fields into the PHP time zone, which should be the same as the database, to save as timestamp.
-    $timezone_event = new DateTimeZone(
-      ($params['event_tz'] ?: (
-        !empty($params['id']) ? CRM_Core_DAO::getFieldValue('CRM_Event_DAO_Event', $params['id'], 'event_tz') : NULL)
-      ) ?? date_default_timezone_get());
-    $timezone_default = new DateTimeZone(date_default_timezone_get());
-
-    foreach(self::tz_fields as $field) {
-      if(!empty($params[$field])) {
-        $translated_date = DateTime::createFromFormat('Y-m-d H:i:s', $params[$field], $timezone_event);
-        $translated_date->setTimeZone($timezone_default);
-        $params[$field] = $translated_date->format('Y-m-d H:i:s');
-      }
-    }
 
     $event = new CRM_Event_DAO_Event();
 
@@ -1100,7 +1086,7 @@ WHERE civicrm_event.is_active = 1
                 TRUE,
                 $participantParams
               );
-              list($profileValues) = $profileValues;
+              [$profileValues] = $profileValues;
               $val = [
                 'id' => $gId,
                 'values' => $profileValues,
@@ -1114,7 +1100,7 @@ WHERE civicrm_event.is_active = 1
     }
 
     if ($values['event']['is_email_confirm'] || $returnMessageText) {
-      list($displayName, $email) = CRM_Contact_BAO_Contact_Location::getEmailDetails($contactID);
+      [$displayName, $email] = CRM_Contact_BAO_Contact_Location::getEmailDetails($contactID);
 
       //send email only when email is present
       if (isset($email) || $returnMessageText) {
@@ -1228,7 +1214,7 @@ WHERE civicrm_event.is_active = 1
         }
 
         if ($returnMessageText) {
-          list($sent, $subject, $message, $html) = CRM_Core_BAO_MessageTemplate::sendTemplate($sendTemplateParams);
+          [$sent, $subject, $message, $html] = CRM_Core_BAO_MessageTemplate::sendTemplate($sendTemplateParams);
           return [
             'subject' => $subject,
             'body' => $message,
@@ -1598,7 +1584,7 @@ WHERE civicrm_event.is_active = 1
           $values[$index] = $campaigns[$params[$name]] ?? NULL;
         }
         elseif (strpos($name, '-') !== FALSE) {
-          list($fieldName, $id) = CRM_Utils_System::explode('-', $name, 2);
+          [$fieldName, $id] = CRM_Utils_System::explode('-', $name, 2);
           $detailName = str_replace(' ', '_', $name);
           if (in_array($fieldName, [
             'state_province',
@@ -1811,7 +1797,7 @@ WHERE  id = $cfID
             $participantParams = CRM_Utils_Array::value($pId, $values['params'], []);
           }
 
-          list($profilePre, $groupTitles) = self::buildCustomDisplay($preProfileID,
+          [$profilePre, $groupTitles] = self::buildCustomDisplay($preProfileID,
             'additionalCustomPre',
             $cId,
             $template,
@@ -1829,7 +1815,7 @@ WHERE  id = $cfID
             }
           }
 
-          list($profilePost, $groupTitles) = self::buildCustomDisplay($postProfileID,
+          [$profilePost, $groupTitles] = self::buildCustomDisplay($postProfileID,
             'additionalCustomPost',
             $cId,
             $template,
@@ -2065,7 +2051,7 @@ WHERE  ce.loc_block_id = $locBlockId";
         }
         Civi::$statics[__CLASS__]['permission']['edit'][$eventId] = FALSE;
 
-        list($allEvents, $createdEvents) = self::checkPermissionGetInfo($eventId);
+        [$allEvents, $createdEvents] = self::checkPermissionGetInfo($eventId);
         // Note: for a multisite setup, a user with edit all events, can edit all events
         // including those from other sites
         if (($permissionType == CRM_Core_Permission::EDIT) && CRM_Core_Permission::check('edit all events')) {
@@ -2084,7 +2070,7 @@ WHERE  ce.loc_block_id = $locBlockId";
         }
         Civi::$statics[__CLASS__]['permission']['view'][$eventId] = FALSE;
 
-        list($allEvents, $createdEvents) = self::checkPermissionGetInfo($eventId);
+        [$allEvents, $createdEvents] = self::checkPermissionGetInfo($eventId);
         if (CRM_Core_Permission::check('access CiviEvent')) {
           if (in_array($eventId, CRM_ACL_API::group(CRM_Core_Permission::VIEW, NULL, 'civicrm_event', $allEvents, array_keys($createdEvents)))) {
             // User created this event so has permission to view it
@@ -2161,7 +2147,7 @@ WHERE  ce.loc_block_id = $locBlockId";
    */
   public static function getAllPermissions() {
     if (!isset(Civi::$statics[__CLASS__]['permissions'])) {
-      list($allEvents, $createdEvents) = self::checkPermissionGetInfo();
+      [$allEvents, $createdEvents] = self::checkPermissionGetInfo();
 
       // Note: for a multisite setup, a user with edit all events, can edit all events
       // including those from other sites
@@ -2453,19 +2439,51 @@ LEFT  JOIN  civicrm_price_field_value value ON ( value.id = lineItem.price_field
     $result = parent::fetch();
 
     if($result) {
-      // Process time zoned fields into their own time zone
-      $timezone_event = new DateTimeZone($this->event_tz ?? date_default_timezone_get());
-      $timezone_default = new DateTimeZone(date_default_timezone_get());
-
-      foreach (self::tz_fields as $field) {
-        if (!empty($this->{$field})) {
-          $translated_date = DateTime::createFromFormat('Y-m-d H:i:s', $this->{$field}, $timezone_default);
-          $translated_date->setTimeZone($timezone_event);
-          $this->{$field} = $translated_date->format('Y-m-d H:i:s');
-        }
-      }
+      // On object fetch, convert the timezone field to local time.
+      static::resetTimezones($this);
     }
 
     return $result;
   }
+
+  public static function setTimezones(CRM_Event_DAO_Event $event) {
+    // Pre-process time zoned fields into the PHP time zone, which should be the same as the database, to save as timestamp.
+    $timezone_event = ($event->event_tz ?: (!empty($event->id) ? CRM_Core_DAO::getFieldValue('CRM_Event_DAO_Event', $event->id, 'event_tz') : NULL));
+
+    foreach(self::tz_fields as $field) {
+      if(!empty($event->{$field})) {
+        $event->{$field} = CRM_Utils_Date::convertTimeZone($event->{$field}, NULL, $timezone_event);
+      }
+    }
+  }
+
+  public static function resetTimezones(CRM_Event_DAO_Event $event) {
+    // Process time zoned fields into their own time zone
+    $timezone_event = ($event->event_tz ?: (!empty($event->id) ? CRM_Core_DAO::getFieldValue('CRM_Event_DAO_Event', $event->id, 'event_tz') : NULL));
+
+    foreach (self::tz_fields as $field) {
+      if (!empty($event->{$field})) {
+        $event->{$field} = CRM_Utils_Date::convertTimeZone($event->{$field}, $timezone_event);
+      }
+    }
+  }
+
+  public static function _dao_save_preprocess($data) {
+    if ($data->object instanceof CRM_Event_DAO_Event) {
+      $event = $data->object;
+      self::setTimezones($data->object);
+    }
+  }
+
+  public static function _dao_save_postprocess($data) {
+    if ($data->object instanceof CRM_Event_DAO_Event) {
+      self::resetTimezones($data->object);
+    }
+  }
 }
+
+/* DAO listeners to force timezone conversion for all saves. Not sure if this is the best place to put these. */
+\Civi::dispatcher()->addListener('civi.dao.preInsert', ['CRM_Event_BAO_Event', '_dao_save_preprocess'], -1000);
+\Civi::dispatcher()->addListener('civi.dao.preUpdate', ['CRM_Event_BAO_Event', '_dao_save_preprocess'], -1000);
+\Civi::dispatcher()->addListener('civi.dao.postInsert', ['CRM_Event_BAO_Event', '_dao_save_postprocess'], 1000);
+\Civi::dispatcher()->addListener('civi.dao.postUpdate', ['CRM_Event_BAO_Event', '_dao_save_postprocess'], 1000);
