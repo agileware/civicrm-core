@@ -102,15 +102,16 @@
       <div class="label">{ts}When{/ts}</div>
       <div class="content">
         {strip}
-            {$event.event_start_date|crmDate}
+            <time datetime="{$event.event_start_date_utc|date_format:"%Y-%m-%dT%H:%M:%S"}Z">{$event.event_start_date|crmDate} <span class="timezone">{$event.event_tz}</span></time>
             {if $event.event_end_date}
                 &nbsp;{ts}through{/ts}&nbsp;
-                {* Only show end time if end date = start date *}
+                {* Only show end time if end date = start date *}<time datetime="{$event.event_end_date_utc|date_format:"%Y-%m-%dT%H:%M:%S"}Z">
                 {if $event.event_end_date|date_format:"%Y%m%d" == $event.event_start_date|date_format:"%Y%m%d"}
                     {$event.event_end_date|crmDate:0:1}
                 {else}
                     {$event.event_end_date|crmDate}
                 {/if}
+                <span class="timezone">{$event.event_tz}</span></time>
             {/if}
         {/strip}
       </div>
