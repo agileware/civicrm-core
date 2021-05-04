@@ -2225,9 +2225,6 @@ class CRM_Utils_Date {
     $tz_from = new DateTimeZone($tz_from ?? CRM_Core_Config::singleton()->userSystem->getTimeZoneString());
     $tz_to = new DateTimeZone($tz_to ?? CRM_Core_Config::singleton()->userSystem->getTimeZoneString());
 
-    \Civi::log()->debug('$tz_from', (array) $tz_from);
-    \Civi::log()->debug('$tz_to', (array) $tz_to);
-
     if ($tz_from == $tz_to) {
       return $date;
     }
@@ -2237,8 +2234,6 @@ class CRM_Utils_Date {
     if (!$date_object) {
       return $date;
     }
-
-    \Civi::log()->debug('$date_object: '. json_encode($date_object, JSON_PRETTY_PRINT));
 
     $date_object->setTimezone($tz_to);
 
