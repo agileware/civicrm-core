@@ -80,8 +80,11 @@ class CRM_Event_Page_EventInfo extends CRM_Core_Page {
     $this->assign('isShowLocation', CRM_Utils_Array::value('is_show_location', $values['event']));
 
     // Reset event time zone info
-    $values['event']['event_start_date_utc'] = CRM_Utils_Date::convertTimeZone($values['event']['event_start_date'], 'UTC', $values['event']['event_tz']);
-    $values['event']['event_end_date_utc'] = CRM_Utils_Date::convertTimeZone($values['event']['event_end_date'], 'UTC', $values['event']['event_tz']);
+    $values['event']['event_start_date_utc'] = CRM_Utils_Date::convertTimeZone($values['event']['event_start_date'], 'UTC');
+    $values['event']['event_start_date'] = CRM_Utils_Date::convertTimeZone($values['event']['event_start_date'], $values['event']['event_tz']);
+    $values['event']['event_end_date_utc'] = CRM_Utils_Date::convertTimeZone($values['event']['event_end_date'], 'UTC');
+    $values['event']['event_end_date'] = CRM_Utils_Date::convertTimeZone($values['event']['event_end_date'], $values['event']['event_tz']);
+
 
     // show event fees.
     if ($this->_id && !empty($values['event']['is_monetary'])) {

@@ -35,7 +35,7 @@ class CRM_Event_BAO_Event extends CRM_Event_DAO_Event {
    * @return CRM_Event_DAO_Event
    */
   public static function retrieve(&$params, &$defaults) {
-    $event = new CRM_Event_BAO_Event();
+    $event = new CRM_Event_DAO_Event();
     $event->copyValues($params);
     if ($event->find(TRUE)) {
       CRM_Core_DAO::storeValues($event, $defaults);
@@ -2438,11 +2438,6 @@ LEFT  JOIN  civicrm_price_field_value value ON ( value.id = lineItem.price_field
   public function fetch() {
     $result = parent::fetch();
 
-    if($result) {
-      // On object fetch, convert the timezone field to local time.
-      static::resetTimezones($this);
-    }
-
     return $result;
   }
 
@@ -2481,9 +2476,3 @@ LEFT  JOIN  civicrm_price_field_value value ON ( value.id = lineItem.price_field
     }
   }
 }
-
-/* DAO listeners to force timezone conversion for all saves. Not sure if this is the best place to put these. */
-\Civi::dispatcher()->addListener('civi.dao.preInsert', ['CRM_Event_BAO_Event', '_dao_save_preprocess'], -1000);
-\Civi::dispatcher()->addListener('civi.dao.preUpdate', ['CRM_Event_BAO_Event', '_dao_save_preprocess'], -1000);
-\Civi::dispatcher()->addListener('civi.dao.postInsert', ['CRM_Event_BAO_Event', '_dao_save_postprocess'], 1000);
-\Civi::dispatcher()->addListener('civi.dao.postUpdate', ['CRM_Event_BAO_Event', '_dao_save_postprocess'], 1000);
