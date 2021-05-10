@@ -15,7 +15,7 @@
  * @copyright CiviCRM LLC https://civicrm.org/licensing
  */
 class CRM_Event_BAO_Event extends CRM_Event_DAO_Event {
-  const tz_fields = ['start_date', 'end_date', 'registration_start_date', 'registration_end_date'];
+  const tz_fields = ['event_start_date', 'event_end_date', 'start_date', 'end_date', 'registration_start_date', 'registration_end_date'];
 
   /**
    * Class constructor.
@@ -2437,10 +2437,29 @@ LEFT  JOIN  civicrm_price_field_value value ON ( value.id = lineItem.price_field
     return $return;
   }
 
-  public function fetch() {
-    $result = parent::fetch();
+  /**
+   * Changes timezone-enabled fields to the correct zone for output and add local
+   * & UTC variants
+   *
+   * @param array $params
+   * @param $to_tz
+   *
+   * @return null;
+   */
+  public static function setOutputTimeZone(array &$params, $to_tz = NULL) {
+    $to_tz = $to_tz ?? ($params['event_tz'] ?? NULL);
 
-    return $result;
+    if(is_null($to_tz)) {
+      return;
+    }
+
+    foreach (CRM_Event_BAO_Event::tz_fields as $field) {
+      if (!empty($params[$field]) && empty($params[$field . '_local'])) {
+        $params[$field . '_utc'] = CRM_Utils_Date::convertTimeZone($params[$field], 'UTC');
+        $params[$field . '_local'] = $params[$field];
+        $params[$field] = CRM_Utils_Date::convertTimeZone($params[$field], $to_tz);
+      }
+    }
   }
 
   public static function setTimezones(CRM_Event_DAO_Event $event) {
