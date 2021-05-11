@@ -894,7 +894,7 @@
     <import>true</import>
     <comment>Event's native time zone</comment>
     <add>5.36</add>
-    <default>UTC</default>
+    <default>"UTC"</default>
     <html>
       <type>Select</type>
     </html>
