@@ -2483,17 +2483,4 @@ LEFT  JOIN  civicrm_price_field_value value ON ( value.id = lineItem.price_field
       }
     }
   }
-
-  public static function _dao_save_preprocess($data) {
-    if ($data->object instanceof CRM_Event_DAO_Event) {
-      $event = $data->object;
-      self::setTimezones($data->object);
-    }
-  }
-
-  public static function _dao_save_postprocess($data) {
-    if ($data->object instanceof CRM_Event_DAO_Event) {
-      self::resetTimezones($data->object);
-    }
-  }
 }
