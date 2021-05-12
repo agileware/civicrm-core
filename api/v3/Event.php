@@ -118,6 +118,7 @@ function civicrm_api3_event_get($params) {
     if (!empty($options['return']['is_full'])) {
       _civicrm_api3_event_getisfull($events, $id);
     }
+    _civicrm_api3_event_get_tz_fields($events, $id);
     _civicrm_api3_event_get_legacy_support_42($events, $id);
     if (!empty($options['return']['price_set_id'])) {
       $events[$id]['price_set_id'] = CRM_Price_BAO_PriceSet::getFor('civicrm_event', $id);
@@ -137,6 +138,21 @@ function civicrm_api3_event_get($params) {
  */
 function _civicrm_api3_event_get_spec(&$params) {
   $params['financial_type_id']['api.aliases'] = ['contribution_type_id'];
+
+  $supportedFields = CRM_Event_DAO_Event::getSupportedFields(TRUE);
+
+  foreach(CRM_Event_BAO_Event::tz_fields as $field) {
+    $dao_field = $supportedFields[$field] ?? $supportedFields[substr($field, 6)] ?? NULL;
+
+    if(!empty($params[$field]) && !empty($dao_field)) {
+      $fieldname = $field . '_with_tz';
+      $params[$fieldname] = [
+        'name' => $fieldname,
+        'title' => ts($dao_field['title'] . ' with Timezone'),
+        'add' => '5.36',
+        ] + $params[$field];
+    }
+  }
 }
 
 /**
@@ -194,6 +210,18 @@ function _civicrm_api3_event_getisfull(&$event, $event_id) {
     $event[$event_id]['available_places'] = 0;
   }
   $event[$event_id]['is_full'] = $event[$event_id]['available_places'] == 0 ? 1 : 0;
+}
+
+function _civicrm_api3_event_get_tz_fields(&$events, $event_id) {
+  $event = &$events[$event_id];
+
+  $to_tz = $event['event_tz'] ?? CRM_Core_Config::singleton()->userSystem->getTimeZoneString();
+
+  foreach(CRM_Event_BAO_Event::tz_fields as $field) {
+    if(!empty($event[$field])) {
+      $event[$field . '_with_tz'] = CRM_Utils_Date::convertTimeZone($event[$field], $to_tz);
+    }
+  }
 }
 
 /**
