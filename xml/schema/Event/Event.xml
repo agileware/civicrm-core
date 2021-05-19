@@ -130,6 +130,8 @@
     <import>true</import>
     <comment>Date and time that event starts.</comment>
     <add>1.7</add>
+    <required>false</required>
+    <default>NULL</default>
     <html>
       <type>Select Date</type>
       <formatType>activityDateTime</formatType>
@@ -144,6 +146,8 @@
     <import>true</import>
     <comment>Date and time that event ends. May be NULL if no defined end date/time</comment>
     <add>1.7</add>
+    <required>false</required>
+    <default>NULL</default>
     <html>
       <type>Select Date</type>
       <formatType>activityDateTime</formatType>
@@ -177,6 +181,8 @@
     <type>timestamp</type>
     <comment>Date and time that online registration starts.</comment>
     <add>1.8</add>
+    <required>false</required>
+    <default>NULL</default>
     <html>
       <type>Select Date</type>
       <formatType>activityDateTime</formatType>
@@ -188,6 +194,8 @@
     <type>timestamp</type>
     <comment>Date and time that online registration ends.</comment>
     <add>1.8</add>
+    <required>false</required>
+    <default>NULL</default>
     <html>
       <type>Select Date</type>
       <formatType>activityDateTime</formatType>
@@ -894,7 +902,7 @@
     <import>true</import>
     <comment>Event's native time zone</comment>
     <add>5.36</add>
-    <default>"UTC"</default>
+    <default>NULL</default>
     <html>
       <type>Select</type>
     </html>
