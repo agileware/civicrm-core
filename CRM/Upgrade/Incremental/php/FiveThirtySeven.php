@@ -76,6 +76,10 @@ class CRM_Upgrade_Incremental_php_FiveThirtySeven extends CRM_Upgrade_Incrementa
     $this->addTask('Install reCAPTCHA extension', 'installReCaptchaExtension');
   }
 
+  public function upgrade_5_37_3($rev) {
+    $this->addTask(ts('Upgrade DB to %1: SQL', [1 => $rev]), 'runSql', $rev);
+    $this->addTask('Convert Event entities to support time zones.', 'setEventTZDefault');
+  }
   //  /**
   //   * Upgrade function.
   //   *
@@ -182,4 +186,9 @@ WHERE label="Misc (Undelete, PDFs, Limits, Logging, Captcha, etc.)"
     return TRUE;
   }
 
+  public static function setEventTZDefault(CRM_Queue_TaskContext $ctx) {
+    // Set default for CiviCRM Events to user system timezone (most reasonable default);
+    $defaultTZ = CRM_Core_Config::singleton()->userSystem->getTimeZoneString();
+    CRM_Core_DAO::executeQuery('UPDATE `civicrm_event` SET `event_tz` = %1;', [1 => [$defaultTZ, 'String']]);
+  }
 }
