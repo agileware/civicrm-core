@@ -361,7 +361,7 @@ ORDER BY start_date desc
             $manageEvent[$dao->id][$field . '_with_tz'] = CRM_Utils_Date::convertTimeZone($dao->{$field} ?? '', $dao->event_tz);
           }
         }
-        $manageEvent[$dao->id]['event_tz'] = CRM_Core_SelectValues::timezone()[$dao->event_tz];
+        $manageEvent[$dao->id]['event_tz'] = $dao->event_tz ? CRM_Core_SelectValues::timezone()[$dao->event_tz] : FALSE;
 
         // form all action links
         $action = array_sum(array_keys($this->links()));
