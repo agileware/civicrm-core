@@ -31,7 +31,7 @@
                             <th>{ts}Status{/ts}</th>
                             <th>{ts}Date Added{/ts}</th>
                             {if $edit}
-                              <th></th>
+                              <th>Action</th>
                             {/if}
                         </tr>
                         {foreach from=$groupIn item=row}
@@ -67,7 +67,7 @@
                             <th>{ts}Status{/ts}</th>
                             <th>{ts}Date Pending{/ts}</th>
                             {if $edit}
-                                <th></th>
+                                <th>Action</th>
                             {/if}
                         </tr>
                         {foreach from=$groupPending item=row}
@@ -99,7 +99,7 @@
                             <th>{ts}Date Added{/ts}</th>
                             <th>{ts}Date Removed{/ts}</th>
                             {if $edit}
-                                <th></th>
+                                <th>Action</th>
                             {/if}
                         </tr>
                         {foreach from=$groupOut item=row}
