@@ -32,7 +32,6 @@
            <span class="crm-address-element location_type_id-address-element">{$form.address.$blockId.location_type_id.label}
            {$form.address.$blockId.location_type_id.html}</span>
            <span class="crm-address-element is_primary-address-element">{$form.address.$blockId.is_primary.html}</span>
-           <span class="crm-address-element is_billing-address-element">{$form.address.$blockId.is_billing.html}</span>
         </td>
      {if $blockId gt 0}
          <td>

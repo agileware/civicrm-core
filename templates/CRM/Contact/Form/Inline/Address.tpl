@@ -31,7 +31,6 @@
      <tr>
         <td>
            <span class="crm-address-element is_primary-address-element">{$form.address.$blockId.is_primary.html}</span>
-           <span class="crm-address-element is_billing-address-element">{$form.address.$blockId.is_billing.html}</span>
         </td>
      </tr>
 
