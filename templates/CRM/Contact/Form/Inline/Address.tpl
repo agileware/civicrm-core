@@ -45,7 +45,6 @@
            {foreach item=addressElement from=$addressSequence}
             {include file=CRM/Contact/Form/Edit/Address/$addressElement.tpl}
            {/foreach}
-           {include file=CRM/Contact/Form/Edit/Address/geo_code.tpl}
        </table>
       </td>
      </tr>
