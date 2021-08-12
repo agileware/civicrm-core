@@ -27,17 +27,6 @@
 <tr id="Email_Block_{$blockId}">
   <td>{$form.email.$blockId.email.html|crmAddClass:email}&nbsp;{$form.email.$blockId.location_type_id.html}
     <div class="clear"></div>
-    {if $className eq 'CRM_Contact_Form_Contact'}
-      <div class="email-signature crm-collapsible collapsed">
-        <div class="collapsible-title">
-          {ts}Signature{/ts}
-        </div>
-        <div id="signatureBlock{$blockId}">
-          {$form.email.$blockId.signature_html.label}<br/>{$form.email.$blockId.signature_html.html}<br/>
-          {$form.email.$blockId.signature_text.label}<br/>{$form.email.$blockId.signature_text.html}
-        </div>
-      </div>
-    {/if}
   </td>
   <td align="center">{$form.email.$blockId.on_hold.html}</td>
   <td align="center" id="Email-Bulkmail-html">{$form.email.$blockId.is_bulkmail.html}</td>
