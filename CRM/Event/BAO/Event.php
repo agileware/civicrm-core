@@ -2489,4 +2489,37 @@ LEFT  JOIN  civicrm_price_field_value value ON ( value.id = lineItem.price_field
     }
   }
 
+  /**
+   * Get a list of triggers for the event table.
+   *
+   * @param $info
+   * @param null $tableName
+   *
+   **/
+  public static function triggerInfo(&$info, $tableName = NULL) {
+    // Save event times as UTC in the database.
+    if (!$tableName || $tableName == 'civicrm_event') {
+      foreach(self::tz_fields as $field) {
+        $info[] = [
+          'table' => ['civicrm_event'],
+          'when' => 'BEFORE',
+          'event' => ['INSERT', 'UPDATE']
+          'sql' => "\nSET NEW.{$field} = CONVERT_TZ(NEW.{$field}, @@session.time_zone, '+00:00');\n",
+        ];
+      }
+    }
+  }
+
+  public static function saveWithTzOffset(\Civi\Core\DAO\Event\PreUpdate $preEvent) {
+    $object = &$preEvent->object;
+
+    if (is_a($object, 'CRM_Event_DAO_Event')) {
+      $tzObj = new DateTimeZone($object->event_tz);
+      $dateTime = new DateTime($object->start_date, $tzObj);
+      $object->event_tz_offset = $dateTime->format('P');
+    }
+  }
 }
+
+\Civi::dispatcher()->addListener('civi.dao.preUpdate', [ 'CRM_Event_BAO_Event', 'saveWithTzOffset' ]);
+\Civi::dispatcher()->addListener('civi.dao.preInsert', [ 'CRM_Event_BAO_Event', 'saveWithTzOffset' ]);
