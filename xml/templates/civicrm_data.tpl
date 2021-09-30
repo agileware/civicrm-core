@@ -1790,11 +1790,7 @@ VALUES
 -- Note this is a limited interim technique for installing core extensions -  the goal is that core extensions would be installed
 -- in the setup routine based on their tags & using the standard extension install api.
 -- do not try this at home folks.
-INSERT IGNORE INTO civicrm_extension (type, full_name, name, label, file, is_active) VALUES ('module', 'sequentialcreditnotes', 'Sequential credit notes', 'Sequential credit notes', 'sequentialcreditnotes', 1);
 INSERT IGNORE INTO civicrm_extension (type, full_name, name, label, file, is_active) VALUES ('module', 'greenwich', 'Theme: Greenwich', 'Theme: Greenwich', 'greenwich', 1);
-INSERT IGNORE INTO civicrm_extension (type, full_name, name, label, file, is_active) VALUES ('module', 'eventcart', 'Event cart', 'Event cart', 'eventcart', 1);
-INSERT IGNORE INTO civicrm_extension (type, full_name, name, label, file, is_active) VALUES ('module', 'financialacls', 'Financial ACLs', 'Financial ACLs', 'financialacls', 1);
-INSERT IGNORE INTO civicrm_extension (type, full_name, name, label, file, is_active) VALUES ('module', 'contributioncancelactions', 'Contribution cancel actions', 'Contribution cancel actions', 'contributioncancelactions', 1);
 INSERT IGNORE INTO civicrm_extension (type, full_name, name, label, file, is_active) VALUES ('module', 'recaptcha', 'reCAPTCHA', 'reCAPTCHA', 'recaptcha', 1);
 INSERT IGNORE INTO civicrm_extension (type, full_name, name, label, file, is_active) VALUES ('module', 'ckeditor4', 'CKEditor4', 'CKEditor4', 'ckeditor4', 1);
 INSERT IGNORE INTO civicrm_extension (type, full_name, name, label, file, is_active) VALUES ('module', 'legacycustomsearches', 'Custom search framework', 'Custom search framework', 'legacycustomsearches', 1);
