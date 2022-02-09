@@ -24,6 +24,10 @@ class CRM_Upgrade_Incremental_php_FiveThirty extends CRM_Upgrade_Incremental_Bas
     $this->addTask('Add core (required) extension Financial ACLs', 'installFinancialAcls');
   }
 
+  public function upgrade_5_30_0($rev) {
+    $this->addTask('Add bundled Mandatory Extensions extension', 'installMandatoryExtensions');
+  }
+
   /**
    * Install financialacls extension.
    *
@@ -48,6 +52,31 @@ class CRM_Upgrade_Incremental_php_FiveThirty extends CRM_Upgrade_Incremental_Bas
       'name' => 'financialacls',
       'label' => 'Financial ACLs',
       'file' => 'financialacls',
+      'schema_version' => NULL,
+      'is_active' => 1,
+    ]);
+    CRM_Core_DAO::executeQuery($insert->usingReplace()->toSQL());
+
+    return TRUE;
+  }
+
+  /**
+   * Install mandatoryextensions extension.
+   *
+   * @param \CRM_Queue_TaskContext $ctx
+   *
+   * @return bool
+   *
+   * @throws \CiviCRM_API3_Exception
+   * @throws \CRM_Core_Exception
+   */
+  public static function installMandatoryExtensions(CRM_Queue_TaskContext $ctx) {
+    $insert = CRM_Utils_SQL_Insert::into('civicrm_extension')->row([
+      'type' => 'module',
+      'full_name' => 'au.com.agileware.mandatoryextensions',
+      'name' => 'Mandatory Extensions',
+      'label' => 'Mandatory Extensions',
+      'file' => 'mandatoryextensions',
       'schema_version' => NULL,
       'is_active' => 1,
     ]);
