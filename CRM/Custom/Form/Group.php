@@ -219,19 +219,7 @@ class CRM_Custom_Form_Group extends CRM_Core_Form {
         }
       }
 
-      //allow to edit settings if custom set is empty CRM-5258
       $this->_isGroupEmpty = CRM_Core_BAO_CustomGroup::isGroupEmpty($this->_id);
-      if (!$this->_isGroupEmpty) {
-        if (!empty($this->_subtypes)) {
-          // we want to allow adding / updating subtypes for this case,
-          // and therefore freeze the first selector only.
-          $sel->_elements[0]->freeze();
-        }
-        else {
-          // freeze both the selectors
-          $sel->freeze();
-        }
-      }
       $this->assign('isCustomGroupEmpty', $this->_isGroupEmpty);
       $this->assign('gid', $this->_id);
     }
