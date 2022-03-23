@@ -857,7 +857,7 @@ class CRM_Core_Controller extends HTML_QuickForm_Controller {
   }
 
   public function invalidKeyCommon() {
-    $msg = ts("We can't load the requested web page. This page requires cookies to be enabled in your browser settings. Please check this setting and enable cookies (if they are not enabled). Then try again. If this error persists, contact the site administrator for assistance.") . '<br /><br />' . ts('Site Administrators: This error may indicate that users are accessing this page using a domain or URL other than the configured Base URL. EXAMPLE: Base URL is http://example.org, but some users are accessing the page via http://www.example.org or a domain alias like http://myotherexample.org.') . '<br /><br />' . ts('Error type: Could not find a valid session key.');
+    $msg = ts("Sorry, there has been an unexpected error. Your session has expired and we are unable to complete your form submission. If you experience continued difficulties, please contact us for assistance.");
     throw new CRM_Core_Exception($msg);
   }
 
@@ -874,7 +874,7 @@ class CRM_Core_Controller extends HTML_QuickForm_Controller {
         if (!empty($url_parts['query'])) {
           $redirect_url .= '?' . $url_parts['query'];
         }
-        CRM_Core_Session::setStatus(ts('Your browser session has expired and we are unable to complete your form submission. We have returned you to the initial step so you can complete and resubmit the form. If you experience continued difficulties, please contact us for assistance.'));
+        CRM_Core_Session::setStatus(ts('Sorry, there has been an unexpected error. Your session has expired and we are unable to complete your form submission. We have returned you to the initial step so you can complete and resubmit the form. If you experience continued difficulties, please contact us for assistance.'));
         return CRM_Utils_System::redirect($redirect_url);
       }
     }
