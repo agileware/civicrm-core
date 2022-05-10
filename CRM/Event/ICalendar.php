@@ -49,7 +49,10 @@ class CRM_Event_ICalendar {
     $info = CRM_Event_BAO_Event::getCompleteInfo($start, $type, $id, $end);
 
     $template->assign('events', $info);
-    $template->assign('timezone', @date_default_timezone_get());
+
+    $timezones =[ @date_default_timezone_get() ];
+
+    $template->assign('timezone', $timezones[0]);
 
     // Send data to the correct template for formatting (iCal vs. gData)
     if ($rss) {
@@ -61,6 +64,17 @@ class CRM_Event_ICalendar {
       $calendar = $template->fetch('CRM/Core/Calendar/GData.tpl');
     }
     else {
+      $date_min = min(
+        array_map(function($event) {
+          return strtotime($event['start_date']);
+        }, $info)
+      );
+      $date_max = max(
+        array_map(function($event) {
+          return strtotime($event['end_date'] ?? $event['start_date']);
+        }, $info)
+      );
+      $template->assign('timezones', CRM_Utils_ICalendar::generate_timezones($timezones, $date_min, $date_max));
       $calendar = $template->fetch('CRM/Core/Calendar/ICal.tpl');
       $calendar = preg_replace('/(?<!\r)\n/', "\r\n", $calendar);
     }

@@ -116,4 +116,60 @@ class CRM_Utils_ICalendar {
     echo $calendar;
   }
 
+  /**
+   * @param array $timezones - Timezone strings
+   * @param $date_min
+   * @param $date_max
+   *
+   * @return array
+   */
+  public static function generate_timezones(array $timezones, $date_min, $date_max) {
+    if (empty($timezones)) {
+      return [];
+    }
+
+    $tz_items = [];
+
+    foreach ($timezones as $tzstr) {
+        $timezone = new DateTimeZone($tzstr);
+
+        $transitions = $timezone->getTransitions($date_min, $date_max);
+
+        if (count($transitions) === 1) {
+          $transitions[] = array_values($transitions)[0];
+        }
+
+        $item = [
+          'id' => $timezone->getName(),
+          'transitions' => [],
+        ];
+
+        $last_transition = array_shift($transitions);
+
+        foreach($transitions as $transition) {
+            $item['transitions'][] = [
+              'type' => $transition['isdst'] ? 'DAYLIGHT' : 'STANDARD',
+              'offset_from' => self::format_tz_offset($last_transition['offset']),
+              'offset_to' => self::format_tz_offset($transition['offset']),
+              'abbr' => $transition['abbr'],
+              'dtstart' => date_create($transition['time'], $timezone)->format("Ymd\THis"),
+            ];
+
+          $last_transition = $transition;
+        }
+
+        $tz_items[] = $item;
+    }
+
+    return $tz_items;
+  }
+
+  protected static function format_tz_offset($offset) {
+    $offset /= 60;
+    $hours = intval($offset / 60);
+    $minutes = abs(intval($offset % 60));
+
+    return sprintf('%+03d%02d', $hours, $minutes);
+  }
+
 }
