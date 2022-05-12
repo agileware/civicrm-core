@@ -106,13 +106,6 @@ class CRM_Admin_Form_Setting extends CRM_Core_Form {
       throw new CRM_Core_Exception('Unrecognized setting. This may be a config field which has not been properly migrated to a setting. (' . implode(', ', array_keys($params)) . ')');
     }
 
-    CRM_Core_Config::clearDBCache();
-    // This doesn't make a lot of sense to me, but it maintains pre-existing behavior.
-    Civi::cache('session')->clear();
-    CRM_Utils_System::flushCache();
-    CRM_Core_Resources::singleton()->resetCacheCode();
-    $this->rebuildMenu();
-
     CRM_Core_Session::setStatus(" ", ts('Changes Saved'), "success");
   }
 
