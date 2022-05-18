@@ -28,15 +28,29 @@ class CRM_Utils_ICalendar {
    *
    * @param string $text
    *   Text to escape.
+   * @param bool $keep_html
+   *   Flag to retain HTML formatting
    *
    * @return string
    */
-  public static function formatText($text) {
-    $text = strip_tags($text);
-    $text = str_replace("\\", "\\\\", $text);
-    $text = str_replace(',', '\,', $text);
-    $text = str_replace(';', '\;', $text);
-    $text = str_replace(["\r\n", "\n", "\r"], "\\n ", $text);
+  public static function formatText($text, $keep_html = FALSE) {
+    if(!$keep_html) {
+      $text = preg_replace(
+        '{ <a [^>]+ \\b href=(?: "( [^"]+ )" | \'( [^\']+ )\' ) [^>]* > ( [^<]* ) </a> }xi',
+        '$3 ($1$2)',
+        $text
+      );
+
+      $text = strip_tags($text);
+      $text = str_replace("\\", "\\\\", $text);
+      $text = str_replace(',', '\,', $text);
+      $text = str_replace(';', '\;', $text);
+      $text = str_replace(["\r\n", "\n", "\r"], "\\n ", $text);
+    }
+    else {
+      $text = '<!DOCTYPE HTML PUBLIC ""-//W3C//DTD HTML 3.2//EN""><html><body>' . $text . '</body></html>';
+      $text = base64_encode($text);
+    }
     $text = implode("\n ", str_split($text, 50));
     return $text;
   }

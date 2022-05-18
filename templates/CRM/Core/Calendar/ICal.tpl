@@ -32,6 +32,8 @@ BEGIN:VEVENT
 UID:{$event.uid}
 SUMMARY:{$event.title|crmICalText}
 {if $event.description}
+X-ALT-DESC;FMTTYPE=text/html;ENCODING=BASE64:
+ {$event.description|crmICalText:true}
 DESCRIPTION:{$event.description|crmICalText}
 {/if}
 {if $event.event_type}
