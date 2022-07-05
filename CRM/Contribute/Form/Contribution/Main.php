@@ -99,7 +99,18 @@ class CRM_Contribute_Form_Contribution_Main extends CRM_Contribute_Form_Contribu
       CRM_Core_DAO::$_nullObject));
 
     if (!empty($this->_pcpInfo['id']) && !empty($this->_pcpInfo['intro_text'])) {
-      $this->assign('intro_text', $this->_pcpInfo['intro_text']);
+      $intro_text = $this->_pcpInfo['intro_text'];
+      // If there's no markup present in the intro_text, format according to
+      // line breaks
+      if (strpos($intro_text, '<') === FALSE) {
+        $intro_text = str_replace("\r\n", "\n", $intro_text);
+        // Convert two or more line breaks to a paragraph, leaving the extra
+        // break at the start of an odd set (trailing br in first paragraph)
+        $intro_text = preg_replace('{(?=.)(.*?) (?!\n(\n{2})* (?!\n)) (\n{2} (?=(\n{2})*)|$)}sx', "<p>\$1</p>\n", $intro_text);
+        // All remaining line breaks to br
+        $intro_text = preg_replace('{(?<!/p>)\s*(?=\n)}', '<br />', $intro_text);
+      }
+      $this->assign('intro_text', $intro_text);
     }
     elseif (!empty($this->_values['intro_text'])) {
       $this->assign('intro_text', $this->_values['intro_text']);
