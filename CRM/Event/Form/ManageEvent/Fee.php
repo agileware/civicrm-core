@@ -200,7 +200,7 @@ class CRM_Event_Form_ManageEvent_Fee extends CRM_Event_Form_ManageEvent {
     if (!isset($defaults['pay_later_text']) ||
       empty($defaults['pay_later_text'])
     ) {
-      $defaults['pay_later_text'] = ts('I will send payment by check');
+      $defaults['pay_later_text'] = ts('Send an invoice for payment');
     }
 
     $this->_showHide = new CRM_Core_ShowHideBlocks();

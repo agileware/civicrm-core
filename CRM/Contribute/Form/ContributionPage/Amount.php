@@ -204,7 +204,7 @@ class CRM_Contribute_Form_ContributionPage_Amount extends CRM_Contribute_Form_Co
     $defaults = parent::setDefaultValues();
 
     if (empty($defaults['pay_later_text'])) {
-      $defaults['pay_later_text'] = ts('I will send payment by check');
+      $defaults['pay_later_text'] = ts('Send an invoice for payment');
     }
 
     if (!empty($defaults['amount_block_is_active'])) {
