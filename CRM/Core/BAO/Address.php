@@ -297,12 +297,6 @@ class CRM_Core_BAO_Address extends CRM_Core_DAO_Address {
       $params = array_merge($params, $parsedFields);
     }
 
-    // skip_geocode is an optional parameter through the api.
-    // manual_geo_code is on the contact edit form. They do the same thing....
-    if (empty($params['skip_geocode']) && empty($params['manual_geo_code'])) {
-      self::addGeocoderData($params);
-    }
-
   }
 
   /**

@@ -89,10 +89,6 @@ class CRM_Contact_Import_Form_DataSource extends CRM_Import_Form_DataSource {
 
     CRM_Core_Form_Date::buildAllowedDateFormats($this);
 
-    if (CRM_Utils_GeocodeProvider::getUsableClassName()) {
-      $this->addElement('checkbox', 'doGeocodeAddress', ts('Geocode addresses during import?'));
-    }
-
     if (Civi::settings()->get('address_standardization_provider') === 'USPS') {
       $this->addElement('checkbox', 'disableUSPS', ts('Disable USPS address validation during import?'));
     }
