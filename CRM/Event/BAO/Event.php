@@ -2425,13 +2425,13 @@ WHERE  ce.loc_block_id = $locBlockId";
       $endDate = CRM_Core_DAO::getFieldValue('CRM_Event_DAO_Event', $eventId, 'end_date');
       if (empty($endDate) || strtotime($endDate) >= time()) {
         $return[] = [
-          'url' => CRM_Utils_System::url('civicrm/event/ical', $query, TRUE, NULL, TRUE),
+          'url' => CRM_Utils_System::url('civicrm/event/ical', $query, TRUE, NULL, TRUE,TRUE),
           'text' => ts('Download iCalendar entry for this event.'),
           'icon' => 'fa-download',
         ];
 
         $return[] = [
-          'url' => CRM_Utils_System::url('civicrm/event/ical', ['gCalendar' => 1] + $query, TRUE, NULL, TRUE),
+          'url' => CRM_Utils_System::url('civicrm/event/ical', ['gCalendar' => 1] + $query, TRUE, NULL, TRUE, TRUE),
           'text' => ts('Add event to Google Calendar'),
           'icon' => 'fa-share',
         ];
@@ -2439,7 +2439,7 @@ WHERE  ce.loc_block_id = $locBlockId";
     }
     else {
       $return[] = [
-        'url' => CRM_Utils_System::url('civicrm/event/ical', $query, TRUE, NULL, TRUE),
+        'url' => CRM_Utils_System::url('civicrm/event/ical', $query, TRUE, NULL, TRUE, TRUE),
         'text' => ts('iCalendar feed for current and future public events'),
         'icon' => 'fa-link',
       ];
