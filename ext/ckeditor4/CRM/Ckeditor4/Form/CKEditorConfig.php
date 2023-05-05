@@ -22,7 +22,7 @@ use CRM_Ckeditor4_ExtensionUtil as E;
  */
 class CRM_Ckeditor4_Form_CKEditorConfig extends CRM_Core_Form {
 
-  const CONFIG_FILEPATH = '[civicrm.files]/persist/crm-ckeditor-';
+  const CONFIG_FILEPATH = '[civicrm.files]/persist/contribute/dyn/crm-ckeditor-';
 
   /**
    * @var bool
@@ -311,8 +311,8 @@ class CRM_Ckeditor4_Form_CKEditorConfig extends CRM_Core_Form {
     if (!self::getConfigFile()) {
       $config = self::fileHeader() . "CKEDITOR.editorConfig = function( config ) {\n\tconfig.allowedContent = true;\n\tconfig.entities = false;\n};\n";
       // Make sure directories exist
-      if (!is_dir(Civi::paths()->getPath('[civicrm.files]/persist'))) {
-        mkdir(Civi::paths()->getPath('[civicrm.files]/persist'));
+      if (!is_dir(Civi::paths()->getPath('[civicrm.files]/persist/contribute/dyn'))) {
+        mkdir(Civi::paths()->getPath('[civicrm.files]/persist/contribute/dyn'));
       }
       $newFileName = Civi::paths()->getPath(self::CONFIG_FILEPATH . 'default.js');
       file_put_contents($newFileName, $config);
