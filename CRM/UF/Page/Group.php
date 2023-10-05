@@ -116,7 +116,7 @@ class CRM_UF_Page_Group extends CRM_Core_Page {
           'weight' => CRM_Core_Action::getWeight(CRM_Core_Action::COPY),
         ],
       ];
-      $allowRemoteSubmit = Civi::settings()->get('remote_profile_submissions');
+      $allowRemoteSubmit = FALSE;
       if ($allowRemoteSubmit) {
         self::$_actionLinks[CRM_Core_Action::PROFILE] = [
           'name' => ts('HTML Form Snippet'),
