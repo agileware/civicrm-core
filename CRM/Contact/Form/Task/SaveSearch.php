@@ -250,6 +250,8 @@ class CRM_Contact_Form_Task_SaveSearch extends CRM_Contact_Form_Task {
     if (empty($defaults['parents'])) {
       $defaults['parents'] = CRM_Core_BAO_Domain::getGroupId();
     }
+    $groupTypes = CRM_Core_OptionGroup::values('group_type', TRUE);
+    $defaults['group_type'][$groupTypes['Mailing List']]= 1;
     $defaults += CRM_Custom_Form_CustomData::setDefaultValues($this);
     return $defaults;
   }

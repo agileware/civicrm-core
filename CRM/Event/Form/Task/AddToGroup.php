@@ -144,6 +144,10 @@ class CRM_Event_Form_Task_AddToGroup extends CRM_Event_Form_Task {
     }
 
     $defaults['group_option'] = 0;
+
+    $groupTypes = CRM_Core_OptionGroup::values('group_type', TRUE);
+    $defaults['group_type'][$groupTypes['Mailing List']]= 1;
+
     return $defaults;
   }
 
