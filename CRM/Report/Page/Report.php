@@ -45,7 +45,7 @@ class CRM_Report_Page_Report extends CRM_Core_Page {
     }
 
     if (str_contains($templateInfo['name'] ?? '', '_Form') || !is_null($reportClass)) {
-      CRM_Utils_System::setTitle(ts('%1 - Template', [1 => $templateInfo['label']]));
+      CRM_Utils_System::setTitle($templateInfo['label'] . ' - ' . ts('Template'));
       $this->assign('reportTitle', $templateInfo['label']);
 
       $session = CRM_Core_Session::singleton();

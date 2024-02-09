@@ -153,7 +153,7 @@ class CRM_Group_Form_Edit extends CRM_Core_Form {
 
         $this->assign('group', $groupValues);
 
-        $this->setTitle(ts('Group Settings: %1', [1 => $this->_title]));
+        $this->setTitle($this->_title . ' - ' . ts('Group Settings'));
       }
       $session = CRM_Core_Session::singleton();
       $session->pushUserContext(CRM_Utils_System::url('civicrm/group', 'reset=1'));

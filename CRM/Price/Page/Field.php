@@ -283,7 +283,7 @@ class CRM_Price_Page_Field extends CRM_Core_Page {
       $groupTitle = CRM_Price_BAO_PriceSet::getTitle($this->_sid);
       $this->assign('sid', $this->_sid);
       $this->assign('groupTitle', $groupTitle);
-      CRM_Utils_System::setTitle(ts('%1 - Price Fields', [1 => $groupTitle]));
+      CRM_Utils_System::setTitle($groupTitle . ' - ' . ts('Price Fields'));
     }
 
     // assign vars to templates

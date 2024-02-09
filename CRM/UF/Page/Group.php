@@ -169,7 +169,7 @@ class CRM_UF_Page_Group extends CRM_Core_Page {
       }
       elseif ($action & CRM_Core_Action::PROFILE) {
         $this->profile();
-        CRM_Utils_System::setTitle(ts('%1 - HTML Form Snippet', [1 => $this->_title]));
+        CRM_Utils_System::setTitle($this->_title . ' - ' . ts('HTML Form Snippet'));
       }
       elseif ($action & CRM_Core_Action::PREVIEW) {
         $this->preview($id, $action);

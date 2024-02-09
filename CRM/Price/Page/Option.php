@@ -283,7 +283,7 @@ class CRM_Price_Page_Option extends CRM_Core_Page {
       $fieldTitle = CRM_Price_BAO_PriceField::getTitle($this->_fid);
       $this->assign('fid', $this->_fid);
       $this->assign('fieldTitle', $fieldTitle);
-      CRM_Utils_System::setTitle(ts('%1 - Price Options', [1 => $fieldTitle]));
+      CRM_Utils_System::setTitle($fieldTitle . ' - ' . ts('Price Options'));
 
       $htmlType = CRM_Core_DAO::getFieldValue('CRM_Price_BAO_PriceField', $this->_fid, 'html_type');
       $this->assign('addMoreFields', TRUE);

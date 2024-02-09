@@ -229,7 +229,7 @@ class CRM_UF_Page_Field extends CRM_Core_Page {
       $groupTitle = CRM_Core_BAO_UFGroup::getTitle($this->_gid);
       $this->assign('gid', $this->_gid);
       $this->assign('groupTitle', $groupTitle);
-      CRM_Utils_System::setTitle(ts('%1 - CiviCRM Profile Fields', [1 => $groupTitle]));
+      CRM_Utils_System::setTitle($groupTitle . ' - ' . ts('Profile Fields'));
     }
 
     // get the requested action

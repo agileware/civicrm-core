@@ -33,7 +33,7 @@ class CRM_Event_Page_ParticipantListing_NameStatusAndDate extends CRM_Core_Page 
       'participant_listing_id'
     );
     if (!$this->_participantListingID) {
-      CRM_Core_Error::statusBounce(ts("The Participant Listing feature is not currently enabled for this event."));
+      CRM_Core_Error::statusBounce(ts('The Participant Listing feature is not currently enabled for this event.'));
     }
 
     // retrieve Event Title and include it in page title
@@ -41,7 +41,7 @@ class CRM_Event_Page_ParticipantListing_NameStatusAndDate extends CRM_Core_Page 
       $this->_id,
       'title'
     );
-    CRM_Utils_System::setTitle(ts('%1 - Participants', [1 => $this->_eventTitle]));
+    CRM_Utils_System::setTitle($this->_eventTitle . ' - ' . ts('Participants'));
 
     // we do not want to display recently viewed contacts since this is potentially a public page
     $this->assign('displayRecent', FALSE);

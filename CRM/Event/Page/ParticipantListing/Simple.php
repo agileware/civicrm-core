@@ -35,7 +35,7 @@ class CRM_Event_Page_ParticipantListing_Simple extends CRM_Core_Page {
       $this->_id,
       'title'
     );
-    CRM_Utils_System::setTitle(ts('%1 - Participants', [1 => $this->_eventTitle]));
+    CRM_Utils_System::setTitle($this->_eventTitle . ' - ' . ts('Participants'));
 
     // we do not want to display recently viewed contacts since this is potentially a public page
     $this->assign('displayRecent', FALSE);
