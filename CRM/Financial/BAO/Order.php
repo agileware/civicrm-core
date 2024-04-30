@@ -471,6 +471,13 @@ class CRM_Financial_BAO_Order {
         $this->setPriceSetIDFromSelectedField($fieldID);
       }
     }
+
+    if (!$this->priceSetID) {
+      $error_msg = 'Failure: Unable to look up Price Set ID for Price Options: ' . json_encode($this->getPriceOptions());
+      Civi::log()->debug($error_msg);
+      throw new CRM_Core_Exception($error_msg);
+    }
+
     return $this->priceSetID;
   }
 
