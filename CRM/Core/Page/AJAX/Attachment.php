@@ -25,8 +25,8 @@
  */
 class CRM_Core_Page_AJAX_Attachment {
 
-  // 3hr; 3*60*60
-  const ATTACHMENT_TOKEN_TTL = 10800;
+  // 8 hours; 8*60*60 - an average work day
+  const ATTACHMENT_TOKEN_TTL = 28800;
 
   /**
    * (Page Callback)
@@ -52,7 +52,7 @@ class CRM_Core_Page_AJAX_Attachment {
     foreach ($files as $key => $file) {
       if (!$config->debug && !self::checkToken($post['crm_attachment_token'])) {
         require_once 'api/v3/utils.php';
-        $results[$key] = civicrm_api3_create_error("SECURITY ALERT: Attaching files via AJAX requires a recent, valid token.",
+        $results[$key] = civicrm_api3_create_error("Upload failed due to an expired security token. Please reload this page and try again.",
           [
             'IP' => CRM_Utils_System::ipAddress(),
             'level' => 'security',
@@ -146,7 +146,7 @@ class CRM_Core_Page_AJAX_Attachment {
    */
   public static function createToken() {
     $signer = new CRM_Utils_Signer(CRM_Core_Key::privateKey(), ['for', 'ts']);
-    $ts = CRM_Utils_Time::getTimeRaw();
+    $ts = CRM_Utils_Time::time();
     return $signer->sign([
       'for' => 'crmAttachment',
       'ts' => $ts,
@@ -163,7 +163,7 @@ class CRM_Core_Page_AJAX_Attachment {
   public static function checkToken($token) {
     list ($signature, $ts) = explode(';;;', $token);
     $signer = new CRM_Utils_Signer(CRM_Core_Key::privateKey(), ['for', 'ts']);
-    if (!is_numeric($ts) || CRM_Utils_Time::getTimeRaw() > $ts + self::ATTACHMENT_TOKEN_TTL) {
+    if (!is_numeric($ts) || CRM_Utils_Time::time() > $ts + self::ATTACHMENT_TOKEN_TTL) {
       return FALSE;
     }
     return $signer->validate($signature, [

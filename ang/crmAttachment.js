@@ -24,7 +24,7 @@
         },
         onErrorItem: function onErrorItem(item, response, status, headers) {
           var msg = (response && response.file && response.file.error_message) ? response.file.error_message : ts('Unknown error');
-          CRM.alert(item.file.name + ' - ' + msg, ts('Attachment failed'));
+          CRM.alert(item.file.name + ' - ' + msg, ts('File attachment upload failed'));
           crmAttachments.uploader.removeFromQueue(item);
         }
       });
