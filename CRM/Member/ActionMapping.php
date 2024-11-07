@@ -152,21 +152,19 @@ class CRM_Member_ActionMapping extends \Civi\ActionSchedule\MappingBase {
   }
 
   /**
-   * Filter out the memberships that are inherited from a contact that the
-   * recipient cannot edit.
+   * Filter out the memberships that are inherited from a contact that are not active
    *
    * @return CRM_Utils_SQL_Select
    */
   protected function prepareMembershipPermissionsFilter() {
     $joins = [
       'cm' => 'LEFT JOIN civicrm_membership cm ON cm.id = e.owner_membership_id',
-      'rela' => 'LEFT JOIN civicrm_relationship rela ON rela.contact_id_a = e.contact_id AND rela.contact_id_b = cm.contact_id AND rela.is_permission_a_b = #editPerm',
-      'relb' => 'LEFT JOIN civicrm_relationship relb ON relb.contact_id_a = cm.contact_id AND relb.contact_id_b = e.contact_id AND relb.is_permission_b_a = #editPerm',
+      'rela' => 'LEFT JOIN civicrm_relationship rela ON rela.contact_id_a = e.contact_id AND rela.contact_id_b = cm.contact_id AND rela.is_active = 1',
+      'relb' => 'LEFT JOIN civicrm_relationship relb ON relb.contact_id_a = cm.contact_id AND relb.contact_id_b = e.contact_id AND relb.is_active = 1',
     ];
 
     return \CRM_Utils_SQL_Select::fragment()
       ->join(NULL, $joins)
-      ->param('#editPerm', CRM_Contact_BAO_Relationship::EDIT)
       ->where('!( e.owner_membership_id IS NOT NULL AND rela.id IS NULL and relb.id IS NULL )');
   }
 
