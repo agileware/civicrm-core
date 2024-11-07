@@ -169,6 +169,7 @@ class RecipientBuilder {
       ->where("reminder.id IS NULL")
       ->where($startDateClauses)
       ->strict()
+      ->distinct()
       ->toSQL();
     \CRM_Core_DAO::executeQuery($firstInstanceQuery);
   }
