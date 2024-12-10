@@ -46,7 +46,7 @@ class CRM_ACL_Page_EntityRole extends CRM_Core_Page_Basic {
       ],
     ];
     CRM_Utils_System::appendBreadCrumb($breadCrumb);
-    CRM_Utils_System::setTitle(ts('Assign Users to Roles'));
+    CRM_Utils_System::setTitle(ts('Settings - Assign Users to Roles'));
 
     // what action to take ?
     if ($this->_action & (CRM_Core_Action::UPDATE | CRM_Core_Action::ADD | CRM_Core_Action::DELETE)) {

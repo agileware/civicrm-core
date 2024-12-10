@@ -192,7 +192,7 @@ class CRM_ACL_Page_ACL extends CRM_Core_Page_Basic {
     if ($mode & (CRM_Core_Action::UPDATE)) {
       if (isset($id)) {
         $aclName = CRM_Core_DAO::getFieldValue('CRM_ACL_DAO_ACL', $id);
-        CRM_Utils_System::setTitle(ts('Edit ACL &ndash; %1', [1 => $aclName]));
+        CRM_Utils_System::setTitle(ts('%1 - Edit ACL', [1 => $aclName]));
       }
     }
     parent::edit($mode, $id, $imageUpload, $pushUserContext);

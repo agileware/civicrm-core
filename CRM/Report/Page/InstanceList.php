@@ -207,9 +207,9 @@ class CRM_Report_Page_InstanceList extends CRM_Core_Page {
     $this->assign('list', $rows);
     if ($this->ovID or $this->compID) {
       // link to view all reports
-      $reportUrl = CRM_Utils_System::url('civicrm/report/list', "reset=1");
+      $reportUrl = CRM_Utils_System::url('civicrm/report/list', 'reset=1');
       if (!$this->ovID) {
-        CRM_Utils_System::setTitle(ts('%1 Reports', [1 => $this->_compName]));
+        CRM_Utils_System::setTitle(ts('%1 - Reports', [1 => $this->_compName]));
       }
     }
     $this->assign('reportUrl', $reportUrl ?? FALSE);
@@ -221,7 +221,7 @@ class CRM_Report_Page_InstanceList extends CRM_Core_Page {
       }
       else {
         $newButton = ts('New Report');
-        $templateUrl = CRM_Utils_System::url('civicrm/report/template/list', "reset=1");
+        $templateUrl = CRM_Utils_System::url('civicrm/report/template/list', 'reset=1');
       }
       $this->assign('newButton', $newButton);
       $this->assign('compName', $this->_compName);

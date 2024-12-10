@@ -30,7 +30,7 @@ class CRM_ACL_Form_WordPress_Permissions extends CRM_Core_Form {
    */
   public function buildQuickForm() {
 
-    $this->setTitle(ts('WordPress Access Control'));
+    $this->setTitle(ts('Settings - WordPress Access Control'));
 
     // Get the core permissions array
     $permissionsArray = self::getPermissionArray();

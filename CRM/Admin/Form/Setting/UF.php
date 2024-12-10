@@ -34,9 +34,7 @@ class CRM_Admin_Form_Setting_UF extends CRM_Admin_Form_Setting {
     $this->assign('userFrameworkUsersTableNameEnabled', FALSE);
     $this->assign('viewsIntegration', FALSE);
 
-    $this->setTitle(
-      ts('Settings - %1 Integration', [1 => $this->_uf])
-    );
+    $this->setTitle(ts('Settings - %1 Integration', [1 => $this->_uf]));
 
     if ($config->userSystem->canSetBasePage()) {
       $this->_settings['wpBasePage'] = CRM_Core_BAO_Setting::SYSTEM_PREFERENCES_NAME;

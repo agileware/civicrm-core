@@ -181,6 +181,7 @@ class CRM_Custom_Page_Field extends CRM_Core_Page {
     $groupTitle = CRM_Core_BAO_CustomGroup::getTitle($this->_gid);
     $this->assign('gid', $this->_gid);
     $this->assign('groupTitle', $groupTitle);
+    CRM_Utils_System::setTitle($groupTitle. ' - ' . ts('Custom Fields'));
 
     // assign vars to templates
     $this->assign('action', 'browse');

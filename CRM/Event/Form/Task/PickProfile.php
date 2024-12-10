@@ -51,7 +51,7 @@ class CRM_Event_Form_Task_PickProfile extends CRM_Event_Form_Task {
     $session = CRM_Core_Session::singleton();
     $this->_userContext = $session->readUserContext();
 
-    $this->setTitle(ts('Update multiple participants'));
+    $this->setTitle(ts('Update Multiple Participants'));
 
     $validate = FALSE;
     //validations
