@@ -121,7 +121,7 @@ class CRM_Utils_Mail_EmailProcessor {
         try {
           $incomingMail = new CRM_Utils_Mail_IncomingMail($mail, (string) $dao->domain, (string) $dao->localpart);
         }
-        catch (CRM_Core_Exception $e) {
+        catch (Exception $e) {
           $store->markIgnored($key);
           continue;
         }
