@@ -98,7 +98,7 @@ class CRM_Admin_Page_Options extends CRM_Core_Page_Basic {
     }
 
     if (self::$_gName == 'acl_role') {
-      CRM_Utils_System::setTitle(ts('Manage ACL Roles'));
+      CRM_Utils_System::setTitle(ts('Settings - Manage ACL Roles'));
       // set breadcrumb to append to admin/access
       $breadCrumb = [
         [
@@ -109,7 +109,7 @@ class CRM_Admin_Page_Options extends CRM_Core_Page_Basic {
       CRM_Utils_System::appendBreadCrumb($breadCrumb);
     }
     else {
-      CRM_Utils_System::setTitle(ts("%1 Options", [1 => self::$_gLabel]));
+      CRM_Utils_System::setTitle(ts('%1 - Options',[1 => self::$_gLabel]));
     }
     $this->assign('showIsDefault', in_array(self::$_gName,
       [

@@ -40,7 +40,7 @@ class CRM_Admin_Form_OptionGroup extends CRM_Admin_Form {
     if ($this->_action & CRM_Core_Action::DELETE) {
       return;
     }
-    $this->setTitle(ts('Dropdown Options'));
+    $this->setTitle(ts('Settings - Dropdown Options'));
 
     $this->applyFilter('__ALL__', 'trim');
 

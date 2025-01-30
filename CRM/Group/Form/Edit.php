@@ -117,7 +117,7 @@ class CRM_Group_Form_Edit extends CRM_Core_Form {
         }
         $this->assign('count', $count ?? NULL);
         $this->assign('smartGroupsUsingThisGroup', CRM_Contact_BAO_SavedSearch::getSmartGroupsUsingGroup($this->_id));
-        $this->setTitle(ts('Confirm Group Delete'));
+        $this->setTitle(ts('%1 - Confirm Group Delete', [1 => $this->_groupValues['title']]));
       }
       if ($this->_groupValues['is_reserved'] == 1 && !CRM_Core_Permission::check('administer reserved groups')) {
         CRM_Core_Error::statusBounce(ts('You do not have sufficient permission to delete this reserved group.'));
@@ -139,7 +139,7 @@ class CRM_Group_Form_Edit extends CRM_Core_Form {
 
         $this->assign('group', $groupValues);
 
-        $this->setTitle(ts('Group Settings: %1', [1 => $this->_groupValues['title']]));
+        $this->setTitle(ts('%1 - Group Settings', [1 => $this->_groupValues['title']]));
       }
       $session = CRM_Core_Session::singleton();
       $session->pushUserContext(CRM_Utils_System::url('civicrm/group', 'reset=1'));

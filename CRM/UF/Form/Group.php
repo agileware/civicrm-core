@@ -100,7 +100,7 @@ class CRM_UF_Form_Group extends CRM_Core_Form {
 
     // setting title for html page
     if ($this->_action & CRM_Core_Action::UPDATE) {
-      $this->setTitle(ts('Profile Settings') . " - $title");
+      $this->setTitle(ts('%1 - Profile Settings', [1 => $title]));
     }
     elseif ($this->_action & (CRM_Core_Action::DISABLE | CRM_Core_Action::DELETE)) {
       $ufGroup['module'] = implode(' , ', CRM_Core_BAO_UFGroup::getUFJoinRecord($this->_id, TRUE));
@@ -125,7 +125,7 @@ class CRM_UF_Form_Group extends CRM_Core_Form {
       $this->assign('message', $message);
     }
     else {
-      $this->setTitle(ts('New CiviCRM Profile'));
+      $this->setTitle(ts('New Profile'));
     }
   }
 

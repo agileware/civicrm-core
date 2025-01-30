@@ -88,7 +88,7 @@ class CRM_Event_Form_Participant_Delete extends CRM_Core_Form {
    */
   public function preProcess(): void {
     $this->setAction(CRM_Core_Action::DELETE);
-    $this->setTitle(ts('Delete participant record for %1', [1 => $this->getContactValue('display_name')]));
+    $this->setTitle(ts('Delete Participant Record for %1', [1 => $this->getContactValue('display_name')]));
     $contributionID = CRM_Core_DAO::getFieldValue('CRM_Event_DAO_ParticipantPayment',
       $this->getParticipantID(), 'contribution_id', 'participant_id'
     );
