@@ -844,7 +844,7 @@ GROUP BY    currency
 
     // FIXME: calculate % using query
     foreach ($rows as $uid => $row) {
-      if ($row['contribution1_total_amount_sum'] &&
+      if ($row['contribution1_total_amount_sum'] != 0 && $row['contribution1_total_amount_sum'] &&
         $row['contribution2_total_amount_sum']
       ) {
         $rows[$uid]['change'] = number_format((($row['contribution2_total_amount_sum'] -
