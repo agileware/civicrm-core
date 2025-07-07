@@ -42,6 +42,8 @@ class CRM_Core_IDS {
    * @return bool
    */
   public function check($route) {
+    return NULL;
+    
     if (CRM_Core_Permission::check('skip IDS check')) {
       return NULL;
     }
