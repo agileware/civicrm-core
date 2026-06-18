@@ -91,13 +91,6 @@ class DefaultSender extends AutoService {
             $task->setMailParams([]);
             continue;
           }
-
-          // seems like we have too many of them in a row, we should
-          // write stuff to disk and abort the cron job
-          $job->writeToDB($deliveredParams, $targetParams, $mailing, $job_date);
-
-          \CRM_Core_Error::debug_log_message("Too many SMTP Socket Errors. Exiting");
-          \CRM_Utils_System::civiExit();
         }
         else {
           $this->recordBounce($job, $task, $result->getMessage());
